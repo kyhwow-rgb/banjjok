@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반쪽 - 내 대시보드</title>
+<style>
+    :root {
+        --primary:#7c3aed; --primary-light:#ede9fe;
+        --female:#ec4899; --female-light:#fce7f3;
+        --bg:#f5f3ff; --text:#1f2937; --muted:#6b7280;
+        --border:#e5e7eb; --radius:16px;
+        --shadow:0 4px 24px rgba(124,58,237,0.08);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* LOADING */
+    #loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.85); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:9999; }
+    #loading-overlay.hide { display:none; }
+    .spinner { width:40px; height:40px; border:4px solid #ede9fe; border-top-color:var(--primary); border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* NAVBAR */
+    .navbar { background:white; padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:62px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    .navbar-brand { font-size:1.15em; font-weight:800; background:linear-gradient(135deg,#7c3aed,#ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; cursor:pointer; }
+    .navbar-email { font-size:.8em; color:var(--muted); }
+    .btn { padding:10px 20px; border-radius:12px; border:none; cursor:pointer; font-size:.9em; font-family:inherit; font-weight:600; transition:all .15s; }
+    .btn-nav { background:transparent; color:var(--muted); padding:8px 14px; font-size:.85em; }
+    .btn-nav:hover { background:#f3f4f6; }
+    .btn-primary { background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; }
+    .btn-primary:hover { opacity:.9; }
+    .btn-outline { background:white; color:var(--primary); border:2px solid var(--primary); }
+
+    /* LAYOUT */
+    .page { max-width:720px; margin:0 auto; padding:28px 20px 60px; display:flex; flex-direction:column; gap:24px; }
+    .section-card { background:white; border-radius:20px; box-shadow:var(--shadow); overflow:hidden; }
+    .section-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .section-title { font-size:1em; font-weight:800; color:var(--text); }
+    .section-body { padding:20px 24px; }
+
+    /* SCORE */
+    .score-wrap { display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+    .score-gem { font-size:2.4em; line-height:1; }
+    .score-gem.max { animation:gem-pulse 1.5s ease-in-out infinite; }
+    @keyframes gem-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+    .score-info { flex:1; }
+    .score-pct-text { font-size:1.2em; font-weight:800; color:var(--primary); }
+    .score-msg { font-size:.8em; color:var(--muted); margin-top:2px; }
+    .score-bar-bg { height:10px; background:#ede9fe; border-radius:10px; overflow:hidden; }
+    .score-bar-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#ec4899); border-radius:10px; transition:width .6s ease; }
+
+    /* PROFILE GRID */
+    .profile-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+    .profile-item { background:var(--bg); border-radius:12px; padding:12px 14px; }
+    .profile-label { font-size:.72em; color:var(--muted); font-weight:600; margin-bottom:3px; }
+    .profile-value { font-size:.92em; font-weight:700; color:var(--text); }
+    .profile-empty { text-align:center; padding:24px; color:var(--muted); font-size:.9em; }
+    .profile-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .tag { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.75em; font-weight:700; background:var(--primary-light); color:var(--primary); }
+
+    /* FAVORITES */
+    .fav-list { display:flex; flex-direction:column; gap:10px; }
+    .fav-item { display:flex; align-items:center; gap:14px; padding:12px; background:var(--bg); border-radius:14px; }
+    .fav-photo { width:52px; height:52px; border-radius:12px; object-fit:cover; filter:blur(6px); flex-shrink:0; background:#ede9fe; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; }
+    .fav-photo img { width:100%; height:100%; object-fit:cover; filter:blur(6px); }
+    .fav-info { flex:1; }
+    .fav-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+    .fav-tag { font-size:.7em; color:var(--primary); font-weight:700; background:var(--primary-light); padding:2px 8px; border-radius:8px; }
+    .fav-empty { text-align:center; padding:32px; color:var(--muted); font-size:.9em; }
+    .btn-unfav { background:none; border:none; cursor:pointer; font-size:1.1em; color:#9ca3af; padding:4px 8px; }
+    .btn-unfav:hover { color:#ef4444; }
+
+    /* NO PROFILE PROMPT */
+    .no-profile { text-align:center; padding:28px; }
+    .no-profile-title { font-size:1em; font-weight:700; margin-bottom:8px; }
+    .no-profile-sub { font-size:.85em; color:var(--muted); margin-bottom:20px; }
+
+    .site-footer { text-align:center; padding:24px 16px 16px; color:#c4b5fd; font-size:.75em; letter-spacing:.04em; }
+
+    /* WEIGHT SLIDERS */
+    .weight-row { display:flex; flex-direction:column; gap:14px; }
+    .weight-item { display:flex; flex-direction:column; gap:6px; }
+    .weight-header { display:flex; justify-content:space-between; align-items:center; font-size:.85em; font-weight:700; }
+    .weight-pct { color:var(--primary); font-size:.95em; min-width:36px; text-align:right; }
+    .weight-bar-wrap { position:relative; }
+    input[type="range"].weight-slider {
+        width:100%; height:6px; border-radius:6px; appearance:none; -webkit-appearance:none;
+        background:#ede9fe; cursor:pointer; outline:none;
+    }
+    input[type="range"].weight-slider::-webkit-slider-thumb {
+        appearance:none; -webkit-appearance:none;
+        width:20px; height:20px; border-radius:50%; background:var(--primary);
+        box-shadow:0 2px 6px rgba(124,58,237,.35); cursor:pointer;
+    }
+    .weight-total-row { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+    .weight-total-text { font-size:.8em; color:var(--muted); }
+    .weight-total-num { font-size:.88em; font-weight:800; }
+    .weight-total-num.ok { color:#10b981; }
+    .weight-total-num.over { color:#ef4444; }
+
+    /* MATCH LIST */
+    .match-list { display:flex; flex-direction:column; gap:10px; }
+    .match-item { display:flex; align-items:center; gap:14px; padding:12px; background:var(--bg); border-radius:14px; }
+    .match-rank { font-size:1.1em; font-weight:900; color:var(--primary); width:28px; text-align:center; flex-shrink:0; }
+    .match-photo { width:52px; height:52px; border-radius:12px; object-fit:cover; flex-shrink:0; background:#ede9fe; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; }
+    .match-photo img { width:100%; height:100%; object-fit:cover; filter:blur(6px); }
+    .match-info { flex:1; }
+    .match-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+    .match-tag { font-size:.7em; color:var(--primary); font-weight:700; background:var(--primary-light); padding:2px 8px; border-radius:8px; }
+    .match-score-badge { flex-shrink:0; text-align:center; }
+    .match-score-num { font-size:1.15em; font-weight:900; color:var(--primary); }
+    .match-score-label { font-size:.65em; color:var(--muted); }
+    .btn-fav { background:none; border:none; cursor:pointer; font-size:1.3em; padding:4px 6px; line-height:1; flex-shrink:0; transition:transform .15s; }
+    .btn-fav:hover { transform:scale(1.2); }
+    .match-empty { text-align:center; padding:32px; color:var(--muted); font-size:.9em; }
+    .match-no-profile { text-align:center; padding:24px; color:var(--muted); font-size:.88em; }
+
+    @media(max-width:480px) {
+        .profile-grid { grid-template-columns:1fr; }
+        .page { padding:20px 14px 50px; }
+    }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+    <div class="spinner"></div>
+</div>
+
+<div class="navbar">
+    <div class="navbar-brand" onclick="window.location.href='index.html'">반쪽</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <span class="navbar-email" id="user-email"></span>
+        <button class="btn btn-nav" onclick="doLogout()">로그아웃</button>
+    </div>
+</div>
+
+<div class="page">
+
+    <!-- ── 내 보석 상태 ── -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">💎 내 보석 상태</div>
+            <a href="index.html#register" id="edit-profile-btn" style="display:none;">
+                <button class="btn btn-outline" style="padding:7px 16px;font-size:.82em;">신청서 수정</button>
+            </a>
+        </div>
+        <div class="section-body" id="profile-section">
+            <!-- JS로 채움 -->
+        </div>
+    </div>
+
+    <!-- ── 매칭 가중치 설정 ── -->
+    <div class="section-card" id="weights-card" style="display:none;">
+        <div class="section-header">
+            <div class="section-title">⚖️ 나의 매칭 우선순위</div>
+            <button class="btn btn-outline" id="save-weights-btn" onclick="saveWeights()" style="padding:7px 16px;font-size:.82em;">저장</button>
+        </div>
+        <div class="section-body">
+            <div style="font-size:.82em;color:var(--muted);margin-bottom:16px;">세 항목 합계가 100%가 되도록 조절해주세요. 추천 순위에 반영됩니다.</div>
+            <div class="weight-row">
+                <div class="weight-item">
+                    <div class="weight-header"><span>📏 키</span><span class="weight-pct" id="w-height-pct">34%</span></div>
+                    <input type="range" class="weight-slider" id="w-height" min="0" max="100" value="34" oninput="onWeightChange('height')">
+                </div>
+                <div class="weight-item">
+                    <div class="weight-header"><span>✨ 외모</span><span class="weight-pct" id="w-looks-pct">33%</span></div>
+                    <input type="range" class="weight-slider" id="w-looks" min="0" max="100" value="33" oninput="onWeightChange('looks')">
+                </div>
+                <div class="weight-item">
+                    <div class="weight-header"><span>💼 직업</span><span class="weight-pct" id="w-job-pct">33%</span></div>
+                    <input type="range" class="weight-slider" id="w-job" min="0" max="100" value="33" oninput="onWeightChange('job')">
+                </div>
+            </div>
+            <div class="weight-total-row">
+                <span class="weight-total-text">현재 합계</span>
+                <span class="weight-total-num ok" id="weight-total">100%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 추천 반쪽 순위 ── -->
+    <div class="section-card" id="match-ranking-card" style="display:none;">
+        <div class="section-header">
+            <div class="section-title">💘 추천 반쪽 순위</div>
+            <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+        </div>
+        <div class="section-body" id="match-ranking-section">
+            <!-- JS로 채움 -->
+        </div>
+    </div>
+
+    <!-- ── 나의 보석함 ── -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">💝 나의 보석함</div>
+            <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+        </div>
+        <div class="section-body" id="favorites-section">
+            <!-- JS로 채움 -->
+        </div>
+    </div>
+
+</div>
+
+<div class="site-footer">Designed &amp; Developed by Kang</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+'use strict';
+
+const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function setLoading(on) {
+    document.getElementById('loading-overlay').classList.toggle('hide', !on);
+}
+
+function calcAge(birth) {
+    if (!birth) return null;
+    const b = new Date(birth), today = new Date();
+    let age = today.getFullYear() - b.getFullYear();
+    if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
+    return age;
+}
+
+function calcScore(p) {
+    const fields = ['name','birth','job','height','location','mbti','kakao','intro','education','contact','referral'];
+    let score = 0;
+    if (p.gender) score += 10;
+    fields.forEach(f => { if (p[f]) score += 10; });
+    if (p.photos && p.photos.length > 0) score += 10;
+    const max = fields.length * 10 + 10 + 10 + 14 * 5;
+    return { pct: Math.min(100, Math.round((score / max) * 100)), score };
+}
+
+// ── 매칭 점수 계산 ──
+function calcHeightScore(height, gender) {
+    if (!height) return 50;
+    height = parseInt(height);
+    if (gender === 'male') {
+        if (height >= 185) return 95;
+        if (height >= 180) return 85;
+        if (height >= 175) return 75;
+        if (height >= 170) return 60;
+        if (height >= 165) return 45;
+        return 30;
+    } else {
+        if (height >= 168) return 90;
+        if (height >= 163) return 80;
+        if (height >= 158) return 70;
+        if (height >= 153) return 55;
+        return 40;
+    }
+}
+const JOB_SCORES = { '전문직':95, '사업가':85, 'IT/개발':80, '공무원/공기업':78, '일반직장인':65, '자영업':55, '학생':40, '기타':30 };
+function calcJobScore(jc) { return JOB_SCORES[jc] || 50; }
+function calcMatchScore(viewer, candidate) {
+    let w = { height:34, looks:33, job:33 };
+    if (viewer.ideal_weights) { try { w = JSON.parse(viewer.ideal_weights); } catch {} }
+    const total = (w.height||0) + (w.looks||0) + (w.job||0);
+    if (total === 0) return 50;
+    const h = calcHeightScore(candidate.height, candidate.gender);
+    const l = candidate.look_score || 50;
+    const j = calcJobScore(candidate.job_category);
+    return Math.round((h*(w.height||0) + l*(w.looks||0) + j*(w.job||0)) / total);
+}
+
+function gemIcon(pct) {
+    if (pct >= 96) return { icon:'💎', filter:'none', cls:'max' };
+    if (pct >= 70) return { icon:'💎', filter:'none', cls:'' };
+    if (pct >= 45) return { icon:'💎', filter:'grayscale(30%) opacity(.8)', cls:'' };
+    if (pct >= 20) return { icon:'💎', filter:'grayscale(60%) opacity(.6)', cls:'' };
+    return { icon:'💎', filter:'grayscale(100%) opacity(.4)', cls:'' };
+}
+
+function renderProfile(p) {
+    const sec = document.getElementById('profile-section');
+    if (!p) {
+        sec.innerHTML = `
+            <div class="no-profile">
+                <div class="no-profile-title">아직 신청서가 없어요</div>
+                <div class="no-profile-sub">소개팅 신청서를 작성하면 보석 순도가 올라가요!</div>
+                <a href="index.html"><button class="btn btn-primary">신청서 작성하기</button></a>
+            </div>`;
+        return;
+    }
+    document.getElementById('edit-profile-btn').style.display = '';
+    const { pct } = calcScore(p);
+    const age = calcAge(p.birth);
+    const gem = gemIcon(pct);
+    const scoreMsg = pct >= 96 ? '완벽한 보석이에요! ✨' : pct >= 70 ? '멋진 보석이에요!' : pct >= 45 ? '조금만 더 채워봐요' : '정보를 더 입력해보세요';
+    sec.innerHTML = `
+        <div class="score-wrap">
+            <div class="score-gem ${gem.cls}" style="filter:${gem.filter}">${gem.icon}</div>
+            <div class="score-info">
+                <div class="score-pct-text">${pct}% 순도</div>
+                <div class="score-msg">${scoreMsg}</div>
+            </div>
+        </div>
+        <div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+        <div class="profile-grid">
+            ${p.name     ? `<div class="profile-item"><div class="profile-label">이름</div><div class="profile-value">${p.name}</div></div>` : ''}
+            ${age        ? `<div class="profile-item"><div class="profile-label">나이</div><div class="profile-value">${age}세</div></div>` : ''}
+            ${p.job      ? `<div class="profile-item"><div class="profile-label">직업</div><div class="profile-value">${p.job}</div></div>` : ''}
+            ${p.location ? `<div class="profile-item"><div class="profile-label">사는 곳</div><div class="profile-value">${p.location}</div></div>` : ''}
+            ${p.height   ? `<div class="profile-item"><div class="profile-label">키</div><div class="profile-value">${p.height}cm</div></div>` : ''}
+            ${p.mbti     ? `<div class="profile-item"><div class="profile-label">MBTI</div><div class="profile-value">${p.mbti}</div></div>` : ''}
+            ${p.education? `<div class="profile-item"><div class="profile-label">학력</div><div class="profile-value">${p.education}</div></div>` : ''}
+            ${p.status   ? `<div class="profile-item"><div class="profile-label">상태</div><div class="profile-value">${{pending:'심사중',approved:'승인',rejected:'거절',matched:'매칭됨'}[p.status]||p.status}</div></div>` : ''}
+        </div>`;
+}
+
+function renderFavorites(favApplicants) {
+    const sec = document.getElementById('favorites-section');
+    document.getElementById('fav-count').textContent = favApplicants.length ? `${favApplicants.length}명` : '';
+    if (!favApplicants.length) {
+        sec.innerHTML = `<div class="fav-empty">아직 찜한 상대가 없어요<br><span style="font-size:.8em;color:#d1d5db;">홈 화면에서 마음에 드는 분을 찜해보세요</span></div>`;
+        return;
+    }
+    sec.innerHTML = `<div class="fav-list">${favApplicants.map(a => {
+        const age = calcAge(a.birth);
+        const photo = a.photos && a.photos[0];
+        const photoHtml = photo
+            ? `<div class="fav-photo"><img src="${photo}" alt=""></div>`
+            : `<div class="fav-photo">${a.gender === 'male' ? '👨' : '👩'}</div>`;
+        const tags = [age ? `${age}세` : null, a.job, a.location, a.mbti].filter(Boolean)
+            .map(t => `<span class="fav-tag">${t}</span>`).join('');
+        return `<div class="fav-item">
+            ${photoHtml}
+            <div class="fav-info">
+                <div style="font-size:.85em;font-weight:700;">${a.gender === 'male' ? '남성' : '여성'}</div>
+                <div class="fav-tags">${tags}</div>
+            </div>
+            <button class="btn-unfav" onclick="removeFav('${a.id}')" title="찜 해제">♡</button>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+// ── 가중치 슬라이더 ──
+let _lastChanged = null;
+function onWeightChange(which) {
+    _lastChanged = which;
+    const h = parseInt(document.getElementById('w-height').value);
+    const l = parseInt(document.getElementById('w-looks').value);
+    const j = parseInt(document.getElementById('w-job').value);
+    const total = h + l + j;
+    document.getElementById('w-height-pct').textContent = h + '%';
+    document.getElementById('w-looks-pct').textContent  = l + '%';
+    document.getElementById('w-job-pct').textContent    = j + '%';
+    const el = document.getElementById('weight-total');
+    el.textContent = total + '%';
+    el.className = 'weight-total-num ' + (total === 100 ? 'ok' : 'over');
+}
+
+function loadWeights(idealWeightsJson) {
+    let w = { height:34, looks:33, job:33 };
+    if (idealWeightsJson) { try { w = JSON.parse(idealWeightsJson); } catch {} }
+    document.getElementById('w-height').value = w.height || 34;
+    document.getElementById('w-looks').value  = w.looks  || 33;
+    document.getElementById('w-job').value    = w.job    || 33;
+    onWeightChange(null);
+}
+
+async function saveWeights() {
+    let h = parseInt(document.getElementById('w-height').value);
+    let l = parseInt(document.getElementById('w-looks').value);
+    let j = parseInt(document.getElementById('w-job').value);
+    const total = h + l + j;
+    if (total === 0) { h = 34; l = 33; j = 33; }
+    else if (total !== 100) {
+        // 비율 유지하며 100으로 정규화
+        const scale = 100 / total;
+        h = Math.round(h * scale);
+        l = Math.round(l * scale);
+        j = 100 - h - l;
+        document.getElementById('w-height').value = h;
+        document.getElementById('w-looks').value  = l;
+        document.getElementById('w-job').value    = j;
+        onWeightChange(null);
+    }
+    const weightsJson = JSON.stringify({ height:h, looks:l, job:j });
+    const { data: { user } } = await db.auth.getUser();
+    const { error } = await db.from('applicants').update({ ideal_weights: weightsJson }).eq('user_id', user.id);
+    if (error) { alert('저장 실패: ' + error.message); return; }
+    window._myProfile = { ...window._myProfile, ideal_weights: weightsJson };
+    renderMatchRanking(window._allCandidates || []);
+    const btn = document.getElementById('save-weights-btn');
+    btn.textContent = '✅ 저장됨';
+    setTimeout(() => { btn.textContent = '저장'; }, 1500);
+}
+
+// ── 추천 반쪽 목록 렌더 ──
+function renderMatchRanking(candidates) {
+    const sec = document.getElementById('match-ranking-section');
+    const card = document.getElementById('match-ranking-card');
+    if (!window._myProfile || !candidates.length) {
+        card.style.display = 'none';
+        return;
+    }
+    card.style.display = '';
+    const favSet = window._favSet || new Set();
+    const scored = candidates.map(c => ({ ...c, _score: calcMatchScore(window._myProfile, c) }));
+    scored.sort((a, b) => b._score - a._score);
+    document.getElementById('match-count').textContent = scored.length + '명';
+    sec.innerHTML = `<div class="match-list">${scored.map((c, i) => {
+        const age = calcAge(c.birth);
+        const photo = c.photos && c.photos[0];
+        const photoHtml = photo
+            ? `<div class="match-photo"><img src="${photo}" alt=""></div>`
+            : `<div class="match-photo">${c.gender === 'male' ? '👨' : '👩'}</div>`;
+        const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
+        const tags = [age ? `${age}세` : null, c.location, c.mbti, c.job_category].filter(Boolean)
+            .map(t => `<span class="match-tag">${t}</span>`).join('');
+        const isFav = favSet.has(c.id);
+        return `<div class="match-item">
+            <div class="match-rank">${rankIcon}</div>
+            ${photoHtml}
+            <div class="match-info">
+                <div style="font-size:.85em;font-weight:700;">${c.gender === 'male' ? '남성' : '여성'}</div>
+                <div class="match-tags">${tags}</div>
+            </div>
+            <div class="match-score-badge">
+                <div class="match-score-num">${c._score}</div>
+                <div class="match-score-label">점</div>
+            </div>
+            <button class="btn-fav" onclick="toggleFav('${c.id}')" title="${isFav ? '찜 해제' : '찜하기'}">${isFav ? '💜' : '🤍'}</button>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+async function toggleFav(applicantId) {
+    const { data: { user } } = await db.auth.getUser();
+    const favSet = window._favSet || new Set();
+    if (favSet.has(applicantId)) {
+        await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
+        favSet.delete(applicantId);
+    } else {
+        await db.from('favorites').insert([{ user_id: user.id, applicant_id: applicantId }]);
+        favSet.add(applicantId);
+    }
+    window._favSet = favSet;
+    renderMatchRanking(window._allCandidates || []);
+    await loadFavorites(user.id);
+}
+
+async function removeFav(applicantId) {
+    const { data: { user } } = await db.auth.getUser();
+    await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
+    await loadFavorites(user.id);
+}
+
+async function loadFavorites(userId) {
+    const { data: favs } = await db.from('favorites').select('applicant_id').eq('user_id', userId);
+    window._favSet = new Set((favs || []).map(f => f.applicant_id));
+    if (!favs || !favs.length) { renderFavorites([]); return; }
+    const ids = favs.map(f => f.applicant_id);
+    const { data: applicants } = await db.from('applicants')
+        .select('id,gender,birth,job,location,mbti,photos')
+        .in('id', ids);
+    renderFavorites(applicants || []);
+}
+
+async function doLogout() {
+    await db.auth.signOut();
+    window.location.href = 'index.html';
+}
+
+async function init() {
+    // 로컬 개발 우회
+    if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+        document.getElementById('user-email').textContent = '개발모드';
+        renderProfile(null);
+        renderFavorites([]);
+        setLoading(false);
+        return;
+    }
+
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+
+    const user = session.user;
+    document.getElementById('user-email').textContent = user.email;
+
+    // 내 신청서 조회
+    const { data: profiles } = await db.from('applicants')
+        .select('*').eq('user_id', user.id).limit(1);
+    const profile = profiles && profiles[0] ? profiles[0] : null;
+    renderProfile(profile);
+    window._myProfile = profile;
+
+    if (profile) {
+        // 가중치 슬라이더 표시
+        document.getElementById('weights-card').style.display = '';
+        loadWeights(profile.ideal_weights);
+
+        // 이성 승인 참가자 로드 → 추천 순위
+        const oppGender = profile.gender === 'male' ? 'female' : 'male';
+        const { data: candidates } = await db.from('applicants')
+            .select('id,gender,birth,job,job_category,height,look_score,location,mbti,photos')
+            .eq('status', 'approved')
+            .eq('gender', oppGender);
+        window._allCandidates = candidates || [];
+        renderMatchRanking(window._allCandidates);
+    }
+
+    await loadFavorites(user.id);
+    setLoading(false);
+}
+
+init();
+</script>
+</body>
+</html>
