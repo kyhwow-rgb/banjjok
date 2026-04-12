@@ -987,6 +987,15 @@ async function adminLogin() {
     showScreen('admin');
 }
 
+function fuzzyCount(n) {
+    if (n === 0) return '0';
+    if (n <= 5) return '5+';
+    if (n <= 10) return '10+';
+    if (n <= 20) return '20+';
+    if (n <= 50) return '50+';
+    return '100+';
+}
+
 function animateCount(elementId, target) {
     const el = document.getElementById(elementId);
     if (target === 0) { el.textContent = '0'; return; }
@@ -1024,10 +1033,11 @@ async function renderHome() {
             } catch(e2) { console.log('renderHome: 직접 접근도 실패', e2.message); }
         }
     }
+    // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
     const femaleCount = list.filter(a => a.gender === 'female').length;
-    animateCount('home-male-count', maleCount);
-    animateCount('home-female-count', femaleCount);
+    document.getElementById('home-male-count').textContent = fuzzyCount(maleCount);
+    document.getElementById('home-female-count').textContent = fuzzyCount(femaleCount);
 
     // 오늘의 추천 반쪽 (랜덤 1명)
     if (list.length > 0) {
