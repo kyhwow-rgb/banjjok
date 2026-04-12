@@ -564,7 +564,7 @@ function showOnboarding(status, candidateCount) {
             <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:14px;text-align:left;">
                 <div style="font-size:.82em;font-weight:700;color:var(--text);margin-bottom:8px;">이런 분들이 기다리고 있어요</div>
                 <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
-                    현재 <span style="color:var(--primary);font-weight:800;">${candidateCount}명</span>의 이성 참가자가 매칭을 기다리고 있어요.
+                    지금 여러 이성 참가자가 매칭을 기다리고 있어요.
                     승인 후 바로 추천 반쪽을 확인해보세요!
                 </div>
             </div>
@@ -590,7 +590,7 @@ function showOnboarding(status, candidateCount) {
                     <div class="onboard-step-num">2</div>
                     <div>
                         <div class="onboard-step-text">추천 반쪽 탐색</div>
-                        <div class="onboard-step-desc">AI가 추천하는 ${candidateCount}명의 이성을 확인해요</div>
+                        <div class="onboard-step-desc">AI가 추천하는 이성 프로필을 확인해요</div>
                     </div>
                 </div>
                 <div class="onboard-step">
@@ -794,7 +794,7 @@ function renderMatchRanking(candidates) {
         _favCount: (window._favCounts || {})[c.id] || 0
     }));
     _scoredCandidates.sort((a, b) => b._score - a._score);
-    document.getElementById('match-count').textContent = _scoredCandidates.length + '명';
+    document.getElementById('match-count').textContent = '';
 
     if (_currentView === 'card') {
         renderCardView(sec, favSet);
@@ -883,7 +883,7 @@ function renderCardView(sec, favSet) {
                     <button class="card-btn card-btn-like" onclick="cardLike('${c.id}')" title="${isFav ? '이미 찜함' : '찜하기'}">${isFav ? '💜' : '♥'}</button>
                 </div>
             </div>
-            <div class="card-counter">${_cardIndex + 1} / ${_scoredCandidates.length}</div>
+            <div class="card-counter"></div>
             <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →</div>
         </div>`;
     // 스와이프 이벤트 바인딩
@@ -954,9 +954,13 @@ async function toggleFav(applicantId) {
         favSet.delete(applicantId);
         toast('보석함에서 제거했어요');
     } else {
+        if (favSet.size >= 3) {
+            toast('최대 3명까지만 찜할 수 있어요. 기존 찜을 해제해주세요.', 'warning');
+            return;
+        }
         await db.from('favorites').insert([{ user_id: user.id, applicant_id: applicantId }]);
         favSet.add(applicantId);
-        toast('보석함에 담았어요 💜', 'success');
+        toast(`보석함에 담았어요 💜 (${favSet.size}/3)`, 'success');
     }
     window._favSet = favSet;
     renderMatchRanking(window._allCandidates || []);
@@ -1006,7 +1010,7 @@ function renderMutualSection() {
 
     if (mutuals.length === 0) { card.style.display = 'none'; return; }
     card.style.display = '';
-    document.getElementById('mutual-count').textContent = mutuals.length + '명';
+    document.getElementById('mutual-count').textContent = '';
 
     sec.innerHTML = `
         <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">서로 관심을 보낸 상대예요! 매칭을 신청해보세요.</div>
