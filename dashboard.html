@@ -274,6 +274,32 @@
     .notif-empty { text-align:center; padding:40px 20px; color:var(--muted); font-size:.9em; }
     .notif-backdrop { position:fixed; inset:0; z-index:149; display:none; }
     .notif-backdrop.open { display:block; }
+
+    /* PROFILE DETAIL MODAL */
+    .profile-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:none; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+    .profile-modal-overlay.open { display:flex; }
+    .profile-modal { background:white; border-radius:24px; width:100%; max-width:420px; margin:auto; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.25); animation:modalPop .3s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes modalPop { from{opacity:0;transform:scale(.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .pm-photo { width:100%; height:240px; background:linear-gradient(135deg,#ede9fe,#fce7f3); position:relative; overflow:hidden; }
+    .pm-photo img { width:100%; height:100%; object-fit:cover; filter:blur(10px) brightness(.9); transform:scale(1.05); }
+    .pm-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:80px; }
+    .pm-photo-overlay { position:absolute; bottom:0; left:0; right:0; padding:20px; background:linear-gradient(transparent,rgba(0,0,0,.7)); color:white; }
+    .pm-body { padding:20px; }
+    .pm-section { margin-bottom:16px; }
+    .pm-section-title { font-size:.75em; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+    .pm-intro { font-size:.92em; line-height:1.6; color:var(--text); padding:12px 14px; background:var(--bg); border-radius:12px; }
+    .pm-ib { background:linear-gradient(135deg,#f5f3ff,#fce7f3); border-radius:12px; padding:14px; }
+    .pm-ib-q { font-size:.75em; color:var(--primary); font-weight:700; margin-bottom:6px; }
+    .pm-ib-a { font-size:.9em; font-weight:600; }
+    .pm-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .pm-tag { padding:5px 14px; border-radius:20px; font-size:.8em; font-weight:700; background:var(--primary-light); color:var(--primary); }
+    .pm-ideal-chip { display:inline-block; padding:3px 10px; border-radius:12px; font-size:.75em; font-weight:600; background:#f3f4f6; color:#6b7280; margin:2px; }
+    .pm-compat { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--bg); border-radius:12px; }
+    .pm-compat-score { font-size:1.2em; font-weight:900; color:var(--primary); }
+    .pm-compat-bar { flex:1; height:8px; background:#ede9fe; border-radius:8px; overflow:hidden; }
+    .pm-compat-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#7c3aed,#ec4899); }
+    .pm-actions { display:flex; gap:10px; padding:16px 20px; border-top:1px solid var(--border); }
+    .pm-actions .btn { flex:1; }
 </style>
 </head>
 <body>
@@ -408,6 +434,11 @@
 </div>
 
 <div class="site-footer">Designed &amp; Developed by Kang</div>
+
+<!-- 프로필 상세 모달 -->
+<div class="profile-modal-overlay" id="profile-modal" onclick="if(event.target===this)closeProfileModal()">
+    <div class="profile-modal" id="profile-modal-content"></div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -818,14 +849,14 @@ function renderListView(sec, favSet) {
         const isMutual = (window._mutualSet || new Set()).has(c.id);
         const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="font-size:.65em;padding:2px 6px;">🔥${c._favCount}</span>` : '';
         const mutualHtml = isMutual ? `<span class="mutual-badge">💘 상호 관심</span>` : '';
-        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #ede9fe;' : ''}">
+        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #ede9fe;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
             <div class="match-rank">${rankIcon}</div>
             ${photoHtml}
             <div class="match-info">
                 <div style="font-size:.85em;font-weight:700;">${popHtml} ${mutualHtml}</div>
                 <div class="match-tags">${tags}</div>
             </div>
-            <button class="btn-fav" onclick="toggleFav('${c.id}')" title="${isFav ? '찜 해제' : '찜하기'}">${isFav ? '💜' : '🤍'}</button>
+            <button class="btn-fav" onclick="event.stopPropagation();toggleFav('${c.id}')" title="${isFav ? '찜 해제' : '찜하기'}">${isFav ? '💜' : '🤍'}</button>
         </div>`;
     }).join('')}</div>`;
 }
@@ -1073,6 +1104,94 @@ async function loadFavorites(userId) {
     const visibleFavs = (applicants || []).filter(a => a.status === 'approved');
     renderFavorites(visibleFavs);
 }
+
+// ── 프로필 상세 모달 ──
+function openProfileModal(applicantId) {
+    const c = (_scoredCandidates || []).find(x => x.id === applicantId)
+           || (window._allCandidates || []).find(x => x.id === applicantId);
+    if (!c) return;
+    const age = calcAge(c.birth);
+    const photo = c.photos && c.photos[0];
+    const photoHtml = photo
+        ? `<img src="${photo}" alt="">`
+        : `<div class="pm-photo-placeholder">${c.gender === 'male' ? '👨' : '👩'}</div>`;
+    const isFav = (window._favSet || new Set()).has(c.id);
+    const isMutual = (window._mutualSet || new Set()).has(c.id);
+
+    // 궁합 점수
+    const compat = window._myProfile ? calcMatchScore(window._myProfile, c) : 50;
+    const mbtiCompat = window._myProfile ? calcMbtiCompat(window._myProfile.mbti, c.mbti) : 50;
+    const mbtiLabel = mbtiCompat >= 80 ? '찰떡궁합! 🔥' : mbtiCompat >= 65 ? '궁합 좋아요 ✨' : mbtiCompat >= 50 ? '보통' : '다른 스타일';
+
+    // Ice Breaker
+    let ibHtml = '';
+    if (c.icebreaker) {
+        try {
+            const ib = JSON.parse(c.icebreaker);
+            ibHtml = `<div class="pm-section"><div class="pm-section-title">💬 Ice Breaker</div><div class="pm-ib"><div class="pm-ib-q">${esc(ib.q)}</div><div class="pm-ib-a">${esc(ib.a)}</div></div></div>`;
+        } catch {}
+    }
+
+    // 이상형
+    let idealHtml = '';
+    if (c.ideal) {
+        try {
+            const d = JSON.parse(c.ideal);
+            const chips = Object.entries(d).filter(([k]) => k !== 'memo' && k !== 'notes').flatMap(([k, v]) => Array.isArray(v) ? v : [v]);
+            if (chips.length > 0) {
+                idealHtml = `<div class="pm-section"><div class="pm-section-title">💕 이런 사람을 찾고 있어요</div><div>${chips.map(c => `<span class="pm-ideal-chip">${esc(c)}</span>`).join('')}</div>${d.memo ? `<div style="margin-top:8px;font-size:.82em;color:var(--muted);font-style:italic;">"${esc(d.memo)}"</div>` : ''}</div>`;
+            }
+        } catch {}
+    }
+
+    const tags = [age ? `${age}세` : null, c.job, c.height ? c.height + 'cm' : null, c.location, c.mbti, c.education].filter(Boolean);
+    const popCount = c._favCount || 0;
+
+    document.getElementById('profile-modal-content').innerHTML = `
+        <div class="pm-photo">${photoHtml}
+            <div class="pm-photo-overlay">
+                <div style="font-size:1.3em;font-weight:900;">${age ? age + '세' : ''}</div>
+                ${c.mbti ? `<div style="font-size:.85em;font-weight:700;opacity:.9;">${c.mbti}</div>` : ''}
+            </div>
+        </div>
+        <div class="pm-body">
+            ${isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#faf5ff,#fdf2f8);border-radius:12px;margin-bottom:14px;"><span class="mutual-badge" style="font-size:.85em;">💘 서로 관심을 보냈어요!</span></div>` : ''}
+            ${popCount > 0 ? `<div style="margin-bottom:12px;"><span class="popularity-badge">🔥 ${popCount}명이 관심</span></div>` : ''}
+            <div class="pm-section">
+                <div class="pm-tags">${tags.map(t => `<span class="pm-tag">${esc(t)}</span>`).join('')}</div>
+            </div>
+            <div class="pm-section">
+                <div class="pm-section-title">궁합</div>
+                <div class="pm-compat">
+                    <div class="pm-compat-score">${compat}%</div>
+                    <div style="flex:1;">
+                        <div class="pm-compat-bar"><div class="pm-compat-fill" style="width:${compat}%"></div></div>
+                        <div style="font-size:.72em;color:var(--muted);margin-top:4px;">MBTI ${mbtiLabel} (${mbtiCompat}%)</div>
+                    </div>
+                </div>
+            </div>
+            ${c.intro ? `<div class="pm-section"><div class="pm-section-title">자기소개</div><div class="pm-intro">${esc(c.intro)}</div></div>` : ''}
+            ${ibHtml}
+            ${idealHtml}
+        </div>
+        <div class="pm-actions">
+            <button class="btn ${isFav ? 'btn-outline' : 'btn-primary'}" onclick="toggleFav('${c.id}');closeProfileModal();">${isFav ? '💜 찜 해제' : '🤍 찜하기'}</button>
+            <button class="btn btn-outline" onclick="closeProfileModal()">닫기</button>
+        </div>`;
+    document.getElementById('profile-modal').classList.add('open');
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('open');
+}
+
+// ESC로 모달 닫기
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeProfileModal();
+        closeNotifPanel();
+    }
+});
 
 // ── 알림 시스템 ──
 let _notifications = [];
