@@ -365,6 +365,7 @@
 
         /* RESPONSIVE */
         @media (max-width:600px) {
+            body { font-size:15px; }
             .form-row { grid-template-columns:1fr; }
             .stats-grid { grid-template-columns:repeat(3,1fr); gap:10px; }
             .stat-card { padding:14px 8px; }
@@ -377,6 +378,10 @@
             .login-card { padding:36px 24px; }
             .modal-actions { flex-direction:column; }
             .count-grid { gap:14px; }
+            .btn { padding:14px 24px; font-size:1em; }
+            .input-group input, .input-group textarea, .input-group select { font-size:16px; }
+            .photo-gallery img { border-radius:8px; }
+            .applicant-row { padding:14px 12px; }
         }
     </style>
 </head>
@@ -1507,7 +1512,7 @@ function renderIdealDisplay(idealJson) {
 
 // ── 관리자: fetch 헬퍼 (RLS 우회) ──
 // 로컬: 프록시 우선 → 실패 시 Supabase 직접 접근 (폴백)
-// deploy: no proxy
+const PROXY_BASE = SUPABASE_URL;
 const API_BASE = SUPABASE_URL;
 let _adminApiBase = SUPABASE_URL;
 
