@@ -386,10 +386,10 @@ const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const { createClient } = supabase;
 const _isLocal = false;
-// deploy: _dbUrl removed
+
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-// deploy: auth line removed
-// deploy: closing removed
+
+
 
 function setLoading(on) {
     document.getElementById('loading-overlay').classList.toggle('hide', !on);
@@ -655,7 +655,6 @@ function renderFavorites(favApplicants) {
         return `<div class="fav-item">
             ${photoHtml}
             <div class="fav-info">
-                <div style="font-size:.85em;font-weight:700;">${a.gender === 'male' ? '남성' : '여성'}</div>
                 <div class="fav-tags">${tags}</div>
             </div>
             <button class="btn-unfav" onclick="removeFav('${a.id}')" title="찜 해제">✕</button>
@@ -790,12 +789,8 @@ function renderListView(sec, favSet) {
             <div class="match-rank">${rankIcon}</div>
             ${photoHtml}
             <div class="match-info">
-                <div style="font-size:.85em;font-weight:700;">${c.gender === 'male' ? '남성' : '여성'} ${popHtml} ${mutualHtml}</div>
+                <div style="font-size:.85em;font-weight:700;">${popHtml} ${mutualHtml}</div>
                 <div class="match-tags">${tags}</div>
-            </div>
-            <div class="match-score-badge">
-                <div class="match-score-num">${c._score}</div>
-                <div class="match-score-label">점</div>
             </div>
             <button class="btn-fav" onclick="toggleFav('${c.id}')" title="${isFav ? '찜 해제' : '찜하기'}">${isFav ? '💜' : '🤍'}</button>
         </div>`;
@@ -835,7 +830,7 @@ function renderCardView(sec, favSet) {
                 <div class="card-photo-area">
                     ${photoHtml}
                     <div class="card-photo-overlay">
-                        <div class="card-age-badge">${age ? age + '세' : ''} ${c.gender === 'male' ? '남성' : '여성'}</div>
+                        <div class="card-age-badge">${age ? age + '세' : ''}</div>
                         ${c.mbti ? `<div class="card-mbti">${c.mbti}</div>` : ''}
                     </div>
                 </div>
@@ -1005,7 +1000,6 @@ function renderMutualSection() {
                 ${photoHtml}
                 <div class="match-info" style="flex:1;">
                     <div style="display:flex;align-items:center;gap:6px;">
-                        <span style="font-size:.85em;font-weight:700;">${c.gender === 'male' ? '남성' : '여성'}</span>
                         <span class="mutual-badge">💘 상호 관심</span>
                     </div>
                     <div class="match-tags">${tags}</div>
