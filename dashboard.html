@@ -386,10 +386,10 @@ const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const { createClient } = supabase;
 const _isLocal = false;
-
-const db = createClient(_dbUrl, SUPABASE_KEY, {
-    auth: { autoRefreshToken: !_isLocal, persistSession: !_isLocal, detectSessionInUrl: !_isLocal }
-});
+// deploy: _dbUrl removed
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+// deploy: auth line removed
+// deploy: closing removed
 
 function setLoading(on) {
     document.getElementById('loading-overlay').classList.toggle('hide', !on);
@@ -1124,9 +1124,9 @@ async function init() {
         return;
     }
 
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return; }
     try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { setLoading(false); window.location.href = 'index.html'; return; }
 
     const user = session.user;
     document.getElementById('user-email').textContent = user.email;
