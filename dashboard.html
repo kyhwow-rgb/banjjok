@@ -16,10 +16,47 @@
     body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
     /* LOADING */
-    #loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.85); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:9999; }
+    #loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.85); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:9999; }
     #loading-overlay.hide { display:none; }
     .spinner { width:40px; height:40px; border:4px solid #ede9fe; border-top-color:var(--primary); border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* SKELETON UI */
+    .skeleton { position:relative; overflow:hidden; background:#e5e7eb; border-radius:12px; }
+    .skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent); animation:shimmer 1.5s infinite; }
+    @keyframes shimmer { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+    .skeleton-text { height:14px; margin-bottom:8px; border-radius:6px; }
+    .skeleton-block { border-radius:16px; margin-bottom:12px; }
+
+    /* SECTION CARDS — fade in */
+    .section-card { animation:sectionFadeIn .4s ease both; }
+    @keyframes sectionFadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .section-card:nth-child(2) { animation-delay:.1s; }
+    .section-card:nth-child(3) { animation-delay:.2s; }
+    .section-card:nth-child(4) { animation-delay:.3s; }
+
+    /* MATCH ITEM — fade in */
+    .match-item { animation:matchItemIn .3s ease both; transition:all .15s; }
+    .match-item:hover { background:#faf5ff; transform:translateX(3px); }
+    @keyframes matchItemIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+    /* FAV ITEM — animation */
+    .fav-item { animation:matchItemIn .3s ease both; transition:background .15s; }
+    .fav-item:hover { background:#faf5ff; }
+
+    /* TOAST */
+    .toast {
+        position:fixed; bottom:28px; left:50%;
+        transform:translateX(-50%) translateY(80px);
+        padding:14px 24px; border-radius:14px;
+        font-size:.88em; font-weight:600; transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+        z-index:3000; white-space:nowrap; display:flex; align-items:center; gap:8px;
+        box-shadow:0 8px 32px rgba(0,0,0,.18); opacity:0;
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    .toast-success { background:#059669; color:white; }
+    .toast-error   { background:#dc2626; color:white; }
+    .toast-info    { background:#1f2937; color:white; }
 
     /* NAVBAR */
     .navbar { background:white; padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:62px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,.05); }
@@ -116,6 +153,96 @@
     .match-empty { text-align:center; padding:32px; color:var(--muted); font-size:.9em; }
     .match-no-profile { text-align:center; padding:24px; color:var(--muted); font-size:.88em; }
 
+    /* TIER BADGE (Bumble 스타일) */
+    .tier-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:20px; font-size:.78em; font-weight:800; letter-spacing:.02em; }
+    .tier-diamond  { background:linear-gradient(135deg,#dbeafe,#ede9fe); color:#7c3aed; }
+    .tier-sapphire { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#2563eb; }
+    .tier-emerald  { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#059669; }
+    .tier-ruby     { background:linear-gradient(135deg,#fce7f3,#fecdd3); color:#e11d48; }
+    .tier-bronze   { background:#f3f4f6; color:#9ca3af; }
+
+    /* POPULARITY (아만다 스타일) */
+    .popularity-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:14px; font-size:.75em; font-weight:700; background:#fef3c7; color:#d97706; }
+
+    /* CARD VIEW (Tinder 스타일) */
+    .card-view { position:relative; width:100%; max-width:340px; margin:0 auto; }
+    .profile-card {
+        background:white; border-radius:24px; overflow:hidden;
+        box-shadow:0 8px 40px rgba(124,58,237,.15);
+        transition:transform .3s, opacity .3s;
+        animation:cardEnter .35s cubic-bezier(.34,1.56,.64,1);
+        touch-action:pan-y; user-select:none; -webkit-user-select:none;
+    }
+    @keyframes cardEnter { from { opacity:0; transform:scale(.9) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .profile-card.swiping-left { transform:translateX(-120%) rotate(-15deg); opacity:0; }
+    .profile-card.swiping-right { transform:translateX(120%) rotate(15deg); opacity:0; }
+    .card-photo-area { position:relative; width:100%; height:280px; background:linear-gradient(135deg,#ede9fe,#fce7f3); overflow:hidden; }
+    .card-photo-area img { width:100%; height:100%; object-fit:cover; filter:blur(12px) brightness(.88); transform:scale(1.05); }
+    .card-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:72px; }
+    .card-photo-overlay { position:absolute; bottom:0; left:0; right:0; padding:16px 20px; background:linear-gradient(transparent, rgba(0,0,0,.6)); color:white; }
+    .card-age-badge { font-size:1.4em; font-weight:900; }
+    .card-mbti { font-size:.85em; font-weight:700; opacity:.9; }
+    .card-body { padding:18px 20px; }
+    .card-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .card-tag { padding:4px 12px; border-radius:16px; font-size:.78em; font-weight:700; background:var(--primary-light); color:var(--primary); }
+    .card-icebreaker { background:linear-gradient(135deg,#f5f3ff,#fce7f3); border-radius:12px; padding:12px 14px; margin-bottom:12px; }
+    .card-ib-q { font-size:.72em; color:var(--primary); font-weight:700; margin-bottom:4px; }
+    .card-ib-a { font-size:.88em; font-weight:600; }
+    .card-compat { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+    .card-compat-bar { flex:1; height:6px; background:#ede9fe; border-radius:6px; overflow:hidden; }
+    .card-compat-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,#7c3aed,#ec4899); }
+    .card-actions { display:flex; justify-content:center; gap:16px; padding:8px 20px 20px; }
+    .card-btn { width:56px; height:56px; border-radius:50%; border:none; cursor:pointer; font-size:24px; transition:transform .15s, box-shadow .15s; display:flex; align-items:center; justify-content:center; }
+    .card-btn:hover { transform:scale(1.1); }
+    .card-btn-pass { background:#f3f4f6; color:#9ca3af; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+    .card-btn-like { background:linear-gradient(135deg,#7c3aed,#ec4899); color:white; box-shadow:0 4px 16px rgba(124,58,237,.3); }
+    .card-btn-super { background:linear-gradient(135deg,#3b82f6,#06b6d4); color:white; box-shadow:0 4px 16px rgba(59,130,246,.3); }
+    .card-counter { text-align:center; font-size:.82em; color:var(--muted); margin-top:8px; }
+
+    /* VIEW TOGGLE */
+    .view-toggle { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:3px; }
+    .view-toggle-btn { padding:6px 14px; border-radius:8px; border:none; cursor:pointer; font-size:.8em; font-weight:700; background:transparent; color:var(--muted); transition:all .15s; font-family:inherit; }
+    .view-toggle-btn.active { background:white; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,.1); }
+
+    /* MUTUAL INTEREST */
+    .mutual-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:14px; font-size:.72em; font-weight:800; background:linear-gradient(135deg,#fce7f3,#ede9fe); color:#7c3aed; animation:mutual-glow 2s infinite alternate; }
+    @keyframes mutual-glow { from{box-shadow:0 0 0 rgba(124,58,237,0);} to{box-shadow:0 0 12px rgba(124,58,237,.25);} }
+    .btn-match-request { padding:6px 14px; border-radius:10px; border:none; cursor:pointer; font-size:.78em; font-weight:700; background:linear-gradient(135deg,#f59e0b,#ec4899); color:white; transition:all .15s; font-family:inherit; }
+    .btn-match-request:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(236,72,153,.3); }
+    .btn-match-request:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+    .btn-match-requested { padding:6px 14px; border-radius:10px; border:2px solid #d1d5db; background:white; font-size:.78em; font-weight:700; color:#9ca3af; cursor:default; font-family:inherit; }
+    .mutual-section { background:linear-gradient(135deg,#faf5ff,#fdf2f8); border-radius:16px; padding:18px; margin-bottom:20px; border:2px solid #ede9fe; }
+    .mutual-title { font-size:.88em; font-weight:800; color:var(--primary); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+    .mutual-item { display:flex; align-items:center; gap:12px; padding:10px; background:white; border-radius:12px; margin-bottom:8px; box-shadow:0 2px 8px rgba(124,58,237,.08); }
+
+    /* CONFETTI */
+    .confetti-container { position:fixed; inset:0; pointer-events:none; z-index:9998; overflow:hidden; }
+    .confetti { position:absolute; width:10px; height:10px; border-radius:2px; animation:confetti-fall 3s ease-in forwards; }
+    @keyframes confetti-fall {
+        0% { transform:translateY(-10vh) rotate(0deg); opacity:1; }
+        100% { transform:translateY(110vh) rotate(720deg); opacity:0; }
+    }
+
+    /* ONBOARDING / WAITING */
+    .onboard-overlay { position:fixed; inset:0; background:white; z-index:200; display:flex; align-items:center; justify-content:center; }
+    .onboard-content { max-width:420px; width:100%; padding:40px 28px; text-align:center; }
+    .onboard-icon { font-size:4em; margin-bottom:20px; animation:onboard-bounce 2s ease infinite; }
+    @keyframes onboard-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .onboard-title { font-size:1.5em; font-weight:900; background:linear-gradient(135deg,#7c3aed,#ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:10px; }
+    .onboard-sub { font-size:.92em; color:var(--muted); line-height:1.6; margin-bottom:28px; }
+    .onboard-steps { text-align:left; margin-bottom:28px; }
+    .onboard-step { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; padding:12px 16px; background:var(--bg); border-radius:14px; }
+    .onboard-step-num { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#ec4899); color:white; font-size:.82em; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .onboard-step-text { font-size:.88em; color:var(--text); font-weight:600; line-height:1.4; }
+    .onboard-step-desc { font-size:.78em; color:var(--muted); font-weight:400; margin-top:2px; }
+    .onboard-btn { display:inline-block; padding:14px 36px; border-radius:14px; border:none; cursor:pointer; font-size:1em; font-weight:800; font-family:inherit; background:linear-gradient(135deg,#7c3aed,#ec4899); color:white; transition:all .2s; box-shadow:0 8px 24px rgba(124,58,237,.3); }
+    .onboard-btn:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(124,58,237,.4); }
+    .waiting-progress { display:flex; justify-content:center; gap:8px; margin:20px 0; }
+    .waiting-dot { width:10px; height:10px; border-radius:50%; background:#ede9fe; animation:dot-pulse 1.4s ease infinite; }
+    .waiting-dot:nth-child(2) { animation-delay:.2s; }
+    .waiting-dot:nth-child(3) { animation-delay:.4s; }
+    @keyframes dot-pulse { 0%,100%{background:#ede9fe;transform:scale(1)} 50%{background:#7c3aed;transform:scale(1.3)} }
+
     @media(max-width:480px) {
         .profile-grid { grid-template-columns:1fr; }
         .page { padding:20px 14px 50px; }
@@ -136,6 +263,9 @@
     </div>
 </div>
 
+<!-- ── 대기/온보딩 오버레이 ── -->
+<div id="onboard-overlay" class="onboard-overlay" style="display:none;"></div>
+
 <div class="page">
 
     <!-- ── 내 보석 상태 ── -->
@@ -147,7 +277,16 @@
             </a>
         </div>
         <div class="section-body" id="profile-section">
-            <!-- JS로 채움 -->
+            <!-- 스켈레톤 초기 상태 -->
+            <div id="profile-skeleton">
+                <div class="skeleton skeleton-block" style="height:10px;width:70%;margin-bottom:16px;"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="skeleton skeleton-block" style="height:68px;"></div>
+                    <div class="skeleton skeleton-block" style="height:68px;"></div>
+                    <div class="skeleton skeleton-block" style="height:68px;"></div>
+                    <div class="skeleton skeleton-block" style="height:68px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -180,15 +319,38 @@
         </div>
     </div>
 
+    <!-- ── 상호 관심 ── -->
+    <div class="section-card" id="mutual-card" style="display:none;">
+        <div class="section-header">
+            <div class="section-title">💘 상호 관심</div>
+            <span id="mutual-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span>
+        </div>
+        <div class="section-body" id="mutual-section"></div>
+    </div>
+
     <!-- ── 추천 반쪽 순위 ── -->
     <div class="section-card" id="match-ranking-card" style="display:none;">
         <div class="section-header">
-            <div class="section-title">💘 추천 반쪽 순위</div>
-            <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+            <div class="section-title">💘 추천 반쪽</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+                <div class="view-toggle">
+                    <button class="view-toggle-btn active" id="view-list-btn" onclick="switchView('list')">목록</button>
+                    <button class="view-toggle-btn" id="view-card-btn" onclick="switchView('card')">카드</button>
+                </div>
+            </div>
         </div>
         <div class="section-body" id="match-ranking-section">
             <!-- JS로 채움 -->
         </div>
+    </div>
+
+    <!-- ── 매칭 결과 ── -->
+    <div class="section-card" id="match-result-card" style="display:none;">
+        <div class="section-header">
+            <div class="section-title">💑 매칭 성사!</div>
+        </div>
+        <div class="section-body" id="match-result-section"></div>
     </div>
 
     <!-- ── 나의 보석함 ── -->
@@ -206,6 +368,8 @@
 
 <div class="site-footer">Designed &amp; Developed by Kang</div>
 
+<div class="toast" id="toast"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 'use strict';
@@ -213,10 +377,37 @@
 const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+const _isLocal = false;
+
+const db = createClient(_dbUrl, SUPABASE_KEY, {
+    auth: { autoRefreshToken: !_isLocal, persistSession: !_isLocal, detectSessionInUrl: !_isLocal }
+});
 
 function setLoading(on) {
     document.getElementById('loading-overlay').classList.toggle('hide', !on);
+}
+
+function esc(str) {
+    if (str == null) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+let _toastTimer;
+function toast(msg, type) {
+    const el = document.getElementById('toast');
+    if (!type) {
+        if (msg.includes('완료') || msg.includes('저장') || msg.includes('성공')) type = 'success';
+        else if (msg.includes('실패') || msg.includes('오류')) type = 'error';
+        else type = 'info';
+    }
+    const icons = { success:'✓', error:'✕', info:'ℹ' };
+    el.className = 'toast toast-' + type;
+    el.innerHTML = `<span style="font-size:1.1em;">${icons[type]}</span> ${esc(msg)}`;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    const duration = type === 'error' ? 5000 : 3200;
+    _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
 function calcAge(birth) {
@@ -235,6 +426,41 @@ function calcScore(p) {
     if (p.photos && p.photos.length > 0) score += 10;
     const max = fields.length * 10 + 10 + 10 + 14 * 5;
     return { pct: Math.min(100, Math.round((score / max) * 100)), score };
+}
+
+// ── MBTI 궁합 (글램 스타일) ──
+const MBTI_COMPAT = {
+    'ENFP':{'INFJ':95,'INTJ':92,'ENFJ':85,'ENTJ':82,'INFP':80,'ENTP':78,'INTP':75},
+    'ENFJ':{'INFP':95,'ISFP':90,'ENFP':85,'ENTP':82,'INTJ':80,'INFJ':78},
+    'ENTP':{'INFJ':95,'INTJ':90,'ENFJ':82,'ENFP':78,'INTP':75,'ENTJ':72},
+    'ENTJ':{'INFP':92,'INTP':88,'ENFP':82,'ENTP':72,'INTJ':70,'ENFJ':68},
+    'INFP':{'ENFJ':95,'ENTJ':92,'INFJ':85,'ENFP':80,'INTP':75,'ISFP':72},
+    'INFJ':{'ENTP':95,'ENFP':92,'INTJ':85,'INFP':85,'ENFJ':78,'INTP':72},
+    'INTP':{'ENTJ':88,'ENFJ':82,'ENTP':75,'INTJ':72,'INFJ':72,'INFP':75},
+    'INTJ':{'ENFP':92,'ENTP':90,'INFJ':85,'ENTJ':70,'INFP':68,'INTP':72},
+    'ESFP':{'ISFJ':88,'ISTJ':85,'ESFJ':78,'ESTP':72,'ISFP':70},
+    'ESFJ':{'ISFP':88,'ISTP':85,'ESFP':78,'ESTJ':75,'ISFJ':72},
+    'ESTP':{'ISFJ':85,'ISTJ':82,'ESFP':72,'ESTJ':70,'ISTP':68},
+    'ESTJ':{'ISFP':85,'ISTP':82,'ESFJ':75,'ESTP':70,'ISTJ':68},
+    'ISFP':{'ENFJ':90,'ESFJ':88,'ESTJ':85,'ENTJ':78,'ISFJ':72},
+    'ISFJ':{'ESFP':88,'ESTP':85,'ENFP':78,'ISFP':72,'ISTJ':70},
+    'ISTP':{'ESFJ':85,'ESTJ':82,'ENTP':72,'ESTP':68,'INTP':65},
+    'ISTJ':{'ESFP':85,'ESTP':82,'ENFP':75,'ESTJ':68,'ISFJ':70},
+};
+function calcMbtiCompat(m1, m2) {
+    if (!m1 || !m2) return 50;
+    const a = m1.toUpperCase(), b = m2.toUpperCase();
+    if (a === b) return 65;
+    return MBTI_COMPAT[a]?.[b] || MBTI_COMPAT[b]?.[a] || 50;
+}
+
+// ── 티어 배지 (Bumble 스타일) ──
+function getTierBadge(pct) {
+    if (pct >= 90) return { label:'💎 다이아몬드', cls:'tier-diamond' };
+    if (pct >= 70) return { label:'💠 사파이어', cls:'tier-sapphire' };
+    if (pct >= 50) return { label:'🟢 에메랄드', cls:'tier-emerald' };
+    if (pct >= 30) return { label:'🔴 루비', cls:'tier-ruby' };
+    return { label:'🪨 브론즈', cls:'tier-bronze' };
 }
 
 // ── 매칭 점수 계산 ──
@@ -266,7 +492,10 @@ function calcMatchScore(viewer, candidate) {
     const h = calcHeightScore(candidate.height, candidate.gender);
     const l = candidate.look_score || 50;
     const j = calcJobScore(candidate.job_category);
-    return Math.round((h*(w.height||0) + l*(w.looks||0) + j*(w.job||0)) / total);
+    const baseScore = (h*(w.height||0) + l*(w.looks||0) + j*(w.job||0)) / total;
+    const mbtiCompat = calcMbtiCompat(viewer.mbti, candidate.mbti);
+    const mbtiBonus = Math.round((mbtiCompat - 50) / 5);
+    return Math.min(100, Math.max(0, Math.round(baseScore + mbtiBonus)));
 }
 
 function gemIcon(pct) {
@@ -275,6 +504,80 @@ function gemIcon(pct) {
     if (pct >= 45) return { icon:'💎', filter:'grayscale(30%) opacity(.8)', cls:'' };
     if (pct >= 20) return { icon:'💎', filter:'grayscale(60%) opacity(.6)', cls:'' };
     return { icon:'💎', filter:'grayscale(100%) opacity(.4)', cls:'' };
+}
+
+// ── 상태별 온보딩 화면 ──
+function showOnboarding(status, candidateCount) {
+    const overlay = document.getElementById('onboard-overlay');
+    if (status === 'pending') {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `<div class="onboard-content">
+            <div class="onboard-icon">⏳</div>
+            <div class="onboard-title">심사 중이에요</div>
+            <div class="onboard-sub">관리자가 신청서를 검토하고 있어요.<br>승인되면 바로 매칭을 시작할 수 있어요!</div>
+            <div class="waiting-progress">
+                <div class="waiting-dot"></div>
+                <div class="waiting-dot"></div>
+                <div class="waiting-dot"></div>
+            </div>
+            <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:14px;text-align:left;">
+                <div style="font-size:.82em;font-weight:700;color:var(--text);margin-bottom:8px;">이런 분들이 기다리고 있어요</div>
+                <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
+                    현재 <span style="color:var(--primary);font-weight:800;">${candidateCount}명</span>의 이성 참가자가 매칭을 기다리고 있어요.
+                    승인 후 바로 추천 반쪽을 확인해보세요!
+                </div>
+            </div>
+            <div style="margin-top:20px;">
+                <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none'">프로필 미리보기</button>
+            </div>
+        </div>`;
+    } else if (status === 'approved' && !localStorage.getItem('kj_onboarded')) {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `<div class="onboard-content">
+            <div class="onboard-icon">🎉</div>
+            <div class="onboard-title">승인되었어요!</div>
+            <div class="onboard-sub">반쪽을 찾을 준비가 되었어요.<br>3단계로 매칭을 시작해보세요.</div>
+            <div class="onboard-steps">
+                <div class="onboard-step">
+                    <div class="onboard-step-num">1</div>
+                    <div>
+                        <div class="onboard-step-text">매칭 우선순위 설정</div>
+                        <div class="onboard-step-desc">키 · 외모 · 직업 중 뭘 더 중요하게 볼지 조절해요</div>
+                    </div>
+                </div>
+                <div class="onboard-step">
+                    <div class="onboard-step-num">2</div>
+                    <div>
+                        <div class="onboard-step-text">추천 반쪽 탐색</div>
+                        <div class="onboard-step-desc">AI가 추천하는 ${candidateCount}명의 이성을 확인해요</div>
+                    </div>
+                </div>
+                <div class="onboard-step">
+                    <div class="onboard-step-num">3</div>
+                    <div>
+                        <div class="onboard-step-text">좋아요 & 매칭 신청</div>
+                        <div class="onboard-step-desc">마음에 드는 분을 찜하면 상호 관심 시 매칭을 신청할 수 있어요</div>
+                    </div>
+                </div>
+            </div>
+            <button class="onboard-btn" onclick="localStorage.setItem('kj_onboarded','1');document.getElementById('onboard-overlay').style.display='none';showConfetti();">매칭 시작하기 💘</button>
+        </div>`;
+    } else if (status === 'rejected') {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `<div class="onboard-content">
+            <div class="onboard-icon">😢</div>
+            <div class="onboard-title">신청서가 반려되었어요</div>
+            <div class="onboard-sub">걱정 마세요! 신청서를 수정해서 다시 제출할 수 있어요.</div>
+            <div style="margin-top:8px;">
+                <a href="index.html#register"><button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);">신청서 수정하기 ✏️</button></a>
+            </div>
+            <div style="margin-top:16px;">
+                <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none'">닫기</button>
+            </div>
+        </div>`;
+    } else {
+        overlay.style.display = 'none';
+    }
 }
 
 function renderProfile(p) {
@@ -293,8 +596,18 @@ function renderProfile(p) {
     const age = calcAge(p.birth);
     const gem = gemIcon(pct);
     const scoreMsg = pct >= 96 ? '완벽한 보석이에요! ✨' : pct >= 70 ? '멋진 보석이에요!' : pct >= 45 ? '조금만 더 채워봐요' : '정보를 더 입력해보세요';
+    const tier = getTierBadge(pct);
+    const myPhoto = p.photos && p.photos[0];
+    const myPhotoHtml = myPhoto
+        ? `<img src="${myPhoto}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+        : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${p.gender === 'male' ? '👨' : '👩'}</div>`;
     sec.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span class="tier-badge ${tier.cls}">${tier.label}</span>
+            ${window._popularityCount > 0 ? `<span class="popularity-badge">🔥 ${window._popularityCount}명이 관심</span>` : ''}
+        </div>
         <div class="score-wrap">
+            ${myPhotoHtml}
             <div class="score-gem ${gem.cls}" style="filter:${gem.filter}">${gem.icon}</div>
             <div class="score-info">
                 <div class="score-pct-text">${pct}% 순도</div>
@@ -303,22 +616,24 @@ function renderProfile(p) {
         </div>
         <div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%"></div></div>
         <div class="profile-grid">
-            ${p.name     ? `<div class="profile-item"><div class="profile-label">이름</div><div class="profile-value">${p.name}</div></div>` : ''}
+            ${p.name     ? `<div class="profile-item"><div class="profile-label">이름</div><div class="profile-value">${esc(p.name)}</div></div>` : ''}
             ${age        ? `<div class="profile-item"><div class="profile-label">나이</div><div class="profile-value">${age}세</div></div>` : ''}
-            ${p.job      ? `<div class="profile-item"><div class="profile-label">직업</div><div class="profile-value">${p.job}</div></div>` : ''}
-            ${p.location ? `<div class="profile-item"><div class="profile-label">사는 곳</div><div class="profile-value">${p.location}</div></div>` : ''}
+            ${p.job      ? `<div class="profile-item"><div class="profile-label">직업</div><div class="profile-value">${esc(p.job)}</div></div>` : ''}
+            ${p.location ? `<div class="profile-item"><div class="profile-label">사는 곳</div><div class="profile-value">${esc(p.location)}</div></div>` : ''}
             ${p.height   ? `<div class="profile-item"><div class="profile-label">키</div><div class="profile-value">${p.height}cm</div></div>` : ''}
-            ${p.mbti     ? `<div class="profile-item"><div class="profile-label">MBTI</div><div class="profile-value">${p.mbti}</div></div>` : ''}
-            ${p.education? `<div class="profile-item"><div class="profile-label">학력</div><div class="profile-value">${p.education}</div></div>` : ''}
-            ${p.status   ? `<div class="profile-item"><div class="profile-label">상태</div><div class="profile-value">${{pending:'심사중',approved:'승인',rejected:'거절',matched:'매칭됨'}[p.status]||p.status}</div></div>` : ''}
-        </div>`;
+            ${p.mbti     ? `<div class="profile-item"><div class="profile-label">MBTI</div><div class="profile-value">${esc(p.mbti)}</div></div>` : ''}
+            ${p.education? `<div class="profile-item"><div class="profile-label">학력</div><div class="profile-value">${esc(p.education)}</div></div>` : ''}
+            ${p.status   ? `<div class="profile-item"><div class="profile-label">상태</div><div class="profile-value">${{pending:'심사중 ⏳',approved:'승인 ✅',rejected:'거절',matched:'매칭됨 💑'}[p.status]||p.status}</div></div>` : ''}
+        </div>
+        ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
+        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="index.html#register" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}`;
 }
 
 function renderFavorites(favApplicants) {
     const sec = document.getElementById('favorites-section');
     document.getElementById('fav-count').textContent = favApplicants.length ? `${favApplicants.length}명` : '';
     if (!favApplicants.length) {
-        sec.innerHTML = `<div class="fav-empty">아직 찜한 상대가 없어요<br><span style="font-size:.8em;color:#d1d5db;">홈 화면에서 마음에 드는 분을 찜해보세요</span></div>`;
+        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;">💝</div>아직 찜한 상대가 없어요<br><span style="font-size:.8em;color:#d1d5db;">위의 추천 반쪽에서 🤍를 눌러 보석함에 담아보세요</span></div>`;
         return;
     }
     sec.innerHTML = `<div class="fav-list">${favApplicants.map(a => {
@@ -335,25 +650,43 @@ function renderFavorites(favApplicants) {
                 <div style="font-size:.85em;font-weight:700;">${a.gender === 'male' ? '남성' : '여성'}</div>
                 <div class="fav-tags">${tags}</div>
             </div>
-            <button class="btn-unfav" onclick="removeFav('${a.id}')" title="찜 해제">♡</button>
+            <button class="btn-unfav" onclick="removeFav('${a.id}')" title="찜 해제">✕</button>
         </div>`;
     }).join('')}</div>`;
 }
 
-// ── 가중치 슬라이더 ──
+// ── 가중치 슬라이더 (자동 밸런싱) ──
 let _lastChanged = null;
 function onWeightChange(which) {
     _lastChanged = which;
-    const h = parseInt(document.getElementById('w-height').value);
-    const l = parseInt(document.getElementById('w-looks').value);
-    const j = parseInt(document.getElementById('w-job').value);
+    let h = parseInt(document.getElementById('w-height').value);
+    let l = parseInt(document.getElementById('w-looks').value);
+    let j = parseInt(document.getElementById('w-job').value);
     const total = h + l + j;
+    // 합계 100%로 자동 조정: 변경한 항목 고정, 나머지 비율 축소
+    if (total > 100 && which) {
+        const excess = total - 100;
+        const others = { height:['w-looks','w-job'], looks:['w-height','w-job'], job:['w-height','w-looks'] }[which];
+        const v1 = parseInt(document.getElementById(others[0]).value);
+        const v2 = parseInt(document.getElementById(others[1]).value);
+        const sum = v1 + v2;
+        if (sum > 0) {
+            const r1 = Math.max(0, Math.round(v1 - excess * (v1 / sum)));
+            const r2 = Math.max(0, 100 - (which==='height'?h:which==='looks'?l:j) - r1);
+            document.getElementById(others[0]).value = r1;
+            document.getElementById(others[1]).value = r2;
+        }
+        h = parseInt(document.getElementById('w-height').value);
+        l = parseInt(document.getElementById('w-looks').value);
+        j = parseInt(document.getElementById('w-job').value);
+    }
     document.getElementById('w-height-pct').textContent = h + '%';
     document.getElementById('w-looks-pct').textContent  = l + '%';
     document.getElementById('w-job-pct').textContent    = j + '%';
+    const finalTotal = h + l + j;
     const el = document.getElementById('weight-total');
-    el.textContent = total + '%';
-    el.className = 'weight-total-num ' + (total === 100 ? 'ok' : 'over');
+    el.textContent = finalTotal + '%';
+    el.className = 'weight-total-num ' + (finalTotal === 100 ? 'ok' : 'over');
 }
 
 function loadWeights(idealWeightsJson) {
@@ -385,7 +718,7 @@ async function saveWeights() {
     const weightsJson = JSON.stringify({ height:h, looks:l, job:j });
     const { data: { user } } = await db.auth.getUser();
     const { error } = await db.from('applicants').update({ ideal_weights: weightsJson }).eq('user_id', user.id);
-    if (error) { alert('저장 실패: ' + error.message); return; }
+    if (error) { toast('저장 실패: ' + error.message, 'error'); return; }
     window._myProfile = { ...window._myProfile, ideal_weights: weightsJson };
     renderMatchRanking(window._allCandidates || []);
     const btn = document.getElementById('save-weights-btn');
@@ -394,6 +727,17 @@ async function saveWeights() {
 }
 
 // ── 추천 반쪽 목록 렌더 ──
+let _currentView = 'list';
+let _cardIndex = 0;
+let _scoredCandidates = [];
+
+function switchView(view) {
+    _currentView = view;
+    document.getElementById('view-list-btn').classList.toggle('active', view === 'list');
+    document.getElementById('view-card-btn').classList.toggle('active', view === 'card');
+    renderMatchRanking(window._allCandidates || []);
+}
+
 function renderMatchRanking(candidates) {
     const sec = document.getElementById('match-ranking-section');
     const card = document.getElementById('match-ranking-card');
@@ -403,24 +747,42 @@ function renderMatchRanking(candidates) {
     }
     card.style.display = '';
     const favSet = window._favSet || new Set();
-    const scored = candidates.map(c => ({ ...c, _score: calcMatchScore(window._myProfile, c) }));
-    scored.sort((a, b) => b._score - a._score);
-    document.getElementById('match-count').textContent = scored.length + '명';
-    sec.innerHTML = `<div class="match-list">${scored.map((c, i) => {
+    _scoredCandidates = candidates.map(c => ({
+        ...c,
+        _score: calcMatchScore(window._myProfile, c),
+        _mbtiCompat: calcMbtiCompat(window._myProfile.mbti, c.mbti),
+        _favCount: (window._favCounts || {})[c.id] || 0
+    }));
+    _scoredCandidates.sort((a, b) => b._score - a._score);
+    document.getElementById('match-count').textContent = _scoredCandidates.length + '명';
+
+    if (_currentView === 'card') {
+        renderCardView(sec, favSet);
+    } else {
+        renderListView(sec, favSet);
+    }
+}
+
+function renderListView(sec, favSet) {
+    sec.innerHTML = `<div class="match-list">${_scoredCandidates.map((c, i) => {
         const age = calcAge(c.birth);
         const photo = c.photos && c.photos[0];
         const photoHtml = photo
             ? `<div class="match-photo"><img src="${photo}" alt=""></div>`
             : `<div class="match-photo">${c.gender === 'male' ? '👨' : '👩'}</div>`;
         const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-        const tags = [age ? `${age}세` : null, c.location, c.mbti, c.job_category].filter(Boolean)
+        const mbtiLabel = c._mbtiCompat >= 80 ? '🔥' : c._mbtiCompat >= 65 ? '✨' : '';
+        const tags = [age ? `${age}세` : null, c.location, c.mbti ? c.mbti + mbtiLabel : null, c.job_category].filter(Boolean)
             .map(t => `<span class="match-tag">${t}</span>`).join('');
         const isFav = favSet.has(c.id);
-        return `<div class="match-item">
+        const isMutual = (window._mutualSet || new Set()).has(c.id);
+        const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="font-size:.65em;padding:2px 6px;">🔥${c._favCount}</span>` : '';
+        const mutualHtml = isMutual ? `<span class="mutual-badge">💘 상호 관심</span>` : '';
+        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #ede9fe;' : ''}">
             <div class="match-rank">${rankIcon}</div>
             ${photoHtml}
             <div class="match-info">
-                <div style="font-size:.85em;font-weight:700;">${c.gender === 'male' ? '남성' : '여성'}</div>
+                <div style="font-size:.85em;font-weight:700;">${c.gender === 'male' ? '남성' : '여성'} ${popHtml} ${mutualHtml}</div>
                 <div class="match-tags">${tags}</div>
             </div>
             <div class="match-score-badge">
@@ -432,25 +794,232 @@ function renderMatchRanking(candidates) {
     }).join('')}</div>`;
 }
 
+function renderCardView(sec, favSet) {
+    if (_cardIndex >= _scoredCandidates.length) _cardIndex = 0;
+    const c = _scoredCandidates[_cardIndex];
+    if (!c) { sec.innerHTML = '<div class="match-empty">추천할 반쪽이 없어요</div>'; return; }
+    const age = calcAge(c.birth);
+    const photo = c.photos && c.photos[0];
+    const photoHtml = photo
+        ? `<img src="${photo}" alt="">`
+        : `<div class="card-photo-placeholder">${c.gender === 'male' ? '👨' : '👩'}</div>`;
+    const isFav = favSet.has(c.id);
+    const isMutual = (window._mutualSet || new Set()).has(c.id);
+    const mbtiCompat = c._mbtiCompat;
+    const mbtiLabel = mbtiCompat >= 80 ? 'MBTI 찰떡궁합! 🔥' : mbtiCompat >= 65 ? 'MBTI 궁합 좋아요 ✨' : mbtiCompat >= 50 ? 'MBTI 보통' : 'MBTI 약간 다른 스타일';
+    const tags = [age ? `${age}세` : null, c.location, c.job_category].filter(Boolean);
+
+    // Ice Breaker
+    let ibHtml = '';
+    if (c.icebreaker) {
+        try {
+            const ib = JSON.parse(c.icebreaker);
+            ibHtml = `<div class="card-icebreaker"><div class="card-ib-q">💬 ${esc(ib.q)}</div><div class="card-ib-a">${esc(ib.a)}</div></div>`;
+        } catch {}
+    }
+
+    const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="margin-bottom:12px;">🔥 ${c._favCount}명이 관심을 보이고 있어요</span>` : '';
+    const mutualCardHtml = isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#faf5ff,#fdf2f8);border-radius:12px;margin-bottom:12px;"><span class="mutual-badge" style="font-size:.85em;">💘 이 사람도 당신에게 관심이 있어요!</span></div>` : '';
+
+    sec.innerHTML = `
+        <div class="card-view">
+            <div class="profile-card" id="current-card">
+                <div class="card-photo-area">
+                    ${photoHtml}
+                    <div class="card-photo-overlay">
+                        <div class="card-age-badge">${age ? age + '세' : ''} ${c.gender === 'male' ? '남성' : '여성'}</div>
+                        ${c.mbti ? `<div class="card-mbti">${c.mbti}</div>` : ''}
+                    </div>
+                </div>
+                <div class="card-body">
+                    ${mutualCardHtml}
+                    ${popHtml}
+                    <div class="card-tags">${tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>
+                    <div class="card-compat">
+                        <span style="font-size:.78em;font-weight:700;color:var(--primary);white-space:nowrap;">${c._score}점</span>
+                        <div class="card-compat-bar"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
+                    </div>
+                    <div style="font-size:.78em;color:var(--muted);margin-bottom:12px;">${mbtiLabel} (${mbtiCompat}%)</div>
+                    ${ibHtml}
+                </div>
+                <div class="card-actions">
+                    <button class="card-btn card-btn-pass" onclick="cardPass()" title="패스">✕</button>
+                    <button class="card-btn card-btn-like" onclick="cardLike('${c.id}')" title="${isFav ? '이미 찜함' : '찜하기'}">${isFav ? '💜' : '♥'}</button>
+                </div>
+            </div>
+            <div class="card-counter">${_cardIndex + 1} / ${_scoredCandidates.length}</div>
+            <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →</div>
+        </div>`;
+    // 스와이프 이벤트 바인딩
+    setTimeout(initSwipe, 50);
+}
+
+// ── 터치 스와이프 ──
+let _swipeStartX = 0, _swipeStartY = 0, _swiping = false;
+function initSwipe() {
+    const card = document.getElementById('current-card');
+    if (!card) return;
+    card.addEventListener('touchstart', e => {
+        _swipeStartX = e.touches[0].clientX;
+        _swipeStartY = e.touches[0].clientY;
+        _swiping = true;
+        card.style.transition = 'none';
+    }, { passive: true });
+    card.addEventListener('touchmove', e => {
+        if (!_swiping) return;
+        const dx = e.touches[0].clientX - _swipeStartX;
+        const dy = e.touches[0].clientY - _swipeStartY;
+        if (Math.abs(dx) < Math.abs(dy)) return; // 세로 스크롤 우선
+        const rot = dx * 0.08;
+        card.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+        card.style.opacity = Math.max(0.5, 1 - Math.abs(dx) / 400);
+    }, { passive: true });
+    card.addEventListener('touchend', e => {
+        if (!_swiping) return;
+        _swiping = false;
+        const dx = e.changedTouches[0].clientX - _swipeStartX;
+        card.style.transition = 'transform .3s, opacity .3s';
+        if (dx > 80) {
+            const c = _scoredCandidates[_cardIndex];
+            if (c) cardLike(c.id);
+        } else if (dx < -80) {
+            cardPass();
+        } else {
+            card.style.transform = '';
+            card.style.opacity = '1';
+        }
+    });
+}
+
+function cardPass() {
+    const el = document.getElementById('current-card');
+    if (el) { el.classList.add('swiping-left'); }
+    setTimeout(() => {
+        _cardIndex = (_cardIndex + 1) % _scoredCandidates.length;
+        renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
+    }, 280);
+}
+
+function cardLike(id) {
+    const el = document.getElementById('current-card');
+    if (el) { el.classList.add('swiping-right'); }
+    toggleFav(id);
+    setTimeout(() => {
+        _cardIndex = (_cardIndex + 1) % _scoredCandidates.length;
+        renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
+    }, 280);
+}
+
 async function toggleFav(applicantId) {
     const { data: { user } } = await db.auth.getUser();
     const favSet = window._favSet || new Set();
     if (favSet.has(applicantId)) {
         await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
         favSet.delete(applicantId);
+        toast('보석함에서 제거했어요');
     } else {
         await db.from('favorites').insert([{ user_id: user.id, applicant_id: applicantId }]);
         favSet.add(applicantId);
+        toast('보석함에 담았어요 💜', 'success');
     }
     window._favSet = favSet;
     renderMatchRanking(window._allCandidates || []);
     await loadFavorites(user.id);
+    // 상호 관심 재확인
+    await loadMutualInterests(user.id);
 }
 
 async function removeFav(applicantId) {
     const { data: { user } } = await db.auth.getUser();
     await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
+    toast('보석함에서 제거했어요');
     await loadFavorites(user.id);
+    await loadMutualInterests(user.id);
+}
+
+// ── 상호 관심 감지 & 매칭 신청 ──
+async function loadMutualInterests(userId) {
+    try {
+        const { data: mutualIds } = await db.rpc('get_mutual_favorites', { my_user_id: userId });
+        window._mutualSet = new Set(mutualIds || []);
+
+        // 기존 매칭 요청 로드
+        if (window._myProfile) {
+            const { data: requests } = await db.from('match_requests')
+                .select('to_applicant,status')
+                .eq('from_applicant', window._myProfile.id);
+            window._matchRequests = {};
+            (requests || []).forEach(r => { window._matchRequests[r.to_applicant] = r.status; });
+        }
+
+        renderMutualSection();
+        // 추천 목록에 상호 관심 배지 업데이트
+        renderMatchRanking(window._allCandidates || []);
+    } catch(e) {
+        console.log('mutual interest load error:', e.message);
+        window._mutualSet = new Set();
+    }
+}
+
+function renderMutualSection() {
+    const card = document.getElementById('mutual-card');
+    const sec = document.getElementById('mutual-section');
+    const mutualSet = window._mutualSet || new Set();
+    const candidates = window._allCandidates || [];
+    const mutuals = candidates.filter(c => mutualSet.has(c.id));
+
+    if (mutuals.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    document.getElementById('mutual-count').textContent = mutuals.length + '명';
+
+    sec.innerHTML = `
+        <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">서로 관심을 보낸 상대예요! 매칭을 신청해보세요.</div>
+        ${mutuals.map(c => {
+            const age = calcAge(c.birth);
+            const photo = c.photos && c.photos[0];
+            const photoHtml = photo
+                ? `<div class="match-photo"><img src="${photo}" alt=""></div>`
+                : `<div class="match-photo">${c.gender === 'male' ? '👨' : '👩'}</div>`;
+            const tags = [age ? age + '세' : null, c.location, c.mbti, c.job_category].filter(Boolean)
+                .map(t => `<span class="match-tag">${esc(t)}</span>`).join('');
+            const reqStatus = (window._matchRequests || {})[c.id];
+            let actionHtml;
+            if (reqStatus === 'pending') {
+                actionHtml = '<span class="btn-match-requested">신청됨 ⏳</span>';
+            } else if (reqStatus === 'approved') {
+                actionHtml = '<span class="btn-match-requested" style="border-color:#10b981;color:#10b981;">승인됨 ✅</span>';
+            } else if (reqStatus === 'rejected') {
+                actionHtml = '<span class="btn-match-requested" style="border-color:#ef4444;color:#ef4444;">거절됨</span>';
+            } else {
+                actionHtml = `<button class="btn-match-request" onclick="requestMatch('${c.id}')">💘 매칭 신청</button>`;
+            }
+            return `<div class="mutual-item">
+                ${photoHtml}
+                <div class="match-info" style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:.85em;font-weight:700;">${c.gender === 'male' ? '남성' : '여성'}</span>
+                        <span class="mutual-badge">💘 상호 관심</span>
+                    </div>
+                    <div class="match-tags">${tags}</div>
+                </div>
+                <div style="flex-shrink:0;">${actionHtml}</div>
+            </div>`;
+        }).join('')}`;
+}
+
+async function requestMatch(targetId) {
+    if (!confirm('이 상대에게 매칭을 신청하시겠어요?')) return;
+    try {
+        const { data, error } = await db.rpc('create_match_request', { target_id: targetId });
+        if (error) throw error;
+        toast('매칭 신청이 완료됐어요! 관리자 승인을 기다려주세요 💘', 'success');
+        // 요청 상태 업데이트
+        if (!window._matchRequests) window._matchRequests = {};
+        window._matchRequests[targetId] = 'pending';
+        renderMutualSection();
+    } catch(e) {
+        toast('매칭 신청 실패: ' + e.message, 'error');
+    }
 }
 
 async function loadFavorites(userId) {
@@ -459,21 +1028,89 @@ async function loadFavorites(userId) {
     if (!favs || !favs.length) { renderFavorites([]); return; }
     const ids = favs.map(f => f.applicant_id);
     const { data: applicants } = await db.from('applicants')
-        .select('id,gender,birth,job,location,mbti,photos')
+        .select('id,gender,birth,job,location,mbti,photos,status')
         .in('id', ids);
-    renderFavorites(applicants || []);
+    // 매칭/거절된 유저는 보석함에서 제외
+    const visibleFavs = (applicants || []).filter(a => a.status === 'approved');
+    renderFavorites(visibleFavs);
 }
 
 async function doLogout() {
+    if (!confirm('로그아웃 하시겠습니까?')) return;
     await db.auth.signOut();
+    localStorage.removeItem('kj_role');
+    localStorage.removeItem('kj_screen');
     window.location.href = 'index.html';
 }
 
+// ── 축하 confetti ──
+function showConfetti() {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+    const colors = ['#7c3aed','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444'];
+    for (let i = 0; i < 60; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + '%';
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animationDelay = Math.random() * 2 + 's';
+        c.style.animationDuration = (2 + Math.random() * 2) + 's';
+        c.style.width = (6 + Math.random() * 8) + 'px';
+        c.style.height = (6 + Math.random() * 8) + 'px';
+        container.appendChild(c);
+    }
+    setTimeout(() => container.remove(), 5000);
+}
+
+// ── 매칭 상대 정보 표시 ──
+function renderMatchResult(partner) {
+    const card = document.getElementById('match-result-card');
+    const sec = document.getElementById('match-result-section');
+    if (!partner) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    if (!window._confettiShown) { window._confettiShown = true; setTimeout(showConfetti, 500); }
+    const age = calcAge(partner.birth);
+    const photo = partner.photos && partner.photos[0];
+    const photoHtml = photo
+        ? `<img src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
+        : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;">${partner.gender === 'male' ? '👨' : '👩'}</div>`;
+    sec.innerHTML = `
+        <div style="text-align:center;padding:8px 0;">
+            <div style="font-size:1.1em;font-weight:800;color:var(--primary);margin-bottom:16px;">축하합니다! 반쪽을 찾았어요</div>
+            <div style="display:flex;justify-content:center;margin-bottom:16px;">${photoHtml}</div>
+            <div style="font-size:1em;font-weight:700;margin-bottom:4px;">${esc(partner.name)}</div>
+            <div style="font-size:.88em;color:var(--muted);margin-bottom:12px;">${age ? age + '세' : ''} · ${esc(partner.job || '')}${partner.location ? ' · ' + esc(partner.location) : ''}</div>
+            ${partner.kakao ? `<div style="background:#FEE500;color:#3C1E1E;padding:10px 20px;border-radius:12px;font-weight:700;font-size:.9em;display:inline-block;">💛 카카오 ID: ${esc(partner.kakao)}</div>` : ''}
+            ${partner.contact ? `<div style="margin-top:8px;font-size:.85em;color:var(--muted);">연락처: ${esc(partner.contact)}</div>` : ''}
+            <div style="margin-top:16px;font-size:.78em;color:#c4b5fd;">매칭 상대에게 먼저 연락해보세요!</div>
+        </div>`;
+}
+
 async function init() {
-    // 로컬 개발 우회
-    if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+    // 로컬 개발: 세션 없이 첫 번째 데이터로 미리보기
+    if (_isLocal) {
         document.getElementById('user-email').textContent = '개발모드';
-        renderProfile(null);
+        try {
+            const { data: allApps } = await db.from('applicants').select('*').limit(5);
+            if (allApps && allApps.length > 0) {
+                const profile = allApps[0];
+                window._myProfile = profile;
+                window._popularityCount = 0;
+                window._favCounts = {};
+                renderProfile(profile);
+                document.getElementById('edit-profile-btn').style.display = 'none';
+                const oppGender = profile.gender === 'male' ? 'female' : 'male';
+                const candidates = allApps.filter(a => a.gender === oppGender && a.status === 'approved');
+                window._allCandidates = candidates;
+                renderMatchRanking(candidates);
+            } else {
+                renderProfile(null);
+            }
+        } catch(e) {
+            console.log('로컬 대시보드 로드 실패:', e.message);
+            renderProfile(null);
+        }
         renderFavorites([]);
         setLoading(false);
         return;
@@ -481,6 +1118,7 @@ async function init() {
 
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'index.html'; return; }
+    try {
 
     const user = session.user;
     document.getElementById('user-email').textContent = user.email;
@@ -489,26 +1127,77 @@ async function init() {
     const { data: profiles } = await db.from('applicants')
         .select('*').eq('user_id', user.id).limit(1);
     const profile = profiles && profiles[0] ? profiles[0] : null;
+    window._popularityCount = 0;
+    window._favCounts = {};
     renderProfile(profile);
     window._myProfile = profile;
 
-    if (profile) {
-        // 가중치 슬라이더 표시
-        document.getElementById('weights-card').style.display = '';
-        loadWeights(profile.ideal_weights);
+    const isMatched = profile && profile.status === 'matched';
+    const isApproved = profile && profile.status === 'approved';
 
-        // 이성 승인 참가자 로드 → 추천 순위
+    if (profile) {
+        // 이성 승인 참가자 로드 (온보딩에서도 숫자 필요)
         const oppGender = profile.gender === 'male' ? 'female' : 'male';
         const { data: candidates } = await db.from('applicants')
-            .select('id,gender,birth,job,job_category,height,look_score,location,mbti,photos')
+            .select('id,gender,birth,job,job_category,height,look_score,location,mbti,photos,icebreaker')
             .eq('status', 'approved')
             .eq('gender', oppGender);
         window._allCandidates = candidates || [];
-        renderMatchRanking(window._allCandidates);
+
+        // 상태별 온보딩 화면
+        if (!isMatched) {
+            showOnboarding(profile.status, (candidates || []).length);
+        }
+
+        // 승인된 상태에서만 추천/가중치 표시
+        const showRecommendations = isApproved;
+        document.getElementById('weights-card').style.display = showRecommendations ? '' : 'none';
+        if (showRecommendations) loadWeights(profile.ideal_weights);
+
+        // 나를 찜한 사람 수 (아만다 스타일 인기도) — RPC로 RLS 우회
+        const { data: myPop } = await db.rpc('get_my_popularity', { my_applicant_id: profile.id });
+        window._popularityCount = myPop || 0;
+
+        // 각 후보의 찜 받은 수 (인기도) — RPC로 RLS 우회
+        const candIds = (candidates || []).map(c => c.id);
+        if (candIds.length > 0) {
+            const { data: favCountData } = await db.rpc('get_favorite_counts', { ids: candIds });
+            window._favCounts = favCountData || {};
+        }
+
+        if (showRecommendations) {
+            // 상호 관심 로드
+            await loadMutualInterests(user.id);
+        }
+
+        // 프로필 다시 렌더 (인기도 포함)
+        renderProfile(profile);
+        if (showRecommendations) renderMatchRanking(window._allCandidates);
+
+        // 매칭 성사 확인 → 상대방 정보 표시
+        if (isMatched && profile.matched_with) {
+            try {
+                const { data: partners } = await db.from('applicants')
+                    .select('name,gender,birth,job,location,kakao,contact,photos')
+                    .eq('id', profile.matched_with).limit(1);
+                if (partners && partners[0]) renderMatchResult(partners[0]);
+            } catch(e) { console.log('match partner load error:', e.message); }
+        }
     }
 
-    await loadFavorites(user.id);
+    if (!isMatched) {
+        await loadFavorites(user.id);
+    } else {
+        // 매칭된 후에는 보석함/추천 숨김
+        document.getElementById('match-ranking-card').style.display = 'none';
+        document.getElementById('mutual-card').style.display = 'none';
+    }
     setLoading(false);
+    } catch(e) {
+        console.error('dashboard init error:', e);
+        setLoading(false);
+        toast('데이터 로드 중 오류가 발생했어요. 새로고침해주세요.', 'error');
+    }
 }
 
 init();
