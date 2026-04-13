@@ -1,0 +1,17 @@
+{
+  "name": "반쪽 - 소개팅",
+  "short_name": "반쪽",
+  "description": "소개팅 매칭 서비스",
+  "start_url": "/banjjok/",
+  "display": "standalone",
+  "background_color": "#f5f3ff",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💎</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
