@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
     <title>반쪽</title>
     <style>
         :root {
@@ -665,6 +669,11 @@
             <!-- 사진 업로드 (최대 3장) -->
             <div class="input-group">
                 <label>사진 * (최대 3장)</label>
+                <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;padding:10px 12px;background:#f5f3ff;border-radius:10px;line-height:1.5;">
+                    📸 <b>사진 팁:</b> 밝은 조명의 정면 사진이 가장 좋아요!<br>
+                    ✅ 얼굴이 잘 보이는 사진 &nbsp; ✅ 자연스러운 미소<br>
+                    ❌ 선글라스/마스크 &nbsp; ❌ 단체사진 &nbsp; ❌ 과한 필터
+                </div>
                 <div class="photo-upload-grid">
                     <div class="photo-slot" id="photo-slot-0">
                         <input type="file" id="photo-file-0" accept="image/*" onchange="previewPhoto(0,this)">
@@ -2398,6 +2407,7 @@ window.addEventListener('popstate', e => {
     }
     _historyNav = true; showScreen(target); _historyNav = false;
 });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
 </html>
