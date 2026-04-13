@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7c3aed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
 <title>반쪽 - 내 대시보드</title>
 <style>
     :root {
@@ -818,7 +821,9 @@ function renderMatchRanking(candidates) {
     }
     card.style.display = '';
     const favSet = window._favSet || new Set();
-    _scoredCandidates = candidates.map(c => ({
+    const blockedSet = window._blockedSet || new Set();
+    const filtered = candidates.filter(c => !blockedSet.has(c.id));
+    _scoredCandidates = filtered.map(c => ({
         ...c,
         _score: calcMatchScore(window._myProfile, c),
         _mbtiCompat: calcMbtiCompat(window._myProfile.mbti, c.mbti),
@@ -1105,6 +1110,79 @@ async function loadFavorites(userId) {
     renderFavorites(visibleFavs);
 }
 
+// ── 신고/차단 ──
+async function reportUser(targetId) {
+    const reasons = ['부적절한 사진','허위 프로필','불쾌한 행동','스팸/광고','기타'];
+    const reason = prompt('신고 사유를 선택해주세요:\n' + reasons.map((r,i) => (i+1)+'. '+r).join('\n') + '\n\n번호를 입력하세요:');
+    if (!reason) return;
+    const idx = parseInt(reason) - 1;
+    const reasonText = reasons[idx] || reason;
+    if (!window._myProfile) return;
+    try {
+        await db.from('reports').insert([{ reporter_id: window._myProfile.id, target_id: targetId, reason: reasonText }]);
+        toast('신고가 접수되었어요. 관리자가 확인할게요.');
+        closeProfileModal();
+    } catch(e) { toast('신고 실패', 'error'); }
+}
+
+async function blockUser(targetId) {
+    if (!confirm('이 사용자를 차단하시겠어요?\n차단하면 서로 추천 목록에서 보이지 않아요.')) return;
+    if (!window._myProfile) return;
+    try {
+        await db.from('blocks').insert([{ blocker_id: window._myProfile.id, blocked_id: targetId }]);
+        if (!window._blockedSet) window._blockedSet = new Set();
+        window._blockedSet.add(targetId);
+        toast('차단되었어요');
+        closeProfileModal();
+        renderMatchRanking(window._allCandidates || []);
+    } catch(e) { toast('차단 실패', 'error'); }
+}
+
+// ── 매칭 메시지 ──
+async function loadMatchMessages(myAppId, partnerAppId) {
+    if (!myAppId || !partnerAppId) return;
+    const el = document.getElementById('match-messages');
+    if (!el) return;
+    try {
+        const { data } = await db.from('messages')
+            .select('*')
+            .or(`and(from_applicant.eq.${myAppId},to_applicant.eq.${partnerAppId}),and(from_applicant.eq.${partnerAppId},to_applicant.eq.${myAppId})`)
+            .order('created_at', { ascending: true })
+            .limit(50);
+        if (!data || data.length === 0) {
+            el.innerHTML = '<div style="text-align:center;padding:12px;color:#d1d5db;font-size:.82em;">아직 대화가 없어요. 첫 인사를 보내보세요!</div>';
+            return;
+        }
+        el.innerHTML = data.map(m => {
+            const isMine = m.from_applicant === myAppId;
+            return `<div style="display:flex;${isMine?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px;">
+                <div style="max-width:75%;padding:10px 14px;border-radius:${isMine?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isMine?'linear-gradient(135deg,#7c3aed,#ec4899)':'#f3f4f6'};color:${isMine?'white':'var(--text)'};font-size:.88em;">
+                    ${esc(m.content)}
+                    <div style="font-size:.65em;margin-top:4px;opacity:.7;text-align:right;">${formatTimeAgo(m.created_at)}</div>
+                </div>
+            </div>`;
+        }).join('');
+        el.scrollTop = el.scrollHeight;
+    } catch(e) { console.log('msg load error:', e.message); }
+}
+
+async function sendMatchMsg() {
+    const input = document.getElementById('match-msg-input');
+    if (!input) return;
+    const content = input.value.trim();
+    if (!content) return;
+    if (!window._myProfile || !partner_id_for_msg) return;
+    input.value = '';
+    try {
+        await db.from('messages').insert([{
+            from_applicant: window._myProfile.id,
+            to_applicant: partner_id_for_msg,
+            content: content
+        }]);
+        await loadMatchMessages(window._myProfile.id, partner_id_for_msg);
+    } catch(e) { toast('메시지 전송 실패', 'error'); }
+}
+
 // ── 프로필 상세 모달 ──
 function openProfileModal(applicantId) {
     const c = (_scoredCandidates || []).find(x => x.id === applicantId)
@@ -1177,6 +1255,11 @@ function openProfileModal(applicantId) {
         <div class="pm-actions">
             <button class="btn ${isFav ? 'btn-outline' : 'btn-primary'}" onclick="toggleFav('${c.id}');closeProfileModal();">${isFav ? '💜 찜 해제' : '🤍 찜하기'}</button>
             <button class="btn btn-outline" onclick="closeProfileModal()">닫기</button>
+        </div>
+        <div style="text-align:center;padding:8px 20px 16px;border-top:1px solid #f3f4f6;">
+            <button onclick="reportUser('${c.id}')" style="background:none;border:none;cursor:pointer;font-size:.75em;color:#d1d5db;">신고</button>
+            <span style="color:#e5e7eb;margin:0 8px;">|</span>
+            <button onclick="blockUser('${c.id}')" style="background:none;border:none;cursor:pointer;font-size:.75em;color:#d1d5db;">차단</button>
         </div>`;
     document.getElementById('profile-modal').classList.add('open');
 }
@@ -1201,10 +1284,29 @@ async function loadNotifications() {
             .select('*')
             .order('created_at', { ascending: false })
             .limit(30);
+        const prev = _notifications.filter(n => !n.is_read).length;
         _notifications = data || [];
+        const curr = _notifications.filter(n => !n.is_read).length;
         renderNotifBadge();
         renderNotifList();
+        // 새 알림이 있으면 브라우저 알림
+        if (curr > prev && curr > 0) {
+            const newest = _notifications.find(n => !n.is_read);
+            if (newest) showBrowserNotif(newest.title, newest.body);
+        }
     } catch(e) { console.log('notif load error:', e.message); }
+}
+
+// 브라우저 알림
+function requestNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+function showBrowserNotif(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: body || '', icon: '💎', tag: 'banjjok' });
+    }
 }
 
 function renderNotifBadge() {
@@ -1316,6 +1418,7 @@ function renderMatchResult(partner) {
     const sec = document.getElementById('match-result-section');
     if (!partner) { card.style.display = 'none'; return; }
     card.style.display = '';
+    partner_id_for_msg = partner.id;
     if (!window._confettiShown) { window._confettiShown = true; setTimeout(showConfetti, 500); }
     const age = calcAge(partner.birth);
     const photo = partner.photos && partner.photos[0];
@@ -1330,9 +1433,15 @@ function renderMatchResult(partner) {
             <div style="font-size:.88em;color:var(--muted);margin-bottom:12px;">${age ? age + '세' : ''} · ${esc(partner.job || '')}${partner.location ? ' · ' + esc(partner.location) : ''}</div>
             ${partner.kakao ? `<div style="background:#FEE500;color:#3C1E1E;padding:10px 20px;border-radius:12px;font-weight:700;font-size:.9em;display:inline-block;">💛 카카오 ID: ${esc(partner.kakao)}</div>` : ''}
             ${partner.contact ? `<div style="margin-top:8px;font-size:.85em;color:var(--muted);">연락처: ${esc(partner.contact)}</div>` : ''}
-            <div style="margin-top:16px;font-size:.78em;color:#c4b5fd;">매칭 상대에게 먼저 연락해보세요!</div>
+            <div id="match-messages" style="margin-top:20px;text-align:left;"></div>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+                <input type="text" id="match-msg-input" placeholder="첫 인사를 보내보세요..." style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:12px;font-size:.9em;font-family:inherit;" onkeydown="if(event.key==='Enter')sendMatchMsg()">
+                <button class="btn btn-primary" onclick="sendMatchMsg()" style="padding:10px 18px;flex-shrink:0;">보내기</button>
+            </div>
         </div>`;
+    loadMatchMessages(window._myProfile.id, partner_id_for_msg);
 }
+let partner_id_for_msg = null;
 
 async function init() {
     // 로컬 개발: 세션 없이 첫 번째 데이터로 미리보기
@@ -1425,7 +1534,7 @@ async function init() {
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
-                    .select('name,gender,birth,job,location,kakao,contact,photos')
+                    .select('id,name,gender,birth,job,location,kakao,contact,photos')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) renderMatchResult(partners[0]);
             } catch(e) { console.log('match partner load error:', e.message); }
@@ -1438,6 +1547,15 @@ async function init() {
         // 매칭된 후에는 보석함/추천 숨김
         document.getElementById('match-ranking-card').style.display = 'none';
         document.getElementById('mutual-card').style.display = 'none';
+    }
+    // 브라우저 알림 권한 요청
+    requestNotifPermission();
+    // 차단 목록 로드
+    if (window._myProfile) {
+        try {
+            const { data: blockData } = await db.from('blocks').select('blocked_id').eq('blocker_id', window._myProfile.id);
+            window._blockedSet = new Set((blockData || []).map(b => b.blocked_id));
+        } catch(e) { window._blockedSet = new Set(); }
     }
     // 알림 로드
     await loadNotifications();
