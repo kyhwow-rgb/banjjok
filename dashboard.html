@@ -830,8 +830,6 @@ function renderMatchRanking(candidates) {
     }));
     _scoredCandidates.sort((a, b) => b._score - a._score);
     _scoredCandidates = _scoredCandidates.slice(0, 3);
-    _cardIndex = 0;
-    _swipedCount = 0;
     document.getElementById('match-count').textContent = '';
 
     renderCardView(sec, favSet);
@@ -1516,7 +1514,7 @@ async function init() {
 
         // 프로필 다시 렌더 (인기도 포함)
         renderProfile(profile);
-        if (showRecommendations) renderMatchRanking(window._allCandidates);
+        if (showRecommendations) { _cardIndex = 0; _swipedCount = 0; renderMatchRanking(window._allCandidates); }
 
         // 매칭 성사 확인 → 상대방 정보 표시
         if (isMatched && profile.matched_with) {
