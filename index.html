@@ -1066,9 +1066,7 @@ async function renderHome() {
     try {
         const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
         list = data || [];
-    } catch(e) {
-        console.log('renderHome error:', e.message);
-    }
+    } catch(e) { console.log('renderHome error:', e.message); }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
     const femaleCount = list.filter(a => a.gender === 'female').length;
@@ -2369,17 +2367,15 @@ window.addEventListener('DOMContentLoaded', async () => {
             showScreen('register');
             return;
         }
-        // 신청서 제출 여부 확인 → 제출했으면 dashboard, 아니면 home
+        // 로그인 상태 → 홈 화면 표시 (대시보드 버튼은 신청서 유무에 따라)
         try {
             const { data: existing } = await db.from('applicants').select('id').eq('user_id', session.user.id).limit(1);
             if (existing && existing.length > 0) {
-                window.location.href = 'dashboard.html';
-                return;
+                document.getElementById('home-dashboard-btn').style.display = '';
             }
         } catch(e) {
             console.log('applicant check failed:', e.message);
         }
-        // 아직 신청 전 → 홈 화면 표시 (대시보드 버튼 숨김)
         saveSession('viewer', 'home');
         showScreen('home');
         history.replaceState({ screen: 'home' }, '', location.pathname);
