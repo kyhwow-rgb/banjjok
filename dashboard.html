@@ -408,13 +408,7 @@
     <div class="section-card" id="match-ranking-card" style="display:none;">
         <div class="section-header">
             <div class="section-title"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> 추천 반쪽 <span style="font-size:.72em;font-weight:500;color:var(--muted);margin-left:4px;">추천 반쪽은 최대 3명 표시됩니다.</span></div>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
-                <div class="view-toggle">
-                    <button class="view-toggle-btn active" id="view-list-btn" onclick="switchView('list')">목록</button>
-                    <button class="view-toggle-btn" id="view-card-btn" onclick="switchView('card')">카드</button>
-                </div>
-            </div>
+            <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
         </div>
         <div class="section-body" id="match-ranking-section">
             <!-- JS로 채움 -->
@@ -805,7 +799,7 @@ async function saveWeights() {
 }
 
 // ── 추천 반쪽 목록 렌더 ──
-let _currentView = 'list';
+let _currentView = 'card';
 let _cardIndex = 0;
 let _scoredCandidates = [];
 
@@ -837,11 +831,7 @@ function renderMatchRanking(candidates) {
     _scoredCandidates = _scoredCandidates.slice(0, 3);
     document.getElementById('match-count').textContent = '';
 
-    if (_currentView === 'card') {
-        renderCardView(sec, favSet);
-    } else {
-        renderListView(sec, favSet);
-    }
+    renderCardView(sec, favSet);
 }
 
 function renderListView(sec, favSet) {
