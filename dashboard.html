@@ -445,10 +445,10 @@
             <div class="section-body" id="liked-me-section"></div>
         </div>
 
-        <!-- 나의 보석함 -->
+        <!-- 내가 찜한 사람 -->
         <div class="section-card">
             <div class="section-header">
-                <div class="section-title"><i class="fa-solid fa-gem" style="color:#ec4899;"></i> 나의 보석함</div>
+                <div class="section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 내가 찜한 사람</div>
                 <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
             </div>
             <div class="section-body" id="favorites-section"></div>
@@ -805,7 +805,7 @@ function renderFavorites(favApplicants) {
     const sec = document.getElementById('favorites-section');
     document.getElementById('fav-count').textContent = favApplicants.length ? `${favApplicants.length}명` : '';
     if (!favApplicants.length) {
-        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;">💝</div>아직 찜한 상대가 없어요<br><span style="font-size:.8em;color:#d1d5db;">위의 추천 반쪽에서 🤍를 눌러 보석함에 담아보세요</span></div>`;
+        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;">💝</div>아직 찜한 사람이 없어요<br><span style="font-size:.8em;color:#d1d5db;">추천 탭에서 마음에 드는 반쪽을 찜해보세요</span></div>`;
         return;
     }
     sec.innerHTML = `<div class="fav-list">${favApplicants.map(a => {
@@ -1011,7 +1011,7 @@ function renderCardView(sec, favSet) {
                 </div>
                 <br>
                 <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                    <i class="fa-solid fa-gem"></i> 보석함 확인하기
+                    <i class="fa-solid fa-gem"></i> 찜 목록 확인하기
                 </div>
             </div>`;
         return;
@@ -1147,7 +1147,7 @@ async function toggleFav(applicantId) {
     if (favSet.has(applicantId)) {
         await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
         favSet.delete(applicantId);
-        toast('보석함에서 제거했어요');
+        toast('찜 목록에서 제거했어요');
     } else {
         if (favSet.size >= 3) {
             toast('최대 3명까지만 찜할 수 있어요. 기존 찜을 해제해주세요.', 'warning');
@@ -1155,7 +1155,7 @@ async function toggleFav(applicantId) {
         }
         await db.from('favorites').insert([{ user_id: user.id, applicant_id: applicantId }]);
         favSet.add(applicantId);
-        toast(`보석함에 담았어요 (${favSet.size}/3)`, 'success');
+        toast(`찜 목록에 담았어요 (${favSet.size}/3)`, 'success');
     }
     window._favSet = favSet;
     renderMatchRanking(window._allCandidates || []);
@@ -1167,7 +1167,7 @@ async function toggleFav(applicantId) {
 async function removeFav(applicantId) {
     const { data: { user } } = await db.auth.getUser();
     await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
-    toast('보석함에서 제거했어요');
+    toast('찜 목록에서 제거했어요');
     await loadFavorites(user.id);
     await loadMutualInterests(user.id);
 }
@@ -1294,7 +1294,7 @@ async function loadFavorites(userId) {
     const { data: applicants } = await db.from('applicants')
         .select('id,gender,birth,job,location,mbti,photos,status')
         .in('id', ids);
-    // 매칭/거절된 유저는 보석함에서 제외
+    // 매칭/거절된 유저는 찜 목록에서 제외
     const visibleFavs = (applicants || []).filter(a => a.status === 'approved');
     renderFavorites(visibleFavs);
 }
@@ -1711,7 +1711,7 @@ async function init() {
     if (!isMatched) {
         await loadFavorites(user.id);
     } else {
-        // 매칭된 후에는 보석함/추천 숨김
+        // 매칭된 후에는 찜 목록/추천 숨김
         document.getElementById('match-ranking-card').style.display = 'none';
         document.getElementById('mutual-card').style.display = 'none';
     }
