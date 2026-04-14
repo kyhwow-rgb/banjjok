@@ -407,7 +407,7 @@
     <!-- ── 추천 반쪽 순위 ── -->
     <div class="section-card" id="match-ranking-card" style="display:none;">
         <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> 추천 반쪽</div>
+            <div class="section-title"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> 추천 반쪽 <span style="font-size:.72em;font-weight:500;color:var(--muted);margin-left:4px;">최대 3명만 표시돼요</span></div>
             <div style="display:flex;align-items:center;gap:10px;">
                 <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
                 <div class="view-toggle">
@@ -834,6 +834,7 @@ function renderMatchRanking(candidates) {
         _favCount: (window._favCounts || {})[c.id] || 0
     }));
     _scoredCandidates.sort((a, b) => b._score - a._score);
+    _scoredCandidates = _scoredCandidates.slice(0, 3);
     document.getElementById('match-count').textContent = '';
 
     if (_currentView === 'card') {
