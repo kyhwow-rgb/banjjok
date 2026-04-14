@@ -122,7 +122,42 @@
     .no-profile-title { font-size:1em; font-weight:700; margin-bottom:8px; }
     .no-profile-sub { font-size:.85em; color:var(--muted); margin-bottom:20px; }
 
-    .site-footer { text-align:center; padding:28px 16px 20px; color:#c4b5fd; font-size:.72em; letter-spacing:.06em; font-weight:500; }
+    .site-footer { text-align:center; padding:28px 16px 80px; color:#c4b5fd; font-size:.72em; letter-spacing:.06em; font-weight:500; }
+
+    /* BOTTOM TAB BAR */
+    .tab-bar {
+        position:fixed; bottom:0; left:0; right:0; z-index:120;
+        background:rgba(255,255,255,.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+        border-top:1px solid rgba(0,0,0,.06);
+        display:flex; align-items:center; justify-content:space-around;
+        height:64px; padding-bottom:env(safe-area-inset-bottom, 0);
+    }
+    .tab-item {
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+        padding:6px 0; cursor:pointer; transition:all .15s; flex:1;
+        color:var(--muted); text-decoration:none; -webkit-tap-highlight-color:transparent;
+    }
+    .tab-item i { font-size:1.25em; transition:transform .2s; }
+    .tab-item span { font-size:.65em; font-weight:700; letter-spacing:.02em; }
+    .tab-item.active { color:var(--primary); }
+    .tab-item.active i { transform:scale(1.15); }
+    .tab-item .tab-badge {
+        position:absolute; top:2px; right:calc(50% - 18px);
+        background:#ef4444; color:white; font-size:.55em; font-weight:800;
+        min-width:16px; height:16px; border-radius:8px;
+        display:flex; align-items:center; justify-content:center; padding:0 4px;
+    }
+
+    /* TAB CONTENT */
+    .tab-content { display:none; animation:tabFadeIn .3s ease; }
+    .tab-content.active { display:block; }
+    @keyframes tabFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* FULLSCREEN CARD (추천 탭) */
+    .discover-card-wrap { min-height:calc(100vh - 190px); display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0 4px; }
+    .discover-card-wrap .card-view { max-width:380px; width:100%; }
+    .discover-card-wrap .card-photo-area { height:320px; }
+    .discover-hint { text-align:center; font-size:.78em; color:var(--muted); margin-top:12px; }
 
     /* WEIGHT SLIDERS */
     .weight-row { display:flex; flex-direction:column; gap:14px; }
@@ -325,7 +360,6 @@
             <i class="fa-solid fa-bell"></i>
             <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
         </button>
-        <button class="btn btn-nav" onclick="doLogout()">로그아웃</button>
     </div>
 </div>
 
@@ -344,105 +378,161 @@
 
 <div class="page">
 
-    <!-- ── 내 보석 상태 ── -->
-    <div class="section-card">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-gem" style="color:var(--primary);"></i> 내 보석 상태</div>
-            <a href="index.html#register" id="edit-profile-btn" style="display:none;">
-                <button class="btn btn-outline" style="padding:7px 16px;font-size:.82em;">신청서 수정</button>
-            </a>
+    <!-- ══ TAB: 홈 ══ -->
+    <div class="tab-content active" id="tab-home">
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-gem" style="color:var(--primary);"></i> 내 보석 상태</div>
+                <a href="index.html#register" id="edit-profile-btn" style="display:none;">
+                    <button class="btn btn-outline" style="padding:7px 16px;font-size:.82em;">신청서 수정</button>
+                </a>
+            </div>
+            <div class="section-body" id="profile-section">
+                <div id="profile-skeleton">
+                    <div class="skeleton skeleton-block" style="height:10px;width:70%;margin-bottom:16px;"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="skeleton skeleton-block" style="height:68px;"></div>
+                        <div class="skeleton skeleton-block" style="height:68px;"></div>
+                        <div class="skeleton skeleton-block" style="height:68px;"></div>
+                        <div class="skeleton skeleton-block" style="height:68px;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="section-body" id="profile-section">
-            <!-- 스켈레톤 초기 상태 -->
-            <div id="profile-skeleton">
-                <div class="skeleton skeleton-block" style="height:10px;width:70%;margin-bottom:16px;"></div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="skeleton skeleton-block" style="height:68px;"></div>
-                    <div class="skeleton skeleton-block" style="height:68px;"></div>
-                    <div class="skeleton skeleton-block" style="height:68px;"></div>
-                    <div class="skeleton skeleton-block" style="height:68px;"></div>
+
+        <!-- 매칭 결과 (홈 탭에서 표시) -->
+        <div class="section-card" id="match-result-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사!</div>
+            </div>
+            <div class="section-body" id="match-result-section"></div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: 추천 ══ -->
+    <div class="tab-content" id="tab-discover">
+        <div class="section-card" id="match-ranking-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> 추천 반쪽</div>
+                <span style="font-size:.72em;font-weight:500;color:var(--muted);">오늘의 추천 3명</span>
+            </div>
+            <div class="section-body">
+                <div class="discover-card-wrap" id="match-ranking-section">
+                    <!-- JS로 채움 -->
+                </div>
+            </div>
+        </div>
+        <span id="match-count" style="display:none;"></span>
+    </div>
+
+    <!-- ══ TAB: 관심 ══ -->
+    <div class="tab-content" id="tab-interest">
+        <!-- 상호 관심 -->
+        <div class="section-card" id="mutual-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 상호 관심</div>
+                <span id="mutual-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span>
+            </div>
+            <div class="section-body" id="mutual-section"></div>
+        </div>
+
+        <!-- 나를 찜한 사람 -->
+        <div class="section-card" id="liked-me-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-eye" style="color:#f59e0b;"></i> 나를 찜한 사람</div>
+                <span id="liked-me-count" style="font-size:.8em;color:#f59e0b;font-weight:700;"></span>
+            </div>
+            <div class="section-body" id="liked-me-section"></div>
+        </div>
+
+        <!-- 나의 보석함 -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-gem" style="color:#ec4899;"></i> 나의 보석함</div>
+                <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+            </div>
+            <div class="section-body" id="favorites-section"></div>
+        </div>
+
+        <!-- 아무것도 없을 때 빈 상태 -->
+        <div id="interest-empty" style="text-align:center;padding:48px 20px;display:none;">
+            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#ede9fe;"></i></div>
+            <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 관심 활동이 없어요</div>
+            <div style="font-size:.82em;color:var(--muted);">추천 탭에서 마음에 드는 반쪽을 찜해보세요!</div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: MY ══ -->
+    <div class="tab-content" id="tab-my">
+        <!-- 매칭 가중치 설정 -->
+        <div class="section-card" id="weights-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-sliders" style="color:var(--primary);"></i> 매칭 우선순위</div>
+                <button class="btn btn-outline" id="save-weights-btn" onclick="saveWeights()" style="padding:7px 16px;font-size:.82em;">저장</button>
+            </div>
+            <div class="section-body">
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:16px;">세 항목 합계가 100%가 되도록 조절해주세요.</div>
+                <div class="weight-row">
+                    <div class="weight-item">
+                        <div class="weight-header"><span><i class="fa-solid fa-ruler-vertical" style="color:var(--primary);"></i> 키</span><span class="weight-pct" id="w-height-pct">34%</span></div>
+                        <input type="range" class="weight-slider" id="w-height" min="0" max="100" value="34" oninput="onWeightChange('height')">
+                    </div>
+                    <div class="weight-item">
+                        <div class="weight-header"><span><i class="fa-solid fa-star" style="color:#f59e0b;"></i> 외모</span><span class="weight-pct" id="w-looks-pct">33%</span></div>
+                        <input type="range" class="weight-slider" id="w-looks" min="0" max="100" value="33" oninput="onWeightChange('looks')">
+                    </div>
+                    <div class="weight-item">
+                        <div class="weight-header"><span><i class="fa-solid fa-briefcase" style="color:#3b82f6;"></i> 직업</span><span class="weight-pct" id="w-job-pct">33%</span></div>
+                        <input type="range" class="weight-slider" id="w-job" min="0" max="100" value="33" oninput="onWeightChange('job')">
+                    </div>
+                </div>
+                <div class="weight-total-row">
+                    <span class="weight-total-text">현재 합계</span>
+                    <span class="weight-total-num ok" id="weight-total">100%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MY 메뉴 -->
+        <div class="section-card">
+            <div class="section-body" style="display:flex;flex-direction:column;gap:10px;">
+                <a href="index.html#register" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='var(--bg)'">
+                    <i class="fa-solid fa-pen" style="color:var(--primary);font-size:1.1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:700;font-size:.92em;">신청서 수정</div><div style="font-size:.75em;color:var(--muted);">프로필 정보를 수정해요</div></div>
+                </a>
+                <a href="index.html" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='var(--bg)'">
+                    <i class="fa-solid fa-house" style="color:var(--primary);font-size:1.1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:700;font-size:.92em;">홈으로 이동</div><div style="font-size:.75em;color:var(--muted);">참가자 현황 보기</div></div>
+                </a>
+                <div onclick="doLogout()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='var(--bg)'">
+                    <i class="fa-solid fa-right-from-bracket" style="color:#ef4444;font-size:1.1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:700;font-size:.92em;color:#ef4444;">로그아웃</div></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ── 매칭 가중치 설정 ── -->
-    <div class="section-card" id="weights-card" style="display:none;">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-sliders" style="color:var(--primary);"></i> 나의 매칭 우선순위</div>
-            <button class="btn btn-outline" id="save-weights-btn" onclick="saveWeights()" style="padding:7px 16px;font-size:.82em;">저장</button>
-        </div>
-        <div class="section-body">
-            <div style="font-size:.82em;color:var(--muted);margin-bottom:16px;">세 항목 합계가 100%가 되도록 조절해주세요. 추천 순위에 반영됩니다.</div>
-            <div class="weight-row">
-                <div class="weight-item">
-                    <div class="weight-header"><span><i class="fa-solid fa-ruler-vertical" style="color:var(--primary);"></i> 키</span><span class="weight-pct" id="w-height-pct">34%</span></div>
-                    <input type="range" class="weight-slider" id="w-height" min="0" max="100" value="34" oninput="onWeightChange('height')">
-                </div>
-                <div class="weight-item">
-                    <div class="weight-header"><span><i class="fa-solid fa-star" style="color:#f59e0b;"></i> 외모</span><span class="weight-pct" id="w-looks-pct">33%</span></div>
-                    <input type="range" class="weight-slider" id="w-looks" min="0" max="100" value="33" oninput="onWeightChange('looks')">
-                </div>
-                <div class="weight-item">
-                    <div class="weight-header"><span><i class="fa-solid fa-briefcase" style="color:#3b82f6;"></i> 직업</span><span class="weight-pct" id="w-job-pct">33%</span></div>
-                    <input type="range" class="weight-slider" id="w-job" min="0" max="100" value="33" oninput="onWeightChange('job')">
-                </div>
-            </div>
-            <div class="weight-total-row">
-                <span class="weight-total-text">현재 합계</span>
-                <span class="weight-total-num ok" id="weight-total">100%</span>
-            </div>
-        </div>
-    </div>
+</div>
 
-    <!-- ── 상호 관심 ── -->
-    <div class="section-card" id="mutual-card" style="display:none;">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 상호 관심</div>
-            <span id="mutual-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span>
-        </div>
-        <div class="section-body" id="mutual-section"></div>
+<!-- 하단 탭 바 -->
+<div class="tab-bar" id="tab-bar">
+    <div class="tab-item active" onclick="switchTab('home')" id="tab-btn-home">
+        <i class="fa-solid fa-gem"></i>
+        <span>홈</span>
     </div>
-
-    <!-- ── 나를 찜한 사람 ── -->
-    <div class="section-card" id="liked-me-card" style="display:none;">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-eye" style="color:#f59e0b;"></i> 나를 찜한 사람</div>
-            <span id="liked-me-count" style="font-size:.8em;color:#f59e0b;font-weight:700;"></span>
-        </div>
-        <div class="section-body" id="liked-me-section"></div>
+    <div class="tab-item" onclick="switchTab('discover')" id="tab-btn-discover" style="position:relative;">
+        <i class="fa-solid fa-heart"></i>
+        <span>추천</span>
     </div>
-
-    <!-- ── 추천 반쪽 순위 ── -->
-    <div class="section-card" id="match-ranking-card" style="display:none;">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> 추천 반쪽 <span style="font-size:.72em;font-weight:500;color:var(--muted);margin-left:4px;">추천 반쪽은 최대 3명 표시됩니다.</span></div>
-            <span id="match-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
-        </div>
-        <div class="section-body" id="match-ranking-section">
-            <!-- JS로 채움 -->
-        </div>
+    <div class="tab-item" onclick="switchTab('interest')" id="tab-btn-interest" style="position:relative;">
+        <i class="fa-solid fa-eye"></i>
+        <span>관심</span>
+        <span class="tab-badge" id="interest-badge" style="display:none;">0</span>
     </div>
-
-    <!-- ── 매칭 결과 ── -->
-    <div class="section-card" id="match-result-card" style="display:none;">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사!</div>
-        </div>
-        <div class="section-body" id="match-result-section"></div>
+    <div class="tab-item" onclick="switchTab('my')" id="tab-btn-my">
+        <i class="fa-solid fa-user"></i>
+        <span>MY</span>
     </div>
-
-    <!-- ── 나의 보석함 ── -->
-    <div class="section-card">
-        <div class="section-header">
-            <div class="section-title"><i class="fa-solid fa-gem" style="color:#ec4899;"></i> 나의 보석함</div>
-            <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
-        </div>
-        <div class="section-body" id="favorites-section">
-            <!-- JS로 채움 -->
-        </div>
-    </div>
-
 </div>
 
 <div class="site-footer">Designed &amp; Developed by Kang</div>
@@ -814,11 +904,29 @@ let _scoredCandidates = [];
 let _swipedCount = 0;
 let _isCardAnimating = false;
 
-function switchView(view) {
-    _currentView = view;
-    document.getElementById('view-list-btn').classList.toggle('active', view === 'list');
-    document.getElementById('view-card-btn').classList.toggle('active', view === 'card');
-    renderMatchRanking(window._allCandidates || []);
+// ── 탭 전환 ──
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+    const content = document.getElementById('tab-' + tab);
+    const btn = document.getElementById('tab-btn-' + tab);
+    if (content) content.classList.add('active');
+    if (btn) btn.classList.add('active');
+    // 추천 탭 전환 시 카드 렌더 보장
+    if (tab === 'discover' && window._allCandidates) {
+        renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
+    }
+}
+
+function updateInterestBadge() {
+    const likedMe = (window._likedMeData || []).length;
+    const badge = document.getElementById('interest-badge');
+    if (likedMe > 0) {
+        badge.style.display = 'flex';
+        badge.textContent = likedMe > 9 ? '9+' : likedMe;
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
 function renderMatchRanking(candidates) {
@@ -1051,6 +1159,7 @@ async function loadWhoLikedMe() {
     try {
         const { data } = await db.rpc('get_who_liked_me', { my_applicant_id: window._myProfile.id });
         window._likedMeData = data || [];
+        updateInterestBadge();
         if (!data || data.length === 0) { card.style.display = 'none'; return; }
         card.style.display = '';
         document.getElementById('liked-me-count').textContent = data.length + '명';
