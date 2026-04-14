@@ -803,6 +803,7 @@ let _currentView = 'card';
 let _cardIndex = 0;
 let _scoredCandidates = [];
 let _swipedCount = 0;
+let _isCardAnimating = false;
 
 function switchView(view) {
     _currentView = view;
@@ -832,7 +833,7 @@ function renderMatchRanking(candidates) {
     _scoredCandidates = _scoredCandidates.slice(0, 3);
     document.getElementById('match-count').textContent = '';
 
-    renderCardView(sec, favSet);
+    if (!_isCardAnimating) renderCardView(sec, favSet);
 }
 
 function renderListView(sec, favSet) {
@@ -976,22 +977,28 @@ function initSwipe() {
 }
 
 function cardPass() {
+    if (_isCardAnimating) return;
+    _isCardAnimating = true;
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-left'); }
     _swipedCount++;
     setTimeout(() => {
         _cardIndex++;
+        _isCardAnimating = false;
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }, 280);
 }
 
 function cardLike(id) {
+    if (_isCardAnimating) return;
+    _isCardAnimating = true;
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-right'); }
     _swipedCount++;
     toggleFav(id);
     setTimeout(() => {
         _cardIndex++;
+        _isCardAnimating = false;
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }, 280);
 }
