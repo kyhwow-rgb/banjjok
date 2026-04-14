@@ -404,6 +404,15 @@
         <div class="section-body" id="mutual-section"></div>
     </div>
 
+    <!-- ── 나를 찜한 사람 ── -->
+    <div class="section-card" id="liked-me-card" style="display:none;">
+        <div class="section-header">
+            <div class="section-title"><i class="fa-solid fa-eye" style="color:#f59e0b;"></i> 나를 찜한 사람</div>
+            <span id="liked-me-count" style="font-size:.8em;color:#f59e0b;font-weight:700;"></span>
+        </div>
+        <div class="section-body" id="liked-me-section"></div>
+    </div>
+
     <!-- ── 추천 반쪽 순위 ── -->
     <div class="section-card" id="match-ranking-card" style="display:none;">
         <div class="section-header">
@@ -1034,6 +1043,35 @@ async function removeFav(applicantId) {
     await loadMutualInterests(user.id);
 }
 
+// ── 나를 찜한 사람 ──
+async function loadWhoLikedMe() {
+    const card = document.getElementById('liked-me-card');
+    const sec = document.getElementById('liked-me-section');
+    if (!window._myProfile) { card.style.display = 'none'; return; }
+    try {
+        const { data } = await db.rpc('get_who_liked_me', { my_applicant_id: window._myProfile.id });
+        window._likedMeData = data || [];
+        if (!data || data.length === 0) { card.style.display = 'none'; return; }
+        card.style.display = '';
+        document.getElementById('liked-me-count').textContent = data.length + '명';
+        sec.innerHTML = `
+            <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">이 분들이 당신에게 관심을 보냈어요!</div>
+            <div class="fav-list">${data.map(a => {
+                const age = calcAge(a.birth);
+                const photo = a.photos && a.photos[0];
+                const photoHtml = photo
+                    ? '<div class="fav-photo"><img src="' + photo + '" alt=""></div>'
+                    : '<div class="fav-photo">' + (a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>') + '</div>';
+                const tags = [age ? age + '세' : null, a.job, a.location, a.mbti].filter(Boolean)
+                    .map(t => '<span class="fav-tag">' + esc(t) + '</span>').join('');
+                return '<div class="fav-item" style="cursor:pointer;" onclick="openProfileModal(\'' + a.id + '\')">' + photoHtml + '<div class="fav-info"><div class="fav-tags">' + tags + '</div></div><span style="color:#f59e0b;font-size:1.1em;"><i class="fa-solid fa-heart"></i></span></div>';
+            }).join('')}</div>`;
+    } catch(e) {
+        console.log('loadWhoLikedMe error:', e.message);
+        card.style.display = 'none';
+    }
+}
+
 // ── 상호 관심 감지 & 매칭 신청 ──
 async function loadMutualInterests(userId) {
     try {
@@ -1207,7 +1245,8 @@ async function sendMatchMsg() {
 // ── 프로필 상세 모달 ──
 function openProfileModal(applicantId) {
     const c = (_scoredCandidates || []).find(x => x.id === applicantId)
-           || (window._allCandidates || []).find(x => x.id === applicantId);
+           || (window._allCandidates || []).find(x => x.id === applicantId)
+           || (window._likedMeData || []).find(x => x.id === applicantId);
     if (!c) return;
     const age = calcAge(c.birth);
     const photo = c.photos && c.photos[0];
@@ -1515,8 +1554,9 @@ async function init() {
         }
 
         if (showRecommendations) {
-            // 상호 관심 로드
+            // 상호 관심 + 나를 찜한 사람 로드
             await loadMutualInterests(user.id);
+            await loadWhoLikedMe();
         }
 
         // 프로필 다시 렌더 (인기도 포함)
