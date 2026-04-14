@@ -802,6 +802,7 @@ async function saveWeights() {
 let _currentView = 'card';
 let _cardIndex = 0;
 let _scoredCandidates = [];
+let _swipedCount = 0;
 
 function switchView(view) {
     _currentView = view;
@@ -829,6 +830,8 @@ function renderMatchRanking(candidates) {
     }));
     _scoredCandidates.sort((a, b) => b._score - a._score);
     _scoredCandidates = _scoredCandidates.slice(0, 3);
+    _cardIndex = 0;
+    _swipedCount = 0;
     document.getElementById('match-count').textContent = '';
 
     renderCardView(sec, favSet);
@@ -862,6 +865,22 @@ function renderListView(sec, favSet) {
 }
 
 function renderCardView(sec, favSet) {
+    // 3장 모두 스와이프 완료
+    if (_swipedCount >= _scoredCandidates.length && _scoredCandidates.length > 0) {
+        sec.innerHTML = `
+            <div style="text-align:center;padding:48px 20px;">
+                <div style="font-size:3.5em;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-check" style="color:var(--primary);"></i></div>
+                <div style="font-size:1.15em;font-weight:800;color:var(--text);margin-bottom:8px;">오늘의 추천이 끝났어요</div>
+                <div style="font-size:.88em;color:var(--muted);line-height:1.6;margin-bottom:24px;">
+                    내일 새로운 반쪽을 만나보세요!<br>
+                    보석함에서 찜한 상대를 확인할 수 있어요.
+                </div>
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);">
+                    <i class="fa-solid fa-gem"></i> 보석함을 확인해보세요
+                </div>
+            </div>`;
+        return;
+    }
     if (_cardIndex >= _scoredCandidates.length) _cardIndex = 0;
     const c = _scoredCandidates[_cardIndex];
     if (!c) { sec.innerHTML = '<div class="match-empty">추천할 반쪽이 없어요</div>'; return; }
@@ -961,8 +980,9 @@ function initSwipe() {
 function cardPass() {
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-left'); }
+    _swipedCount++;
     setTimeout(() => {
-        _cardIndex = (_cardIndex + 1) % _scoredCandidates.length;
+        _cardIndex++;
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }, 280);
 }
@@ -970,9 +990,10 @@ function cardPass() {
 function cardLike(id) {
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-right'); }
+    _swipedCount++;
     toggleFav(id);
     setTimeout(() => {
-        _cardIndex = (_cardIndex + 1) % _scoredCandidates.length;
+        _cardIndex++;
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }, 280);
 }
