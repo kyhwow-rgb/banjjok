@@ -904,6 +904,18 @@ let _scoredCandidates = [];
 let _swipedCount = 0;
 let _isCardAnimating = false;
 
+// 일일 리셋: 날짜가 바뀌면 스와이프 카운트 초기화
+function getDailySwipeKey() { return 'bj_swiped_' + new Date().toISOString().slice(0, 10); }
+function loadDailySwipeCount() {
+    const key = getDailySwipeKey();
+    // 어제 이전 키 정리
+    Object.keys(localStorage).filter(k => k.startsWith('bj_swiped_') && k !== key).forEach(k => localStorage.removeItem(k));
+    return parseInt(localStorage.getItem(key) || '0');
+}
+function saveDailySwipeCount() {
+    localStorage.setItem(getDailySwipeKey(), String(_swipedCount));
+}
+
 // ── 탭 전환 ──
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -983,16 +995,23 @@ function renderListView(sec, favSet) {
 function renderCardView(sec, favSet) {
     // 3장 모두 스와이프 완료
     if (_swipedCount >= _scoredCandidates.length && _scoredCandidates.length > 0) {
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const hoursLeft = Math.floor((midnight - now) / 3600000);
+        const minsLeft = Math.floor(((midnight - now) % 3600000) / 60000);
         sec.innerHTML = `
             <div style="text-align:center;padding:48px 20px;">
                 <div style="font-size:3.5em;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-check" style="color:var(--primary);"></i></div>
                 <div style="font-size:1.15em;font-weight:800;color:var(--text);margin-bottom:8px;">오늘의 추천이 끝났어요</div>
-                <div style="font-size:.88em;color:var(--muted);line-height:1.6;margin-bottom:24px;">
-                    내일 새로운 반쪽을 만나보세요!<br>
-                    보석함에서 찜한 상대를 확인할 수 있어요.
+                <div style="font-size:.88em;color:var(--muted);line-height:1.6;margin-bottom:20px;">
+                    내일 새로운 반쪽을 만나보세요!
                 </div>
-                <div style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);">
-                    <i class="fa-solid fa-gem"></i> 보석함을 확인해보세요
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#f3f4f6;border-radius:12px;font-size:.82em;font-weight:600;color:var(--muted);margin-bottom:20px;">
+                    <i class="fa-solid fa-clock"></i> 새 추천까지 ${hoursLeft}시간 ${minsLeft}분
+                </div>
+                <br>
+                <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                    <i class="fa-solid fa-gem"></i> 보석함 확인하기
                 </div>
             </div>`;
         return;
@@ -1099,6 +1118,7 @@ function cardPass() {
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-left'); }
     _swipedCount++;
+    saveDailySwipeCount();
     setTimeout(() => {
         _cardIndex++;
         _isCardAnimating = false;
@@ -1112,6 +1132,7 @@ function cardLike(id) {
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-right'); }
     _swipedCount++;
+    saveDailySwipeCount();
     toggleFav(id);
     setTimeout(() => {
         _cardIndex++;
@@ -1670,7 +1691,11 @@ async function init() {
 
         // 프로필 다시 렌더 (인기도 포함)
         renderProfile(profile);
-        if (showRecommendations) { _cardIndex = 0; _swipedCount = 0; renderMatchRanking(window._allCandidates); }
+        if (showRecommendations) {
+            _cardIndex = 0;
+            _swipedCount = loadDailySwipeCount();
+            renderMatchRanking(window._allCandidates);
+        }
 
         // 매칭 성사 확인 → 상대방 정보 표시
         if (isMatched && profile.matched_with) {
