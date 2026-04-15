@@ -551,6 +551,8 @@
 const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const { createClient } = supabase;
+
+
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -1586,13 +1588,27 @@ async function markAllRead() {
     toast('모든 알림을 읽었어요');
 }
 
-async function doLogout() {
-    if (!confirm('로그아웃 하시겠습니까?')) return;
+async function doLogout(silent) {
+    if (!silent && !confirm('로그아웃 하시겠습니까?')) return;
     await db.auth.signOut();
     localStorage.removeItem('kj_role');
     localStorage.removeItem('kj_screen');
     window.location.href = 'index.html';
 }
+
+// ── 비활성 자동 로그아웃 (30분) ──
+let _inactiveTimer;
+function resetInactiveTimer() {
+    clearTimeout(_inactiveTimer);
+    _inactiveTimer = setTimeout(() => {
+        toast('장시간 활동이 없어 자동 로그아웃됩니다.', 'info');
+        setTimeout(() => doLogout(true), 2000);
+    }, 30 * 60 * 1000); // 30분
+}
+['click','touchstart','keydown','scroll'].forEach(ev =>
+    document.addEventListener(ev, resetInactiveTimer, { passive: true })
+);
+resetInactiveTimer();
 
 // ── 축하 confetti ──
 function showConfetti() {
