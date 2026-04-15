@@ -845,7 +845,10 @@ const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const INVITE_CODE  = 'ban';   // 입장 코드 (DB 대신 코드에 저장)
 const ADMIN_EMAIL  = 'admin@banjjok.app';
+
 const { createClient } = supabase;
+
+
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -1066,7 +1069,9 @@ async function renderHome() {
     try {
         const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
         list = data || [];
-    } catch(e) { console.log('renderHome error:', e.message); }
+    } catch(e) { console.log('renderHome error:', e.message);
+        }
+    }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
     const femaleCount = list.filter(a => a.gender === 'female').length;
@@ -1271,7 +1276,7 @@ function resetForm() {
 }
 
 async function submitApplication() {
-    if (!selectedGender)  { toast('성별을 선택해주세요.'); return; }
+        if (!selectedGender)  { toast('성별을 선택해주세요.'); return; }
     const name     = document.getElementById('reg-name').value.trim();
     const birth    = document.getElementById('reg-birth').value;
     const job      = document.getElementById('reg-job').value.trim();
@@ -1549,13 +1554,12 @@ function renderIdealDisplay(idealJson) {
 
 // ── 관리자: fetch 헬퍼 (Auth 세션 기반) ──
 async function adminFetch(table, method='GET', body=null, query='') {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${query}`;
+    const url = ;
     const { data: { session } } = await db.auth.getSession();
     const token = session?.access_token || SUPABASE_KEY;
     const headers = {
         'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${token}`
-    };
+        'Authorization':     };
     if (method !== 'GET') {
         headers['Content-Type'] = 'application/json';
         headers['Prefer'] = 'return=minimal';
@@ -1589,10 +1593,11 @@ async function renderAdmin() {
     } catch(e) { error = e; }
     if (error) {
         console.error('renderAdmin error:', error);
-        toast('로드 실패: ' + error.message);
+        
+        toast('로드 실패: ' + (error.message));
         data = [];
         document.getElementById('filtered-list').innerHTML =
-            `<p style="color:#ef4444;text-align:center;padding:24px;"><i class="fa-solid fa-triangle-exclamation"></i> DB 로드 실패<br><span style="font-size:.85em;color:#9ca3af;">네트워크 연결을 확인해주세요.</span></p>`;
+            `<p style="color:#ef4444;text-align:center;padding:24px;"><i class="fa-solid fa-triangle-exclamation"></i> DB 로드 실패<br><span style="font-size:.85em;color:#9ca3af;">${'네트워크 연결을 확인해주세요.'}</span></p>`;
     }
     if (data && !Array.isArray(data)) {
         console.error('renderAdmin: unexpected data format', data);
@@ -1669,10 +1674,14 @@ async function loadMatchRequests() {
 }
 
 async function approveMatchRequest(reqId, fromId, toId) {
+    const fromUser = adminCache.find(x => x.id === fromId);
+    const toUser = adminCache.find(x => x.id === toId);
+    if (fromUser?.status === 'matched' || toUser?.status === 'matched') {
+        toast('이미 매칭된 사용자가 포함되어 있습니다.', 'warning'); return;
+    }
     if (!confirm('이 매칭 요청을 승인하시겠습니까?')) return;
     setLoading(true);
     try {
-        // 매칭 실행
         await adminFetch('applicants', 'PATCH', { status: 'matched', matched_with: toId }, '?id=eq.' + fromId);
         await adminFetch('applicants', 'PATCH', { status: 'matched', matched_with: fromId }, '?id=eq.' + toId);
         // 이 요청 승인
@@ -2243,6 +2252,7 @@ async function savePasswords() {
     const vPw = document.getElementById('new-viewer-pw').value.trim();
     const aPw = document.getElementById('new-admin-pw').value.trim();
     if (!vPw && !aPw) { toast('변경할 비밀번호를 입력해주세요.'); return; }
+    if ((vPw && vPw.length < 4) || (aPw && aPw.length < 4)) { toast('비밀번호는 4자 이상이어야 합니다.', 'warning'); return; }
     const upserts = [];
     if (vPw) upserts.push({ key: 'viewer_password', value: vPw });
     if (aPw) upserts.push({ key: 'admin_password',  value: aPw });
