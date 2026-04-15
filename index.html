@@ -2139,9 +2139,9 @@ async function unmatch(id) {
 
     setLoading(true);
     try {
-        await adminFetch('applicants', 'PATCH', { status: 'approved', matched_with: null }, `?id=eq.${id}`);
+        await adminFetch('applicants', 'PATCH', { status: 'approved', matched_with: null, contact_released: false }, `?id=eq.${id}`);
         if (a.matched_with) {
-            await adminFetch('applicants', 'PATCH', { status: 'approved', matched_with: null }, `?id=eq.${a.matched_with}`);
+            await adminFetch('applicants', 'PATCH', { status: 'approved', matched_with: null, contact_released: false }, `?id=eq.${a.matched_with}`);
         }
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
@@ -2157,6 +2157,9 @@ function coupleCardHtml(male, female) {
     const fMeta = female ? `${calcAge(female.birth)}세 · ${esc(female.job)}${female.mbti ? ' · ' + female.mbti : ''}` : '';
     const mId   = male   ? male.id   : '';
     const fId   = female ? female.id : '';
+    const mReleased = male && male.contact_released;
+    const fReleased = female && female.contact_released;
+    const bothReleased = mReleased && fReleased;
     return `
         <div class="couple-card">
             <div class="couple-profiles">
@@ -2172,7 +2175,27 @@ function coupleCardHtml(male, female) {
                     <div class="couple-profile-meta">${fMeta}</div>
                 </div>
             </div>
+            <div style="text-align:center;padding-top:10px;border-top:1px solid var(--border);">
+                ${bothReleased
+                    ? `<span style="font-size:.82em;color:#10b981;font-weight:700;"><i class="fa-solid fa-circle-check"></i> 연락처 공개됨</span>`
+                    : `<button class="btn btn-sm btn-primary" onclick="releaseContact('${mId}','${fId}')" style="font-size:.82em;"><i class="fa-solid fa-paper-plane"></i> 연락처 공개하기</button>`
+                }
+            </div>
         </div>`;
+}
+
+// ── 연락처 공개 (관리자 승인) ──
+async function releaseContact(maleId, femaleId) {
+    if (!confirm('이 커플의 카카오 ID를 서로에게 공개하시겠습니까?')) return;
+    setLoading(true);
+    try {
+        await adminFetch('applicants', 'PATCH', { contact_released: true }, `?id=eq.${maleId}`);
+        await adminFetch('applicants', 'PATCH', { contact_released: true }, `?id=eq.${femaleId}`);
+    } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
+    setLoading(false);
+    toast('연락처가 공개되었습니다. 양쪽에 카카오 ID가 전달됩니다.', 'success');
+    await renderAdmin();
+    filterAdmin('matched');
 }
 
 function closeMatchingView() { document.getElementById('matching-overlay').classList.remove('open'); }
