@@ -53,7 +53,7 @@
 
     /* TOAST */
     .toast {
-        position:fixed; bottom:28px; left:50%;
+        position:fixed; bottom:80px; left:50%;
         transform:translateX(-50%) translateY(80px);
         padding:14px 24px; border-radius:14px;
         font-size:.88em; font-weight:600; transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s;
@@ -290,7 +290,7 @@
     @media(max-width:480px) {
         body { font-size:15px; }
         .profile-grid { grid-template-columns:1fr; }
-        .page { padding:20px 14px 50px; }
+        .page { padding:20px 14px 80px; }
         .section-body { padding:16px; }
         .btn { font-size:.95em; }
         .match-item { padding:14px 10px; }
@@ -805,7 +805,8 @@ function renderFavorites(favApplicants) {
     const sec = document.getElementById('favorites-section');
     document.getElementById('fav-count').textContent = favApplicants.length ? `${favApplicants.length}명` : '';
     if (!favApplicants.length) {
-        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;">💝</div>아직 찜한 사람이 없어요<br><span style="font-size:.8em;color:#d1d5db;">추천 탭에서 마음에 드는 반쪽을 찜해보세요</span></div>`;
+        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;"><i class="fa-solid fa-heart" style="color:#ede9fe;"></i></div>아직 찜한 사람이 없어요<br><span style="font-size:.8em;color:#d1d5db;">추천 탭에서 마음에 드는 반쪽을 찜해보세요</span></div>`;
+        updateInterestEmptyState();
         return;
     }
     sec.innerHTML = `<div class="fav-list">${favApplicants.map(a => {
@@ -824,6 +825,7 @@ function renderFavorites(favApplicants) {
             <button class="btn-unfav" onclick="removeFav('${a.id}')" title="찜 해제">✕</button>
         </div>`;
     }).join('')}</div>`;
+    updateInterestEmptyState();
 }
 
 // ── 가중치 슬라이더 (자동 밸런싱) ──
@@ -939,6 +941,15 @@ function updateInterestBadge() {
     } else {
         badge.style.display = 'none';
     }
+}
+
+function updateInterestEmptyState() {
+    const mutualVisible = document.getElementById('mutual-card').style.display !== 'none';
+    const likedMeVisible = document.getElementById('liked-me-card').style.display !== 'none';
+    const favSec = document.getElementById('favorites-section');
+    const favHasContent = favSec && !favSec.innerHTML.includes('찜한 사람이 없어요');
+    const emptyEl = document.getElementById('interest-empty');
+    if (emptyEl) emptyEl.style.display = (!mutualVisible && !likedMeVisible && !favHasContent) ? '' : 'none';
 }
 
 function renderMatchRanking(candidates) {
@@ -1200,6 +1211,7 @@ async function loadWhoLikedMe() {
         console.log('loadWhoLikedMe error:', e.message);
         card.style.display = 'none';
     }
+    updateInterestEmptyState();
 }
 
 // ── 상호 관심 감지 & 매칭 신청 ──
