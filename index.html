@@ -2417,7 +2417,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             <button class="btn btn-primary" onclick="window.location.href='dashboard.html'" style="margin-bottom:10px;">
                 <i class="fa-solid fa-arrow-right"></i> 내 대시보드로 이동
             </button>
-            <button class="btn btn-outline" onclick="db.auth.signOut();clearSession();location.reload();">
+            <button class="btn btn-outline" onclick="db.auth.signOut().then(()=>{clearSession();location.reload();});">
                 <i class="fa-solid fa-right-from-bracket"></i> 다른 계정으로 로그인
             </button>
         `;
