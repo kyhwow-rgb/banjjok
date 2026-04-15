@@ -2384,24 +2384,27 @@ window.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await db.auth.getSession();
     if (session) {
         if (location.hash === '#register') {
-            // 신청서 수정 모드: 기존 데이터 로드 후 register 화면 진입
             saveSession('viewer', 'register');
             await prefillRegisterForm(session.user.id);
             showScreen('register');
             return;
         }
-        // 로그인 상태 → 홈 화면 표시 (대시보드 버튼은 신청서 유무에 따라)
-        try {
-            const { data: existing } = await db.from('applicants').select('id').eq('user_id', session.user.id).limit(1);
-            if (existing && existing.length > 0) {
-                document.getElementById('home-dashboard-btn').style.display = '';
-            }
-        } catch(e) {
-            console.log('applicant check failed:', e.message);
-        }
-        saveSession('viewer', 'home');
-        showScreen('home');
-        history.replaceState({ screen: 'home' }, '', location.pathname);
+        // 로그인 상태 → 계속/로그아웃 선택 화면
+        const loginCard = document.getElementById('auth-invite');
+        const email = session.user.email;
+        loginCard.innerHTML = `
+            <div class="login-logo"><i class="fa-solid fa-user-check" style="color:var(--primary);"></i></div>
+            <div class="login-title">이미 로그인됨</div>
+            <div class="login-sub">현재 <b>${esc(email)}</b>로<br>로그인되어 있어요</div>
+            <button class="btn btn-primary" onclick="window.location.href='dashboard.html'" style="margin-bottom:10px;">
+                <i class="fa-solid fa-arrow-right"></i> 내 대시보드로 이동
+            </button>
+            <button class="btn btn-outline" onclick="db.auth.signOut();clearSession();location.reload();">
+                <i class="fa-solid fa-right-from-bracket"></i> 다른 계정으로 로그인
+            </button>
+        `;
+        showScreen('login');
+        history.replaceState({ screen: 'login' }, '', location.pathname);
         return;
     }
 
