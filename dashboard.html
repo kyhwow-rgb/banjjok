@@ -77,7 +77,7 @@
     .btn-outline { background:white; color:var(--primary); border:2px solid var(--primary); }
 
     /* LAYOUT */
-    .page { max-width:720px; margin:0 auto; padding:28px 20px 60px; display:flex; flex-direction:column; gap:24px; }
+    .page { max-width:720px; margin:0 auto; padding:28px 20px calc(80px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:24px; }
     .section-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; border:1px solid rgba(0,0,0,.04); transition:box-shadow .2s; }
     .section-card:hover { box-shadow:var(--shadow-hover); }
     .section-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
@@ -109,7 +109,7 @@
     .fav-list { display:flex; flex-direction:column; gap:10px; }
     .fav-item { display:flex; align-items:center; gap:14px; padding:12px; background:var(--bg); border-radius:14px; }
     .fav-photo { width:52px; height:52px; border-radius:12px; object-fit:cover; filter:blur(6px); flex-shrink:0; background:#ede9fe; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; }
-    .fav-photo img { width:100%; height:100%; object-fit:cover; filter:blur(6px); }
+    .fav-photo img { width:100%; height:100%; object-fit:cover; }
     .fav-info { flex:1; }
     .fav-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
     .fav-tag { font-size:.7em; color:var(--primary); font-weight:700; background:var(--primary-light); padding:2px 8px; border-radius:8px; }
@@ -185,7 +185,7 @@
     .match-item { display:flex; align-items:center; gap:14px; padding:12px; background:var(--bg); border-radius:14px; }
     .match-rank { font-size:1.1em; font-weight:900; color:var(--primary); width:28px; text-align:center; flex-shrink:0; }
     .match-photo { width:52px; height:52px; border-radius:12px; object-fit:cover; flex-shrink:0; background:#ede9fe; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; }
-    .match-photo img { width:100%; height:100%; object-fit:cover; filter:blur(6px); }
+    .match-photo img { width:100%; height:100%; object-fit:cover; }
     .match-info { flex:1; }
     .match-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
     .match-tag { font-size:.7em; color:var(--primary); font-weight:700; background:var(--primary-light); padding:2px 8px; border-radius:8px; }
@@ -236,7 +236,8 @@
     .card-compat-bar { flex:1; height:6px; background:#ede9fe; border-radius:6px; overflow:hidden; }
     .card-compat-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,#7c3aed,#ec4899); }
     .card-actions { display:flex; justify-content:center; gap:16px; padding:8px 20px 20px; }
-    .card-btn { width:56px; height:56px; border-radius:50%; border:none; cursor:pointer; font-size:24px; transition:transform .15s, box-shadow .15s; display:flex; align-items:center; justify-content:center; }
+    .card-btn { width:64px; height:64px; border-radius:50%; border:none; cursor:pointer; font-size:26px; transition:transform .15s, box-shadow .15s; display:flex; align-items:center; justify-content:center; }
+    .card-actions { gap:24px; }
     .card-btn:hover { transform:scale(1.1); }
     .card-btn-pass { background:#f3f4f6; color:#9ca3af; box-shadow:0 2px 10px rgba(0,0,0,.08); }
     .card-btn-like { background:linear-gradient(135deg,#7c3aed,#ec4899); color:white; box-shadow:0 4px 16px rgba(124,58,237,.3); }
@@ -448,7 +449,7 @@
         <!-- 내가 찜한 사람 -->
         <div class="section-card">
             <div class="section-header">
-                <div class="section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 내가 찜한 사람</div>
+                <div class="section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 내가 찜한 사람 <span style="font-size:.72em;font-weight:500;color:var(--muted);">(최대 3명)</span></div>
                 <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
             </div>
             <div class="section-body" id="favorites-section"></div>
@@ -1006,6 +1007,15 @@ function renderListView(sec, favSet) {
 }
 
 function renderCardView(sec, favSet) {
+    // 추천 대상 없음
+    if (!_scoredCandidates || _scoredCandidates.length === 0) {
+        sec.innerHTML = `<div style="text-align:center;padding:48px 20px;">
+            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#ede9fe;"></i></div>
+            <div style="font-size:1em;font-weight:700;margin-bottom:6px;">추천할 반쪽이 없어요</div>
+            <div style="font-size:.82em;color:var(--muted);">새로운 참가자가 등록되면 추천해드릴게요!</div>
+        </div>`;
+        return;
+    }
     // 3장 모두 스와이프 완료
     if (_swipedCount >= _scoredCandidates.length && _scoredCandidates.length > 0) {
         const now = new Date();
@@ -1020,7 +1030,7 @@ function renderCardView(sec, favSet) {
                     내일 새로운 반쪽을 만나보세요!
                 </div>
                 <div style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#f3f4f6;border-radius:12px;font-size:.82em;font-weight:600;color:var(--muted);margin-bottom:20px;">
-                    <i class="fa-solid fa-clock"></i> 새 추천까지 ${hoursLeft}시간 ${minsLeft}분
+                    <i class="fa-solid fa-clock"></i> 오늘 자정에 새 추천이 열려요 (${hoursLeft}시간 ${minsLeft}분 후)
                 </div>
                 <br>
                 <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -1155,6 +1165,9 @@ function cardLike(id) {
 }
 
 async function toggleFav(applicantId) {
+    if (window._favToggling) return;
+    window._favToggling = true;
+    try {
     const { data: { user } } = await db.auth.getUser();
     const favSet = window._favSet || new Set();
     if (favSet.has(applicantId)) {
@@ -1173,8 +1186,8 @@ async function toggleFav(applicantId) {
     window._favSet = favSet;
     renderMatchRanking(window._allCandidates || []);
     await loadFavorites(user.id);
-    // 상호 관심 재확인
     await loadMutualInterests(user.id);
+    } finally { window._favToggling = false; }
 }
 
 async function removeFav(applicantId) {
