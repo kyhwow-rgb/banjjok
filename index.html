@@ -1066,7 +1066,18 @@ async function renderHome() {
     try {
         const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
         list = data || [];
-    } catch(e) { console.log("renderHome error:", e.message); }
+    } catch(e) {
+        console.log('renderHome: 프록시 실패, 직접 접근 시도', e.message);
+        // 프록시 실패 시 Supabase 직접 접근
+        if (_isLocal) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/applicants?select=gender,birth,job,location,mbti,photos,icebreaker&status=eq.approved`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+                });
+                if (res.ok) list = await res.json();
+            } catch(e2) { console.log('renderHome: 직접 접근도 실패', e2.message); }
+        }
+    }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
     const femaleCount = list.filter(a => a.gender === 'female').length;
@@ -1271,6 +1282,7 @@ function resetForm() {
 }
 
 async function submitApplication() {
+    const isLocal = _isLocal;
     if (!selectedGender)  { toast('성별을 선택해주세요.'); return; }
     const name     = document.getElementById('reg-name').value.trim();
     const birth    = document.getElementById('reg-birth').value;
@@ -1589,7 +1601,8 @@ async function renderAdmin() {
     } catch(e) { error = e; }
     if (error) {
         console.error('renderAdmin error:', error);
-                toast('로드 실패: ' + error.message);
+        const isProxyErr = error.message.includes('JSON이 아닌') || error.message.includes('Failed to fetch');
+        toast('로드 실패: ' + error.message);
         data = [];
         document.getElementById('filtered-list').innerHTML =
             `<p style="color:#ef4444;text-align:center;padding:24px;"><i class="fa-solid fa-triangle-exclamation"></i> DB 로드 실패<br><span style="font-size:.85em;color:#9ca3af;">네트워크 연결을 확인해주세요.</span></p>`;
