@@ -429,12 +429,14 @@
     <!-- ══ TAB: 관심 ══ -->
     <div class="tab-content" id="tab-interest">
         <!-- 상호 관심 -->
-        <div class="section-card" id="mutual-card" style="display:none;">
+        <div class="section-card" id="mutual-card">
             <div class="section-header">
                 <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 상호 관심</div>
                 <span id="mutual-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span>
             </div>
-            <div class="section-body" id="mutual-section"></div>
+            <div class="section-body" id="mutual-section">
+                <div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ede9fe;font-size:1.5em;display:block;margin-bottom:8px;"></i>서로 찜하면 여기에 표시돼요</div>
+            </div>
         </div>
 
         <!-- 내가 찜한 사람 -->
@@ -1259,9 +1261,12 @@ function renderMutualSection() {
     const candidates = window._allCandidates || [];
     const mutuals = candidates.filter(c => mutualSet.has(c.id));
 
-    if (mutuals.length === 0) { card.style.display = 'none'; return; }
-    card.style.display = '';
-    document.getElementById('mutual-count').textContent = '';
+    if (mutuals.length === 0) {
+        document.getElementById('mutual-count').textContent = '';
+        sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ede9fe;font-size:1.5em;display:block;margin-bottom:8px;"></i>서로 찜하면 여기에 표시돼요</div>';
+        return;
+    }
+    document.getElementById('mutual-count').textContent = mutuals.length + '명';
 
     sec.innerHTML = `
         <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">서로 관심을 보낸 상대예요! 매칭을 신청해보세요.</div>
