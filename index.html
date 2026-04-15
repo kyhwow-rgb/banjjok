@@ -845,10 +845,7 @@ const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const INVITE_CODE  = 'ban';   // 입장 코드 (DB 대신 코드에 저장)
 const ADMIN_EMAIL  = 'admin@banjjok.app';
-
 const { createClient } = supabase;
-
-
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -1069,8 +1066,8 @@ async function renderHome() {
     try {
         const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
         list = data || [];
-    } catch(e) { console.log('renderHome error:', e.message);
-        }
+    } catch(e) {
+        console.log('renderHome error:', e.message);
     }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
@@ -1276,7 +1273,7 @@ function resetForm() {
 }
 
 async function submitApplication() {
-        if (!selectedGender)  { toast('성별을 선택해주세요.'); return; }
+    if (!selectedGender)  { toast('성별을 선택해주세요.'); return; }
     const name     = document.getElementById('reg-name').value.trim();
     const birth    = document.getElementById('reg-birth').value;
     const job      = document.getElementById('reg-job').value.trim();
@@ -1553,22 +1550,17 @@ function renderIdealDisplay(idealJson) {
 }
 
 // ── 관리자: fetch 헬퍼 (Auth 세션 기반) ──
-async function adminFetch(table, method='GET', body=null, query='') {
-    const url = ;
-    const { data: { session } } = await db.auth.getSession();
-    const token = session?.access_token || SUPABASE_KEY;
-    const headers = {
-        'apikey': SUPABASE_KEY,
-        'Authorization':     };
-    if (method !== 'GET') {
-        headers['Content-Type'] = 'application/json';
-        headers['Prefer'] = 'return=minimal';
-    }
-    const opts = { method, headers };
+async function adminFetch(table, method="GET", body=null, query="") {
+    var url = SUPABASE_URL + "/rest/v1/" + table + query;
+    var sess = await db.auth.getSession();
+    var token = (sess.data.session ? sess.data.session.access_token : SUPABASE_KEY);
+    var headers = { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + token };
+    if (method !== "GET") { headers["Content-Type"] = "application/json"; headers["Prefer"] = "return=minimal"; }
+    var opts = { method: method, headers: headers };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    if (!res.ok) { const t = await res.text(); throw new Error(t); }
-    if (method === 'DELETE' || (method === 'PATCH' && res.status === 204)) return null;
+    var res = await fetch(url, opts);
+    if (!res.ok) { var t = await res.text(); throw new Error(t); }
+    if (method === "DELETE" || (method === "PATCH" && res.status === 204)) return null;
     return res.json();
 }
 
@@ -1593,11 +1585,10 @@ async function renderAdmin() {
     } catch(e) { error = e; }
     if (error) {
         console.error('renderAdmin error:', error);
-        
-        toast('로드 실패: ' + (error.message));
+                toast('로드 실패: ' + error.message);
         data = [];
         document.getElementById('filtered-list').innerHTML =
-            `<p style="color:#ef4444;text-align:center;padding:24px;"><i class="fa-solid fa-triangle-exclamation"></i> DB 로드 실패<br><span style="font-size:.85em;color:#9ca3af;">${'네트워크 연결을 확인해주세요.'}</span></p>`;
+            `<p style="color:#ef4444;text-align:center;padding:24px;"><i class="fa-solid fa-triangle-exclamation"></i> DB 로드 실패<br><span style="font-size:.85em;color:#9ca3af;">${isProxyErr ? '로컬 테스트: <code>node proxy.js</code> 실행 필요' : '네트워크 연결을 확인해주세요.'}</span></p>`;
     }
     if (data && !Array.isArray(data)) {
         console.error('renderAdmin: unexpected data format', data);
