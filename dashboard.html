@@ -447,7 +447,7 @@
         </div>
 
         <!-- 나를 찜한 사람 -->
-        <div class="section-card" id="liked-me-card" style="display:none;">
+        <div class="section-card" id="liked-me-card">
             <div class="section-header">
                 <div class="section-title"><i class="fa-solid fa-eye" style="color:#f59e0b;"></i> 나를 찜한 사람</div>
                 <span id="liked-me-count" style="font-size:.8em;color:#f59e0b;font-weight:700;"></span>
@@ -945,12 +945,9 @@ function updateInterestBadge() {
 }
 
 function updateInterestEmptyState() {
-    const mutualVisible = document.getElementById('mutual-card').style.display !== 'none';
-    const likedMeVisible = document.getElementById('liked-me-card').style.display !== 'none';
-    const favSec = document.getElementById('favorites-section');
-    const favHasContent = favSec && !favSec.innerHTML.includes('찜한 사람이 없어요');
+    // 관심 탭에 3개 섹션이 항상 표시되므로 빈 상태는 더 이상 필요 없음
     const emptyEl = document.getElementById('interest-empty');
-    if (emptyEl) emptyEl.style.display = (!mutualVisible && !likedMeVisible && !favHasContent) ? '' : 'none';
+    if (emptyEl) emptyEl.style.display = 'none';
 }
 
 function renderMatchRanking(candidates) {
@@ -1200,13 +1197,18 @@ async function removeFav(applicantId) {
 async function loadWhoLikedMe() {
     const card = document.getElementById('liked-me-card');
     const sec = document.getElementById('liked-me-section');
-    if (!window._myProfile) { card.style.display = 'none'; return; }
+    if (!window._myProfile) { return; }
     try {
         const { data } = await db.rpc('get_who_liked_me', { my_applicant_id: window._myProfile.id });
         window._likedMeData = data || [];
         updateInterestBadge();
-        if (!data || data.length === 0) { card.style.display = 'none'; return; }
         card.style.display = '';
+        if (!data || data.length === 0) {
+            document.getElementById('liked-me-count').textContent = '';
+            sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-eye" style="color:#ede9fe;font-size:1.5em;display:block;margin-bottom:8px;"></i>아직 나를 찜한 사람이 없어요</div>';
+            updateInterestEmptyState();
+            return;
+        }
         document.getElementById('liked-me-count').textContent = data.length + '명';
         sec.innerHTML = `
             <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">이 분들이 당신에게 관심을 보냈어요!</div>
@@ -1222,7 +1224,6 @@ async function loadWhoLikedMe() {
             }).join('')}</div>`;
     } catch(e) {
         console.log('loadWhoLikedMe error:', e.message);
-        card.style.display = 'none';
     }
     updateInterestEmptyState();
 }
