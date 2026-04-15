@@ -778,6 +778,13 @@
             <div id="match-requests-list"></div>
         </div>
 
+        <!-- 상호 관심 현황 -->
+        <div class="admin-section" id="mutual-overview-section" style="display:none;">
+            <div class="admin-section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 상호 관심 현황 <span id="mutual-overview-count" style="font-size:.8em;color:#ec4899;font-weight:700;"></span></div>
+            <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">서로 찜한 쌍입니다. 매칭을 승인하면 양쪽에 알림이 전송됩니다.</div>
+            <div id="mutual-overview-list"></div>
+        </div>
+
         <div class="admin-section">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
                 <div class="admin-section-title" id="filter-title" style="margin-bottom:0;">📋 전체 신청</div>
@@ -1641,8 +1648,9 @@ async function renderAdmin() {
         filterAdmin(currentAdminFilter);
     }
 
-    // 매칭 요청 로드
+    // 매칭 요청 + 상호관심 현황 로드
     loadMatchRequests();
+    loadMutualOverview();
 }
 
 async function loadMatchRequests() {
@@ -1709,6 +1717,71 @@ async function rejectMatchRequest(reqId) {
         toast('매칭 요청이 거절되었습니다.');
         loadMatchRequests();
     } catch(e) { toast('오류: ' + e.message); }
+}
+
+// ── 상호 관심 현황 (관리자용) ──
+async function loadMutualOverview() {
+    const sec = document.getElementById('mutual-overview-section');
+    const list = document.getElementById('mutual-overview-list');
+    try {
+        const favs = await adminFetch('favorites', 'GET', null, '?select=user_id,applicant_id');
+        if (!favs || favs.length === 0) { sec.style.display = 'none'; return; }
+
+        // 상호 찜 쌍 찾기
+        const favMap = new Map();
+        favs.forEach(f => {
+            const key = f.user_id + '→' + f.applicant_id;
+            favMap.set(key, true);
+        });
+
+        const pairs = [];
+        const seen = new Set();
+        for (const f of favs) {
+            // f.user_id가 찜한 f.applicant_id의 user_id 찾기
+            const target = adminCache.find(a => a.id === f.applicant_id);
+            if (!target || !target.user_id) continue;
+            // 역방향 찜 확인: target.user_id가 f.user_id의 applicant_id를 찜했는지
+            const myApp = adminCache.find(a => a.user_id === f.user_id);
+            if (!myApp) continue;
+            const reverseKey = target.user_id + '→' + myApp.id;
+            if (favMap.has(reverseKey)) {
+                const pairKey = [myApp.id, target.id].sort().join('-');
+                if (!seen.has(pairKey) && myApp.status === 'approved' && target.status === 'approved') {
+                    seen.add(pairKey);
+                    const male = myApp.gender === 'male' ? myApp : target;
+                    const female = myApp.gender === 'female' ? myApp : target;
+                    pairs.push([male, female]);
+                }
+            }
+        }
+
+        if (pairs.length === 0) { sec.style.display = 'none'; return; }
+        sec.style.display = '';
+        document.getElementById('mutual-overview-count').textContent = pairs.length + '쌍';
+        list.innerHTML = pairs.map(([m, f]) => {
+            const mAge = calcAge(m.birth);
+            const fAge = calcAge(f.birth);
+            return `<div style="display:flex;align-items:center;gap:12px;padding:14px;background:#faf5ff;border-radius:14px;margin-bottom:8px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <i class="fa-solid fa-mars" style="color:var(--male);"></i>
+                        <span style="font-weight:700;font-size:.9em;">${esc(m.name)}</span>
+                        <span style="font-size:.75em;color:var(--muted);">${mAge}세·${esc(m.job||'')}</span>
+                        <span style="color:#ec4899;font-size:1.1em;"><i class="fa-solid fa-heart"></i></span>
+                        <i class="fa-solid fa-venus" style="color:var(--female);"></i>
+                        <span style="font-weight:700;font-size:.9em;">${esc(f.name)}</span>
+                        <span style="font-size:.75em;color:var(--muted);">${fAge}세·${esc(f.job||'')}</span>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-match" onclick="confirmMatch('${m.id}','${f.id}')" style="flex-shrink:0;">
+                    <i class="fa-solid fa-heart-circle-bolt"></i> 매칭 승인
+                </button>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        console.log('loadMutualOverview error:', e.message);
+        sec.style.display = 'none';
+    }
 }
 
 function filterAdminSearch() {
