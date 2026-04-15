@@ -552,8 +552,6 @@
 const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
 const { createClient } = supabase;
-
-
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
