@@ -777,7 +777,7 @@
             <div class="stat-card"        id="card-pending" onclick="filterAdmin('pending')"  ><div class="stat-num" id="stat-pending" style="color:#d97706;">0</div><div class="stat-label">대기</div></div>
             <div class="stat-card"        id="card-male"    onclick="filterAdmin('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
             <div class="stat-card"        id="card-female"  onclick="filterAdmin('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
-            <div class="stat-card"        id="card-mutual"  onclick="scrollToMutual()"        ><div class="stat-num" id="stat-mutual" style="color:var(--cta);">0</div><div class="stat-label">상호관심</div></div>
+            <div class="stat-card"        id="card-mutual"  onclick="filterAdmin('mutual')"    ><div class="stat-num" id="stat-mutual" style="color:var(--cta);">0</div><div class="stat-label">상호관심</div></div>
             <div class="stat-card"        id="card-matched" onclick="filterAdmin('matched')"  ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
         </div>
 
@@ -793,9 +793,9 @@
             <div id="mutual-overview-list"></div>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section" id="applicant-list-section">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                <div class="admin-section-title" id="filter-title" style="margin-bottom:0;">📋 전체 신청</div>
+                <div class="admin-section-title" id="filter-title" style="margin-bottom:0;">전체 신청</div>
                 <div id="batch-actions" style="display:none;">
                     <button class="btn btn-sm btn-approve" onclick="batchApproveAll()">전체 승인</button>
                 </div>
@@ -1727,11 +1727,6 @@ async function rejectMatchRequest(reqId) {
     } catch(e) { toast('오류: ' + e.message); }
 }
 
-function scrollToMutual() {
-    const el = document.getElementById('mutual-overview-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 // ── 상호 관심 현황 (관리자용) ──
 async function loadMutualOverview() {
     const sec = document.getElementById('mutual-overview-section');
@@ -1812,13 +1807,24 @@ function filterAdmin(type) {
     currentAdminFilter = type;
     document.getElementById('admin-search').value = '';
 
-    const cards = { all:'card-total', pending:'card-pending', male:'card-male', female:'card-female', matched:'card-matched' };
-    const titles = { all:'<i class="fa-solid fa-clipboard-list" style="color:var(--primary);"></i> 전체 신청', pending:'<i class="fa-solid fa-hourglass-half" style="color:#d97706;"></i> 승인 대기', male:'<i class="fa-solid fa-mars" style="color:var(--male);"></i> 승인된 남성', female:'<i class="fa-solid fa-venus" style="color:var(--female);"></i> 승인된 여성', matched:'<i class="fa-solid fa-heart" style="color:var(--primary);"></i> 매칭된 커플' };
-    const empty  = { all:'지원자가 없습니다.', pending:'대기 중인 신청이 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.', matched:'매칭된 커플이 없습니다.' };
+    const cards = { all:'card-total', pending:'card-pending', male:'card-male', female:'card-female', mutual:'card-mutual', matched:'card-matched' };
+    const titles = { all:'전체 신청', pending:'승인 대기', male:'승인된 남성', female:'승인된 여성', mutual:'상호 관심', matched:'매칭된 커플' };
+    const empty  = { all:'지원자가 없습니다.', pending:'대기 중인 신청이 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.', mutual:'상호 관심 쌍이 없습니다.', matched:'매칭된 커플이 없습니다.' };
 
-    Object.values(cards).forEach(id => document.getElementById(id).classList.remove('active'));
-    document.getElementById(cards[type]).classList.add('active');
+    Object.values(cards).forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+    const activeCard = document.getElementById(cards[type]);
+    if (activeCard) activeCard.classList.add('active');
     document.getElementById('filter-title').innerHTML = titles[type];
+
+    // 상호관심 ↔ 신청자목록 토글
+    if (type === 'mutual') {
+        document.getElementById('mutual-overview-section').style.display = '';
+        document.getElementById('applicant-list-section').style.display = 'none';
+        return;
+    } else {
+        document.getElementById('mutual-overview-section').style.display = 'none';
+        document.getElementById('applicant-list-section').style.display = '';
+    }
 
     if (type === 'matched') {
         const seen = new Set();
