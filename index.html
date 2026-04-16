@@ -710,20 +710,9 @@
                 <textarea id="reg-intro" placeholder="간단히 자신을 소개해주세요..." rows="4" maxlength="200" oninput="document.getElementById('intro-counter').textContent=this.value.length+'/200'"></textarea>
             </div>
 
-            <!-- Ice Breaker 질문 (Hinge 스타일) -->
-            <div class="input-group">
-                <label>나를 알아가는 질문 <i class="fa-solid fa-comment" style="color:var(--primary);"></i> <span style="color:#9ca3af;font-weight:400;">(대화 시작점이 돼요!)</span></label>
-                <select id="reg-icebreaker-q" onchange="updateScoreBar()" style="margin-bottom:8px;">
-                    <option value="">질문을 선택해주세요</option>
-                    <option value="휴일에 주로 뭐 해요?">휴일에 주로 뭐 해요?</option>
-                    <option value="인생 최고의 여행지는?">인생 최고의 여행지는?</option>
-                    <option value="요즘 빠져있는 것은?">요즘 빠져있는 것은?</option>
-                    <option value="첫 데이트로 어디가 좋아요?">첫 데이트로 어디가 좋아요?</option>
-                    <option value="나를 한 마디로 표현하면?">나를 한 마디로 표현하면?</option>
-                    <option value="좋아하는 음식 BEST 3는?">좋아하는 음식 BEST 3는?</option>
-                </select>
-                <input type="text" id="reg-icebreaker-a" placeholder="여기에 답변을 적어주세요..." oninput="updateScoreBar()">
-            </div>
+            <!-- Ice Breaker 제거됨 -->
+            <input type="hidden" id="reg-icebreaker-q" value="">
+            <input type="hidden" id="reg-icebreaker-a" value="">
 
             <div class="input-group">
                 <label>이상형 *</label>
