@@ -2543,18 +2543,31 @@ window.addEventListener('DOMContentLoaded', async () => {
             showScreen('register');
             return;
         }
-        // 로그인 상태 → 계속/로그아웃 선택 화면
+        // 신청서 유무 확인
+        let hasProfile = false;
+        try {
+            const { data: existing } = await db.from('applicants').select('id').eq('user_id', session.user.id).limit(1);
+            hasProfile = existing && existing.length > 0;
+        } catch(e) {}
+
+        if (!hasProfile) {
+            // 신청서 없음 → 바로 신청서 작성 화면
+            saveSession('viewer', 'register');
+            showScreen('register');
+            return;
+        }
+
+        // 신청서 있음 → 계속/로그아웃 선택
         const loginCard = document.getElementById('auth-invite');
         const email = session.user.email;
         loginCard.innerHTML = `
-            <div class="login-logo"><i class="fa-solid fa-user-check" style="color:var(--primary);"></i></div>
             <div class="login-title">이미 로그인됨</div>
             <div class="login-sub">현재 <b>${esc(email)}</b>로<br>로그인되어 있어요</div>
             <button class="btn btn-primary" onclick="window.location.href='dashboard.html'" style="margin-bottom:10px;">
-                <i class="fa-solid fa-arrow-right"></i> 내 대시보드로 이동
+                내 대시보드로 이동
             </button>
             <button class="btn btn-outline" onclick="db.auth.signOut().then(()=>{clearSession();location.reload();});">
-                <i class="fa-solid fa-right-from-bracket"></i> 다른 계정으로 로그인
+                다른 계정으로 로그인
             </button>
         `;
         showScreen('login');
