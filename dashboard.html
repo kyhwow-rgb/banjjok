@@ -506,9 +506,13 @@
                     <i class="fa-solid fa-house" style="color:var(--primary);font-size:1.1em;width:24px;text-align:center;"></i>
                     <div><div style="font-weight:700;font-size:.92em;">홈으로 이동</div><div style="font-size:.75em;color:var(--muted);">참가자 현황 보기</div></div>
                 </a>
-                <div onclick="doLogout()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='var(--bg)'">
-                    <i class="fa-solid fa-right-from-bracket" style="color:#ef4444;font-size:1.1em;width:24px;text-align:center;"></i>
-                    <div><div style="font-weight:700;font-size:.92em;color:#ef4444;">로그아웃</div></div>
+                <div onclick="doLogout()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='var(--bg)'">
+                    <i class="fa-solid fa-right-from-bracket" style="color:var(--muted);font-size:1.1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:700;font-size:.92em;">로그아웃</div></div>
+                </div>
+                <div onclick="deleteAccount()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;cursor:pointer;transition:background .15s;margin-top:4px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='var(--bg)'">
+                    <i class="fa-solid fa-trash" style="color:#ef4444;font-size:1.1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:700;font-size:.92em;color:#ef4444;">계정 삭제</div><div style="font-size:.72em;color:var(--muted);">모든 데이터가 즉시 삭제됩니다</div></div>
                 </div>
             </div>
         </div>
@@ -1602,6 +1606,27 @@ async function markAllRead() {
     renderNotifBadge();
     renderNotifList();
     toast('모든 알림을 읽었어요');
+}
+
+async function deleteAccount() {
+    if (!confirm('정말 계정을 삭제하시겠어요?\n모든 프로필, 사진, 찜, 알림이 즉시 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.')) return;
+    if (!confirm('마지막 확인: 계정을 삭제합니다.')) return;
+    setLoading(true);
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        if (user && window._myProfile) {
+            // 내 applicant 데이터 삭제
+            await db.from('favorites').delete().eq('user_id', user.id);
+            await db.from('favorites').delete().eq('applicant_id', window._myProfile.id);
+            await db.from('notifications').delete().eq('user_id', user.id);
+            await db.from('applicants').delete().eq('user_id', user.id);
+        }
+        await db.auth.signOut();
+        localStorage.clear();
+    } catch(e) { console.log('delete error:', e.message); }
+    setLoading(false);
+    toast('계정이 삭제되었습니다.', 'success');
+    setTimeout(() => { window.location.href = 'index.html'; }, 1500);
 }
 
 async function doLogout(silent) {
