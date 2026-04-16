@@ -2888,21 +2888,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // 신청서 있음 → 계속/로그아웃 선택
-        const loginCard = document.getElementById('auth-invite');
-        const email = session.user.email;
-        loginCard.innerHTML = `
-            <div class="login-title">이미 로그인됨</div>
-            <div class="login-sub">현재 <b>${esc(email)}</b>로<br>로그인되어 있어요</div>
-            <button class="btn btn-primary" onclick="window.location.href='dashboard.html'" style="margin-bottom:10px;">
-                내 대시보드로 이동
-            </button>
-            <button class="btn btn-outline" onclick="db.auth.signOut().then(()=>{clearSession();location.reload();});">
-                다른 계정으로 로그인
-            </button>
-        `;
-        showScreen('login');
-        history.replaceState({ screen: 'login' }, '', location.pathname);
+        // 신청서 있음 → 자동으로 대시보드 이동
+        window.location.href = 'dashboard.html';
         return;
     }
 
