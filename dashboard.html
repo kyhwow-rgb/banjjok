@@ -441,7 +441,7 @@
         <!-- 내가 찜한 사람 -->
         <div class="section-card">
             <div class="section-header">
-                <div class="section-title">내가 찜한 사람 <span style="font-size:.85em;font-weight:400;color:var(--muted);">3명까지</span></div>
+                <div class="section-title">내가 찜한 사람 <span id="fav-max-label" style="font-size:.85em;font-weight:400;color:var(--muted);">3명까지</span></div>
                 <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
             </div>
             <div class="section-body" id="favorites-section"></div>
@@ -920,7 +920,26 @@ function renderProfile(p) {
         </div>
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
         ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="index.html#register" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}`;
-    if (mySec) mySec.innerHTML = sec.innerHTML;
+    if (mySec) {
+        mySec.innerHTML = sec.innerHTML;
+        // 추천인 코드 & 찜 슬롯 표시
+        if (p.referral_code) {
+            const maxFav = p.fav_slots || 3;
+            mySec.innerHTML += `
+                <div style="margin-top:16px;padding:14px 18px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
+                    <div style="font-size:.82em;font-weight:700;margin-bottom:8px;">내 추천인 코드</div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.1em;font-weight:800;letter-spacing:.08em;color:var(--primary);font-family:monospace;">${esc(p.referral_code)}</span>
+                        <button onclick="navigator.clipboard.writeText('${esc(p.referral_code)}');toast('복사됨!','success');" style="background:#f3f4f6;border:none;padding:5px 12px;border-radius:6px;font-size:.78em;cursor:pointer;">복사</button>
+                    </div>
+                    <div style="font-size:.72em;color:var(--muted);margin-top:8px;">친구에게 이 코드를 알려주면 서로 찜 슬롯이 늘어나고 24시간 상위 노출돼요!</div>
+                    <div style="font-size:.78em;margin-top:6px;">추천 ${p.referral_count || 0}명 · 찜 슬롯 ${maxFav}명</div>
+                </div>`;
+        }
+        // 찜 슬롯 라벨 업데이트
+        const favLabel = document.getElementById('fav-max-label');
+        if (favLabel) favLabel.textContent = (p.fav_slots || 3) + '명까지';
+    }
 }
 
 function renderFavorites(favApplicants) {
@@ -1083,13 +1102,19 @@ function renderMatchRanking(candidates) {
     const favSet = window._favSet || new Set();
     const blockedSet = window._blockedSet || new Set();
     const filtered = candidates.filter(c => !blockedSet.has(c.id));
+    const now = new Date();
     _scoredCandidates = filtered.map(c => ({
         ...c,
         _score: calcMatchScore(window._myProfile, c),
         _mbtiCompat: calcMbtiCompat(window._myProfile.mbti, c.mbti),
-        _favCount: (window._favCounts || {})[c.id] || 0
+        _favCount: (window._favCounts || {})[c.id] || 0,
+        _boosted: c.boost_until && new Date(c.boost_until) > now
     }));
-    _scoredCandidates.sort((a, b) => b._score - a._score);
+    _scoredCandidates.sort((a, b) => {
+        if (a._boosted && !b._boosted) return -1;
+        if (!a._boosted && b._boosted) return 1;
+        return b._score - a._score;
+    });
     _scoredCandidates = _scoredCandidates.slice(0, 3);
     document.getElementById('match-count').textContent = '';
 
@@ -1297,13 +1322,14 @@ async function toggleFav(applicantId) {
         favSet.delete(applicantId);
         toast('찜 목록에서 제거했어요');
     } else {
-        if (favSet.size >= 3) {
-            toast('최대 3명까지만 찜할 수 있어요. 기존 찜을 해제해주세요.', 'warning');
+        const maxFav = (window._myProfile && window._myProfile.fav_slots) || 3;
+        if (favSet.size >= maxFav) {
+            toast(`최대 ${maxFav}명까지만 찜할 수 있어요. 기존 찜을 해제해주세요.`, 'warning');
             return;
         }
         await db.from('favorites').insert([{ user_id: user.id, applicant_id: applicantId }]);
         favSet.add(applicantId);
-        toast(`찜 목록에 담았어요 (${favSet.size}/3)`, 'success');
+        toast(`찜 목록에 담았어요 (${favSet.size}/${maxFav})`, 'success');
         logEvent('card_like', { liked: applicantId });
     }
     window._favSet = favSet;
