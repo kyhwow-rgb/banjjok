@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#e5e5e5"/>
+  <clipPath id="half">
+    <rect x="0" y="0" width="270" height="512"/>
+  </clipPath>
+  <g clip-path="url(#half)">
+    <path d="M256 430 C256 430 100 320 100 210 C100 150 140 100 195 100 C225 100 250 118 256 145 C262 118 287 100 317 100 C372 100 412 150 412 210 C412 320 256 430 256 430Z" fill="#f472b6"/>
+  </g>
+</svg>
