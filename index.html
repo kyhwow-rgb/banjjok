@@ -165,7 +165,6 @@
         .site-footer { text-align:center; padding:28px 16px 20px; color:#d1d5db; font-size:.7em; letter-spacing:.04em; font-weight:400; }
 
         /* PENDING PULSE */
-        @keyframes pulse-border { 0%,100%{box-shadow:0 0 0 2px #d97706,0 4px 16px rgba(217,119,6,.15);} 50%{box-shadow:0 0 0 3px #f59e0b,0 4px 20px rgba(245,158,11,.3);} }
 
         /* PROFILE SCORE BAR */
         .score-wrap { background:#f9fafb; border-radius:12px; padding:18px 20px; margin-bottom:28px; }
@@ -780,10 +779,10 @@
 
         <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
             <div class="stat-card active" id="card-total"   onclick="filterAdmin('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
-            <div class="stat-card"        id="card-pending" onclick="filterAdmin('pending')"  ><div class="stat-num" id="stat-pending" style="color:#d97706;">0</div><div class="stat-label">대기</div></div>
+            <div class="stat-card"        id="card-pending" onclick="filterAdmin('pending')"  ><div class="stat-num" id="stat-pending" style="color:var(--cta);">0</div><div class="stat-label">대기</div></div>
             <div class="stat-card"        id="card-male"    onclick="filterAdmin('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
             <div class="stat-card"        id="card-female"  onclick="filterAdmin('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
-            <div class="stat-card"        id="card-mutual"  onclick="filterAdmin('mutual')"    ><div class="stat-num" id="stat-mutual" style="color:var(--cta);">0</div><div class="stat-label">상호관심</div></div>
+            <div class="stat-card"        id="card-mutual"  onclick="filterAdmin('mutual')"    ><div class="stat-num" id="stat-mutual">0</div><div class="stat-label">상호관심</div></div>
             <div class="stat-card"        id="card-matched" onclick="filterAdmin('matched')"  ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
         </div>
 
@@ -1672,15 +1671,7 @@ async function renderAdmin() {
     document.getElementById('stat-female').textContent  = approved.filter(a => a.gender === 'female').length;
     document.getElementById('stat-matched').textContent = Math.floor(matched.length / 2);
 
-    // pending 알림 뱃지: 대기 중 신청이 있으면 카드 강조
-    const pendingCard = document.getElementById('card-pending');
-    if (pending.length > 0) {
-        pendingCard.style.boxShadow = '0 0 0 2px #d97706, 0 4px 16px rgba(217,119,6,.25)';
-        pendingCard.style.animation = 'pulse-border 2s infinite';
-    } else {
-        pendingCard.style.boxShadow = '';
-        pendingCard.style.animation = '';
-    }
+    // pending 카드 강조 제거 (숫자 색상만 빨간색으로 표시)
 
     // 첫 로드 시 pending이 있으면 자동으로 pending 탭
     if (currentAdminFilter === 'all' && pending.length > 0 && !_adminRendered) {
