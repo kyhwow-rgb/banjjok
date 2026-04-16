@@ -75,20 +75,20 @@
         #install-splash .splash-btn-install:active { background:#be123c; }
         #install-splash .splash-btn-web { background:#f3f4f6; color:#525252; font-size:.88em; font-weight:600; margin-top:0; border-radius:10px; padding:12px 0; }
         .splash-guide-box {
-            width:100%; max-width:300px; background:#f9fafb; border:1px solid #e5e7eb;
-            border-radius:14px; padding:20px 18px; margin-top:20px; text-align:left;
+            width:100%; max-width:320px; background:#f9fafb; border:1px solid #e5e7eb;
+            border-radius:16px; padding:22px 20px; margin-top:20px; text-align:left;
         }
-        .splash-guide-box .guide-title { font-size:.9em; font-weight:700; color:#111; margin-bottom:14px; text-align:center; }
+        .splash-guide-box .guide-title { font-size:.92em; font-weight:700; color:#111; margin-bottom:16px; text-align:center; letter-spacing:-.01em; }
         .splash-guide-box .guide-step {
-            display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; font-size:.83em; color:#374151; line-height:1.6;
+            display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; font-size:.84em; color:#374151; line-height:1.7; letter-spacing:-.01em;
         }
         .splash-guide-box .guide-step:last-child { margin-bottom:0; }
         .splash-guide-box .guide-num {
-            flex-shrink:0; width:22px; height:22px; border-radius:50%; background:#e11d48; color:#fff;
-            font-size:.72em; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:2px;
+            flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#e11d48; color:#fff;
+            font-size:.72em; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
         }
         .splash-guide-box .guide-step b { color:#111; }
-        .splash-guide-box .guide-step .guide-icon { display:inline-block; background:#f3f4f6; border-radius:4px; padding:1px 5px; font-size:.95em; vertical-align:middle; }
+        .splash-guide-box .guide-step .guide-icon { display:inline-flex; align-items:center; justify-content:center; background:#e5e7eb; border-radius:5px; padding:2px 7px; font-size:.9em; vertical-align:middle; min-width:24px; }
 
         /* LOADING */
         #loading-overlay {
@@ -710,27 +710,22 @@
             <div class="form-row">
                 <div class="input-group">
                     <label>직업 <span style="color:#e11d48;">*</span></label>
-                    <input type="text" id="reg-job" oninput="autoFillJobCategory()">
+                    <select id="reg-job">
+                        <option value="">선택해주세요</option>
+                        <option value="전문직">전문직 (의사/변호사/약사 등)</option>
+                        <option value="사업가">사업가/대표</option>
+                        <option value="공무원/공기업">공무원/공기업</option>
+                        <option value="IT/개발">IT/개발직</option>
+                        <option value="일반직장인">일반직장인</option>
+                        <option value="자영업">자영업</option>
+                        <option value="학생">학생</option>
+                        <option value="기타">기타</option>
+                    </select>
                 </div>
                 <div class="input-group">
                     <label>키 (cm) <span style="color:#e11d48;">*</span></label>
                     <input type="number" id="reg-height" placeholder="170" min="140" max="220">
                 </div>
-            </div>
-
-            <div class="input-group">
-                <label>직업군 <span style="color:#9ca3af;font-weight:400;">(자동 분류, 수정 가능)</span></label>
-                <select id="reg-job-category">
-                    <option value="">선택해주세요</option>
-                    <option value="전문직">전문직 (의사/변호사/약사 등)</option>
-                    <option value="사업가">사업가/대표</option>
-                    <option value="공무원/공기업">공무원/공기업</option>
-                    <option value="IT/개발">IT/개발직</option>
-                    <option value="일반직장인">일반직장인</option>
-                    <option value="자영업">자영업</option>
-                    <option value="학생">학생</option>
-                    <option value="기타">기타</option>
-                </select>
             </div>
 
             <div class="form-row">
@@ -776,6 +771,26 @@
                 <div class="input-group">
                     <label>카카오 ID <span style="color:#e11d48;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
                     <input type="text" id="reg-kakao" placeholder="kakao_id">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>흡연 <span style="color:#e11d48;">*</span></label>
+                    <select id="reg-smoking">
+                        <option value="">선택해주세요</option>
+                        <option value="비흡연">비흡연</option>
+                        <option value="흡연">흡연</option>
+                        <option value="전자담배">전자담배</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>음주 <span style="color:#e11d48;">*</span></label>
+                    <select id="reg-drinking">
+                        <option value="">선택해주세요</option>
+                        <option value="안 마심">안 마심</option>
+                        <option value="가끔">가끔</option>
+                        <option value="자주">자주</option>
+                    </select>
                 </div>
             </div>
             <div class="input-group">
@@ -1272,7 +1287,7 @@ async function renderHome() {
 }
 
 // ── 보석 순도 점수 ──
-const SCORE_BASIC = ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-mbti','reg-kakao','reg-intro','reg-education','reg-contact','reg-referral'];
+const SCORE_BASIC = ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-mbti','reg-kakao','reg-intro','reg-education','reg-contact','reg-referral','reg-smoking','reg-drinking'];
 
 function calcProfileScore() {
     let score = 0;
@@ -1408,10 +1423,9 @@ function resetForm() {
     photoFiles = [null, null, null];
     ['gender-male','gender-female'].forEach(id => document.getElementById(id).className = 'gender-option');
     ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-contact','reg-kakao',
-     'reg-intro','reg-mbti','reg-referral','reg-education'].forEach(id => {
+     'reg-intro','reg-mbti','reg-referral','reg-education','reg-smoking','reg-drinking'].forEach(id => {
         document.getElementById(id).value = '';
     });
-    document.getElementById('reg-job-category').value = '';
     // 접속경로 드롭다운 초기화
     const refSelect = document.getElementById('reg-referral');
     const refWrap = document.getElementById('reg-referral-text-wrap');
@@ -1466,8 +1480,10 @@ async function submitApplication() {
     if (!mbti)     missing.push('MBTI');
     if (!ideal)    missing.push('이상형');
     if (!kakao)    missing.push('카카오 ID');
+    if (!document.getElementById('reg-smoking').value) missing.push('흡연');
+    if (!document.getElementById('reg-drinking').value) missing.push('음주');
     if (!referral) missing.push('접속 경로');
-    if (!photoFiles.some(f => f !== null)) missing.push('사진');
+    if (!photoFiles.some(f => f !== null) && !(window._existingPhotos && window._existingPhotos.length > 0)) missing.push('사진');
     if (missing.length > 0) {
         toast('미입력: ' + missing.join(', '), 'warning');
         return;
@@ -1544,7 +1560,9 @@ async function submitApplication() {
         ideal:         ideal || null,
         photos:        photoUrls,
         profile_score: calcProfileScore().pct,
-        job_category:  document.getElementById('reg-job-category').value || null,
+        job_category:  job || null,
+        smoking:   document.getElementById('reg-smoking').value || null,
+        drinking:  document.getElementById('reg-drinking').value || null,
         icebreaker:    icebreaker,
     };
 
@@ -2117,6 +2135,8 @@ function openAdminDetail(id) {
         lookScore > 0 ? ['외모 점수', scoreBar(lookScore, '외모')] : ['외모 점수', '<span style="color:#9ca3af;font-size:.85em;">미평가</span>'],
         a.location  ? ['거주지', a.location]      : null,
         a.mbti      ? ['MBTI',   a.mbti]          : null,
+        a.smoking   ? ['흡연',   a.smoking]       : null,
+        a.drinking  ? ['음주',   a.drinking]      : null,
         a.referral  ? ['접속경로', a.referral]    : null,
         a.intro     ? ['자기소개', a.intro]       : null,
         ['신청일',  formatDate(a.created_at)],
@@ -2233,6 +2253,16 @@ function openEditForm(id) {
             </select></div>
             <div class="input-group"><label>카카오 ID</label><input type="text" id="edit-kakao" value="${esc(a.kakao||'')}"></div>
         </div>
+        <div class="form-row">
+            <div class="input-group"><label>흡연</label><select id="edit-smoking">
+                <option value="">선택...</option>
+                ${['비흡연','흡연','전자담배'].map(v => '<option value="'+v+'" '+(a.smoking===v?'selected':'')+'>'+v+'</option>').join('')}
+            </select></div>
+            <div class="input-group"><label>음주</label><select id="edit-drinking">
+                <option value="">선택...</option>
+                ${['안 마심','가끔','자주'].map(v => '<option value="'+v+'" '+(a.drinking===v?'selected':'')+'>'+v+'</option>').join('')}
+            </select></div>
+        </div>
         <div class="input-group"><label>연락처 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label><input type="tel" id="edit-contact" value="${esc(a.contact||'')}"></div>
         <div class="input-group"><label>접속경로</label><input type="text" id="edit-referral" value="${esc(a.referral||'')}"></div>
         <div class="input-group">
@@ -2319,7 +2349,9 @@ async function saveEdit(id) {
             height: heightVal ? parseInt(heightVal) : null, education: education || null,
             location: location || null, mbti: mbti || null, intro: intro || null,
             ideal: ideal || null,
-            job_category: document.getElementById('edit-job-category').value || null,
+            job_category: document.getElementById('edit-job-category')?.value || job || null,
+            smoking: document.getElementById('edit-smoking').value || null,
+            drinking: document.getElementById('edit-drinking').value || null,
             look_score: document.getElementById('edit-look-score').value ? parseInt(document.getElementById('edit-look-score').value) : null,
             icebreaker: editIcebreaker,
         }, `?id=eq.${id}`);
@@ -2763,16 +2795,16 @@ async function prefillRegisterForm(userId) {
     const p = data[0];
     if (p.gender) selectGender(p.gender);
     const fields = [
-        ['reg-name', p.name], ['reg-birth', p.birth], ['reg-job', p.job],
+        ['reg-name', p.name], ['reg-birth', p.birth], ['reg-job', p.job_category || p.job],
         ['reg-height', p.height], ['reg-location', p.location], ['reg-mbti', p.mbti],
         ['reg-kakao', p.kakao], ['reg-intro', p.intro], ['reg-contact', p.contact],
         ['reg-referral', p.referral], ['reg-education', p.education],
+        ['reg-smoking', p.smoking], ['reg-drinking', p.drinking],
     ];
     fields.forEach(([id, val]) => {
         const el = document.getElementById(id);
         if (el && val != null) el.value = val;
     });
-    if (p.job_category) document.getElementById('reg-job-category').value = p.job_category;
     // 접속경로: 드롭다운에 없는 값이면 직접입력 모드
     if (p.referral) {
         const refSelect = document.getElementById('reg-referral');
@@ -2800,6 +2832,21 @@ async function prefillRegisterForm(userId) {
         document.getElementById('reg-ideal-memo').value = getIdealMemo(p.ideal);
         // 점수 이벤트 재연결 (중복 방지: 기존 리스너 제거 후 등록)
         SCORE_BASIC.forEach(id => { const el = document.getElementById(id); if (el) { el.removeEventListener('input', updateScoreBar); el.addEventListener('input', updateScoreBar); } });
+    }
+    // 기존 사진 프리필
+    if (p.photos && p.photos.length > 0) {
+        p.photos.forEach((photoUrl, i) => {
+            if (i >= 3 || !photoUrl) return;
+            const preview = document.getElementById(`photo-preview-${i}`);
+            if (preview) {
+                preview.src = photoUrl;
+                preview.style.display = 'block';
+                document.getElementById(`photo-ph-${i}`).style.display = 'none';
+                document.getElementById(`photo-slot-${i}`).classList.add('has-photo');
+            }
+        });
+        // 사진 변경 안 하면 기존 사진 유지하도록 마커 설정
+        window._existingPhotos = p.photos;
     }
     updateScoreBar();
 }
