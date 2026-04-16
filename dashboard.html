@@ -1951,6 +1951,14 @@ async function init() {
         // 프로필 다시 렌더 (인기도 포함)
         renderProfile(profile);
         if (showRecommendations) {
+            // 관리자가 스와이프 리셋한 경우 체크
+            if (profile.swipe_reset_date) {
+                const today = new Date().toISOString().slice(0, 10);
+                if (profile.swipe_reset_date === today) {
+                    localStorage.removeItem(getDailySwipeKey());
+                    await db.from('applicants').update({ swipe_reset_date: null }).eq('user_id', user.id);
+                }
+            }
             _cardIndex = 0;
             _swipedCount = loadDailySwipeCount();
             renderMatchRanking(window._allCandidates);
