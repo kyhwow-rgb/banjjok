@@ -772,12 +772,13 @@
     </div>
     <div class="page-container" style="max-width:920px;">
 
-        <div class="stats-grid">
-            <div class="stat-card active" id="card-total"   onclick="filterAdmin('all')"     ><span class="stat-icon" style="color:#7c3aed;"><i class="fa-solid fa-layer-group"></i></span><div class="stat-num" id="stat-total"   style="color:#7c3aed;">0</div><div class="stat-label">전체 신청</div></div>
-            <div class="stat-card"        id="card-pending" onclick="filterAdmin('pending')"  ><span class="stat-icon" style="color:#d97706;"><i class="fa-solid fa-hourglass-half"></i></span><div class="stat-num" id="stat-pending" style="color:#d97706;">0</div><div class="stat-label">승인 대기</div></div>
-            <div class="stat-card"        id="card-male"    onclick="filterAdmin('male')"     ><span class="stat-icon" style="color:#3b82f6;"><i class="fa-solid fa-mars"></i></span><div class="stat-num" id="stat-male"    style="color:#3b82f6;">0</div><div class="stat-label">승인 남성</div></div>
-            <div class="stat-card"        id="card-female"  onclick="filterAdmin('female')"   ><span class="stat-icon" style="color:#ec4899;"><i class="fa-solid fa-venus"></i></span><div class="stat-num" id="stat-female"  style="color:#ec4899;">0</div><div class="stat-label">승인 여성</div></div>
-            <div class="stat-card"        id="card-matched" onclick="filterAdmin('matched')"  ><span class="stat-icon" style="color:#7c3aed;"><i class="fa-solid fa-heart"></i></span><div class="stat-num" id="stat-matched" style="color:#7c3aed;">0</div><div class="stat-label">매칭 커플</div></div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="stat-card active" id="card-total"   onclick="filterAdmin('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
+            <div class="stat-card"        id="card-pending" onclick="filterAdmin('pending')"  ><div class="stat-num" id="stat-pending" style="color:#d97706;">0</div><div class="stat-label">대기</div></div>
+            <div class="stat-card"        id="card-male"    onclick="filterAdmin('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
+            <div class="stat-card"        id="card-female"  onclick="filterAdmin('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
+            <div class="stat-card"        id="card-mutual"  onclick="scrollToMutual()"        ><div class="stat-num" id="stat-mutual" style="color:var(--cta);">0</div><div class="stat-label">상호관심</div></div>
+            <div class="stat-card"        id="card-matched" onclick="filterAdmin('matched')"  ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
         </div>
 
         <div class="admin-section" id="match-requests-section" style="display:none;">
@@ -787,7 +788,7 @@
 
         <!-- 상호 관심 현황 -->
         <div class="admin-section" id="mutual-overview-section" style="display:none;">
-            <div class="admin-section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 상호 관심 현황 <span id="mutual-overview-count" style="font-size:.8em;color:#ec4899;font-weight:700;"></span></div>
+            <div class="admin-section-title">상호 관심 현황 <span id="mutual-overview-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
             <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">서로 찜한 쌍입니다. 매칭을 승인하면 양쪽에 알림이 전송됩니다.</div>
             <div id="mutual-overview-list"></div>
         </div>
@@ -1726,6 +1727,11 @@ async function rejectMatchRequest(reqId) {
     } catch(e) { toast('오류: ' + e.message); }
 }
 
+function scrollToMutual() {
+    const el = document.getElementById('mutual-overview-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ── 상호 관심 현황 (관리자용) ──
 async function loadMutualOverview() {
     const sec = document.getElementById('mutual-overview-section');
@@ -1762,26 +1768,25 @@ async function loadMutualOverview() {
             }
         }
 
+        document.getElementById('stat-mutual').textContent = pairs.length;
         if (pairs.length === 0) { sec.style.display = 'none'; return; }
         sec.style.display = '';
         document.getElementById('mutual-overview-count').textContent = pairs.length + '쌍';
         list.innerHTML = pairs.map(([m, f]) => {
             const mAge = calcAge(m.birth);
             const fAge = calcAge(f.birth);
-            return `<div style="display:flex;align-items:center;gap:12px;padding:14px;background:#faf5ff;border-radius:14px;margin-bottom:8px;flex-wrap:wrap;">
+            return `<div style="display:flex;align-items:center;gap:12px;padding:14px;background:#f9fafb;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;">
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                        <i class="fa-solid fa-mars" style="color:var(--male);"></i>
                         <span style="font-weight:700;font-size:.9em;">${esc(m.name)}</span>
                         <span style="font-size:.75em;color:var(--muted);">${mAge}세·${esc(m.job||'')}</span>
-                        <span style="color:#ec4899;font-size:1.1em;"><i class="fa-solid fa-heart"></i></span>
-                        <i class="fa-solid fa-venus" style="color:var(--female);"></i>
+                        <span style="color:#a3a3a3;font-size:.85em;">↔</span>
                         <span style="font-weight:700;font-size:.9em;">${esc(f.name)}</span>
                         <span style="font-size:.75em;color:var(--muted);">${fAge}세·${esc(f.job||'')}</span>
                     </div>
                 </div>
-                <button class="btn btn-sm btn-match" onclick="confirmMatch('${m.id}','${f.id}')" style="flex-shrink:0;">
-                    <i class="fa-solid fa-heart-circle-bolt"></i> 매칭 승인
+                <button class="btn btn-sm" style="background:var(--cta);color:white;flex-shrink:0;" onclick="confirmMatch('${m.id}','${f.id}')">
+                    매칭 승인
                 </button>
             </div>`;
         }).join('');
