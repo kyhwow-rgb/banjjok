@@ -1121,18 +1121,7 @@ async function renderHome() {
     try {
         const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
         list = data || [];
-    } catch(e) {
-        console.log('renderHome: 프록시 실패, 직접 접근 시도', e.message);
-        // 프록시 실패 시 Supabase 직접 접근
-        if (_isLocal) {
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/applicants?select=gender,birth,job,location,mbti,photos,icebreaker&status=eq.approved`, {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-                });
-                if (res.ok) list = await res.json();
-            } catch(e2) { console.log('renderHome: 직접 접근도 실패', e2.message); }
-        }
-    }
+    } catch(e) { console.log("renderHome error:", e.message); }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
     const femaleCount = list.filter(a => a.gender === 'female').length;
@@ -1848,19 +1837,22 @@ async function loadMutualOverview() {
                 '</div>' +
             '</div>';
         }).join('');
-        // 이벤트 위임
-        list.addEventListener('click', function(e) {
-            var toggle = e.target.closest('[data-toggle]');
-            if (toggle) {
-                var detail = document.getElementById(toggle.dataset.toggle);
-                if (detail) detail.style.display = detail.style.display === 'none' ? '' : 'none';
-            }
-            var matchBtn = e.target.closest('[data-match]');
-            if (matchBtn) {
-                var ids = matchBtn.dataset.match.split(',');
-                confirmMatch(ids[0], ids[1]);
-            }
-        });
+        // 이벤트 위임 (한 번만 등록)
+        if (!list._mutualListenerAdded) {
+            list._mutualListenerAdded = true;
+            list.addEventListener('click', function(e) {
+                var toggle = e.target.closest('[data-toggle]');
+                if (toggle) {
+                    var detail = document.getElementById(toggle.dataset.toggle);
+                    if (detail) detail.style.display = detail.style.display === 'none' ? '' : 'none';
+                }
+                var matchBtn = e.target.closest('[data-match]');
+                if (matchBtn) {
+                    var ids = matchBtn.dataset.match.split(',');
+                    confirmMatch(ids[0], ids[1]);
+                }
+            });
+        }
     } catch(e) {
         console.log('loadMutualOverview error:', e.message);
         sec.style.display = 'none';
