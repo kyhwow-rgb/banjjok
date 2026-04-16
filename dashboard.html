@@ -953,6 +953,10 @@ function switchTab(tab) {
     if (tab === 'discover' && window._allCandidates) {
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }
+    // MY 탭 전환 시 문의 내역 새로고침 (관리자 답변 반영)
+    if (tab === 'my') {
+        loadInquiries();
+    }
 }
 
 function updateInterestBadge() {
