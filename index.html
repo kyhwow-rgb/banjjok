@@ -584,7 +584,7 @@
 
             <!-- 성별 -->
             <div class="input-group">
-                <label>성별 *</label>
+                <label>성별 <span style="color:#e11d48;">*</span></label>
                 <div class="gender-select">
                     <div class="gender-option" id="gender-male" onclick="selectGender('male')">
                         <div class="gender-option-icon"><i class="fa-solid fa-mars" style="color:var(--male);"></i></div>
@@ -599,22 +599,22 @@
 
             <div class="form-row">
                 <div class="input-group">
-                    <label>이름 *</label>
+                    <label>이름 <span style="color:#e11d48;">*</span></label>
                     <input type="text" id="reg-name" placeholder="홍길동">
                 </div>
                 <div class="input-group">
-                    <label>생년월일 *</label>
+                    <label>생년월일 <span style="color:#e11d48;">*</span></label>
                     <input type="date" id="reg-birth">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="input-group">
-                    <label>직업 *</label>
+                    <label>직업 <span style="color:#e11d48;">*</span></label>
                     <input type="text" id="reg-job" oninput="autoFillJobCategory()">
                 </div>
                 <div class="input-group">
-                    <label>키 (cm) *</label>
+                    <label>키 (cm) <span style="color:#e11d48;">*</span></label>
                     <input type="number" id="reg-height" placeholder="170" min="140" max="220">
                 </div>
             </div>
@@ -646,14 +646,14 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>거주지 *</label>
+                    <label>거주지 <span style="color:#e11d48;">*</span></label>
                     <input type="text" id="reg-location" placeholder="서울 강남구">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="input-group">
-                    <label>MBTI *</label>
+                    <label>MBTI <span style="color:#e11d48;">*</span></label>
                     <select id="reg-mbti">
                         <option value="">선택해주세요</option>
                         <option value="ENFP">ENFP</option>
@@ -675,7 +675,7 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>카카오 ID * <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
+                    <label>카카오 ID <span style="color:#e11d48;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
                     <input type="text" id="reg-kakao" placeholder="kakao_id">
                 </div>
             </div>
@@ -686,7 +686,7 @@
 
             <!-- 접속 경로 (필수) -->
             <div class="input-group">
-                <label>접속 경로 *</label>
+                <label>접속 경로 <span style="color:#e11d48;">*</span></label>
                 <select id="reg-referral" onchange="onReferralChange(this)">
                     <option value="">선택해주세요</option>
                     <option value="지인 소개">지인 소개</option>
@@ -715,14 +715,14 @@
             <input type="hidden" id="reg-icebreaker-a" value="">
 
             <div class="input-group">
-                <label>이상형 *</label>
+                <label>이상형 <span style="color:#e11d48;">*</span></label>
                 <div id="ideal-chips"></div>
                 <textarea id="reg-ideal-memo" class="ideal-memo" placeholder="원하는 이상형을 자유롭게 적어주세요..."></textarea>
             </div>
 
             <!-- 사진 업로드 (최대 3장) -->
             <div class="input-group">
-                <label>사진 * (최대 3장)</label>
+                <label>사진 <span style="color:#e11d48;">*</span> (최대 3장)</label>
                 <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;padding:10px 12px;background:#f5f3ff;border-radius:10px;line-height:1.5;">
                     <i class="fa-solid fa-camera-retro" style="color:var(--primary);"></i> <b>사진 팁:</b> 밝은 조명의 정면 사진이 가장 좋아요!<br>
                     <i class="fa-solid fa-check" style="color:#10b981;"></i> 얼굴이 잘 보이는 사진 &nbsp; <i class="fa-solid fa-check" style="color:#10b981;"></i> 자연스러운 미소<br>
