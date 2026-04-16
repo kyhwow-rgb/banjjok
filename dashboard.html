@@ -495,24 +495,41 @@
             </div>
         </div>
 
+        <!-- 문의사항 -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">문의사항</div>
+            </div>
+            <div class="section-body">
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">관리자에게 문의하거나 건의할 수 있어요.</div>
+                <div style="padding:12px;background:#fafafa;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:.85em;font-weight:600;">카카오톡 문의</span>
+                    <span style="font-size:.85em;color:var(--muted);">ID: <b style="color:#111;">kyhcyl</b></span>
+                </div>
+                <textarea id="inquiry-input" placeholder="문의 내용을 입력해주세요..." rows="3" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;"></textarea>
+                <button class="btn btn-primary" onclick="sendInquiry()" style="margin-top:10px;width:100%;">문의 보내기</button>
+                <div id="inquiry-history" style="margin-top:16px;"></div>
+            </div>
+        </div>
+
         <!-- MY 메뉴 -->
         <div class="section-card">
             <div class="section-body" style="display:flex;flex-direction:column;gap:10px;">
-                <a href="index.html#register" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='var(--bg)'">
-                    <i class="fa-solid fa-pen" style="color:var(--primary);font-size:1.1em;width:24px;text-align:center;"></i>
-                    <div><div style="font-weight:700;font-size:.92em;">신청서 수정</div><div style="font-size:.75em;color:var(--muted);">프로필 정보를 수정해요</div></div>
+                <a href="index.html#register" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-pen" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:600;font-size:.9em;">신청서 수정</div></div>
                 </a>
-                <a href="index.html" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='var(--bg)'">
-                    <i class="fa-solid fa-house" style="color:var(--primary);font-size:1.1em;width:24px;text-align:center;"></i>
-                    <div><div style="font-weight:700;font-size:.92em;">홈으로 이동</div><div style="font-size:.75em;color:var(--muted);">참가자 현황 보기</div></div>
+                <a href="index.html" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-house" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:600;font-size:.9em;">홈으로 이동</div></div>
                 </a>
-                <div onclick="doLogout()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='var(--bg)'">
-                    <i class="fa-solid fa-right-from-bracket" style="color:var(--muted);font-size:1.1em;width:24px;text-align:center;"></i>
-                    <div><div style="font-weight:700;font-size:.92em;">로그아웃</div></div>
+                <div onclick="doLogout()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-right-from-bracket" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:600;font-size:.9em;">로그아웃</div></div>
                 </div>
-                <div onclick="deleteAccount()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:14px;cursor:pointer;transition:background .15s;margin-top:4px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='var(--bg)'">
-                    <i class="fa-solid fa-trash" style="color:#ef4444;font-size:1.1em;width:24px;text-align:center;"></i>
-                    <div><div style="font-weight:700;font-size:.92em;color:#ef4444;">계정 삭제</div><div style="font-size:.72em;color:var(--muted);">모든 데이터가 즉시 삭제됩니다</div></div>
+                <div onclick="deleteAccount()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-trash" style="color:#ef4444;font-size:1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:600;font-size:.9em;color:#ef4444;">계정 삭제</div></div>
                 </div>
             </div>
         </div>
@@ -1608,6 +1625,38 @@ async function markAllRead() {
     toast('모든 알림을 읽었어요');
 }
 
+// ── 문의사항 ──
+async function sendInquiry() {
+    const input = document.getElementById('inquiry-input');
+    const msg = input.value.trim();
+    if (!msg) { toast('문의 내용을 입력해주세요.', 'warning'); return; }
+    const { data: { user } } = await db.auth.getUser();
+    const name = window._myProfile ? window._myProfile.name : '';
+    const { error } = await db.from('inquiries').insert([{ user_id: user.id, user_name: name, message: msg }]);
+    if (error) { toast('전송 실패: ' + error.message, 'error'); return; }
+    input.value = '';
+    toast('문의가 전송되었습니다.', 'success');
+    loadInquiries();
+}
+
+async function loadInquiries() {
+    const el = document.getElementById('inquiry-history');
+    if (!el) return;
+    try {
+        const { data } = await db.from('inquiries').select('*').order('created_at', { ascending: false }).limit(10);
+        if (!data || data.length === 0) { el.innerHTML = ''; return; }
+        el.innerHTML = '<div style="font-size:.82em;font-weight:600;color:#111;margin-bottom:8px;">내 문의 내역</div>' +
+            data.map(q => {
+                const date = new Date(q.created_at).toLocaleDateString('ko-KR');
+                return '<div style="padding:10px;background:#fafafa;border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">' +
+                    '<div style="font-size:.85em;color:#111;">' + esc(q.message) + '</div>' +
+                    '<div style="font-size:.7em;color:var(--muted);margin-top:4px;">' + date + '</div>' +
+                    (q.reply ? '<div style="margin-top:6px;padding:8px;background:#f0fdf4;border-radius:6px;font-size:.82em;color:#065f46;"><b>답변:</b> ' + esc(q.reply) + '</div>' : '') +
+                '</div>';
+            }).join('');
+    } catch(e) { console.log('loadInquiries error:', e.message); }
+}
+
 async function deleteAccount() {
     if (!confirm('정말 계정을 삭제하시겠어요?\n모든 프로필, 사진, 찜, 알림이 즉시 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.')) return;
     if (!confirm('마지막 확인: 계정을 삭제합니다.')) return;
@@ -1803,6 +1852,7 @@ async function init() {
     }
     // 알림 로드
     await loadNotifications();
+    loadInquiries();
     setLoading(false);
     } catch(e) {
         console.error('dashboard init error:', e);
