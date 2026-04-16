@@ -618,10 +618,12 @@ function toast(msg, type) {
 
 function calcAge(birth) {
     if (!birth) return null;
-    const b = new Date(birth), today = new Date();
+    const b = new Date(birth);
+    if (isNaN(b.getTime())) return null;
+    const today = new Date();
     let age = today.getFullYear() - b.getFullYear();
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
-    return age;
+    return age > 0 && age < 120 ? age : null;
 }
 
 function calcScore(p) {
@@ -1281,6 +1283,7 @@ async function toggleFav(applicantId) {
 }
 
 async function removeFav(applicantId) {
+    if (!confirm('찜을 해제하시겠어요?')) return;
     const { data: { user } } = await db.auth.getUser();
     await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
     toast('찜 목록에서 제거했어요');
@@ -1710,14 +1713,20 @@ async function sendInquiry() {
     const msg = input.value.trim();
     if (!msg) { toast('문의 내용을 입력해주세요.', 'warning'); return; }
     if (msg.length > 500) { toast('500자 이내로 작성해주세요.', 'warning'); return; }
-    const { data: { user } } = await db.auth.getUser();
-    const name = window._myProfile ? window._myProfile.name : '';
-    const { error } = await db.from('inquiries').insert([{ user_id: user.id, user_name: name, message: msg }]);
-    if (error) { toast('전송 실패: ' + error.message, 'error'); return; }
-    input.value = '';
-    document.getElementById('inquiry-charcount').textContent = '0 / 500';
-    toast('문의가 전송되었습니다.', 'success');
-    loadInquiries();
+    const btn = input.nextElementSibling?.querySelector?.('.btn-primary') || document.querySelector('[onclick="sendInquiry()"]');
+    if (btn) { btn.disabled = true; btn.textContent = '전송 중...'; }
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        const name = window._myProfile ? window._myProfile.name : '';
+        const { error } = await db.from('inquiries').insert([{ user_id: user.id, user_name: name, message: msg }]);
+        if (error) { toast('전송 실패: ' + error.message, 'error'); return; }
+        input.value = '';
+        document.getElementById('inquiry-charcount').textContent = '0 / 500';
+        toast('문의가 전송되었습니다.', 'success');
+        loadInquiries();
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '보내기'; }
+    }
 }
 
 async function deleteInquiry(id) {
