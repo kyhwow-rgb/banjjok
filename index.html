@@ -73,7 +73,7 @@
         #install-splash .splash-btn { width:100%; max-width:300px; padding:14px 0; border-radius:12px; font-size:1em; font-weight:700; cursor:pointer; border:none; transition:all .15s; }
         #install-splash .splash-btn-install { background:#e11d48; color:#fff; }
         #install-splash .splash-btn-install:active { background:#be123c; }
-        #install-splash .splash-btn-web { background:none; color:#a3a3a3; font-size:.82em; font-weight:500; margin-top:32px; }
+        #install-splash .splash-btn-web { background:#f3f4f6; color:#525252; font-size:.88em; font-weight:600; margin-top:0; border-radius:10px; padding:12px 0; }
         .splash-guide-box {
             width:100%; max-width:300px; background:#f9fafb; border:1px solid #e5e7eb;
             border-radius:14px; padding:20px 18px; margin-top:20px; text-align:left;
@@ -501,7 +501,11 @@
             </div>
             <div class="guide-step">
                 <div class="guide-num">3</div>
-                <div>아래로 스크롤해서 <b>"홈 화면에 추가"</b> 선택</div>
+                <div>목록을 스크롤해서 <b>"홈 화면에 추가"</b>가 안 보이면<br><b>"더보기 <span class="guide-icon">···</span>"</b> 를 눌러서 찾기</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">4</div>
+                <div><b>"홈 화면에 추가"</b> 선택 → 우측 상단 <b>"추가"</b> 누르기</div>
             </div>
         </div>
         <div id="splash-ios-step-safari" style="display:none;">
@@ -511,7 +515,11 @@
             </div>
             <div class="guide-step">
                 <div class="guide-num">2</div>
-                <div>아래로 스크롤해서 <b>"홈 화면에 추가"</b> 선택</div>
+                <div>목록을 스크롤해서 <b>"홈 화면에 추가"</b>가 안 보이면<br><b>"더보기 <span class="guide-icon">···</span>"</b> 를 눌러서 찾기</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">3</div>
+                <div><b>"홈 화면에 추가"</b> 선택 → 우측 상단 <b>"추가"</b> 누르기</div>
             </div>
         </div>
     </div>
@@ -529,7 +537,10 @@
         </div>
     </div>
 
-    <button class="splash-btn splash-btn-web" onclick="splashDismiss()">웹에서 바로 이용하기</button>
+    <div class="splash-guide-box" style="margin-top:16px; text-align:center; padding:16px 18px;">
+        <button class="splash-btn splash-btn-web" onclick="splashDismiss()" style="margin-top:0;">웹에서 바로 이용하기</button>
+        <div style="font-size:.75em; color:#a3a3a3; margin-top:6px;">설치 없이 바로 사용할 수 있어요</div>
+    </div>
 </div>
 
 <div id="loading-overlay">
