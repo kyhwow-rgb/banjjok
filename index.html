@@ -603,7 +603,7 @@
                 </div>
                 <div class="input-group">
                     <label>생년월일 <span style="color:#e11d48;">*</span></label>
-                    <input type="date" id="reg-birth">
+                    <input type="date" id="reg-birth" max="2010-12-31">
                 </div>
             </div>
 
@@ -1127,7 +1127,7 @@ async function renderHome() {
     try {
         const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
         list = data || [];
-    } catch(e) { console.log("renderHome error:", e.message); }
+    } catch(e) { console.log('renderHome error:', e.message); }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
     const femaleCount = list.filter(a => a.gender === 'female').length;
@@ -1231,6 +1231,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── 사진 관련 ──
 function previewPhoto(i, input) {
     if (!input.files[0]) return;
+    if (input.files[0].size > 5 * 1024 * 1024) {
+        toast('사진 크기는 5MB 이하만 가능해요.', 'warning');
+        input.value = '';
+        return;
+    }
     photoFiles[i] = input.files[0];
     const reader = new FileReader();
     reader.onload = e => {
@@ -1372,6 +1377,7 @@ async function submitApplication() {
     btn.disabled = true;
     const origText = btn.textContent;
     btn.textContent = '제출 중...';
+    try {
 
     setLoading(true, '기존 신청서 확인 중...');
     const { data: { session } } = await db.auth.getSession();
@@ -1448,7 +1454,7 @@ async function submitApplication() {
         error = updateError;
     } else {
         const row = {
-            id:      Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
             status:  'pending',
             user_id: userId,
             ...rowData,
@@ -1462,9 +1468,18 @@ async function submitApplication() {
     btn.textContent = origText;
 
     if (error) { toast('제출 실패: ' + error.message); return; }
-    btn.textContent = '제출 완료! ✅';
+    btn.textContent = '제출 완료!';
     toast(existingId ? '신청서가 수정되었습니다!' : '신청서가 제출되었습니다! 관리자 승인 후 등록됩니다.');
     setTimeout(() => window.location.href = 'dashboard.html', 2200);
+
+    } catch(e) {
+        console.error('submitApplication error:', e);
+        toast('제출 중 오류가 발생했어요. 다시 시도해주세요.');
+    } finally {
+        setLoading(false);
+        btn.disabled = false;
+        if (btn.textContent === '제출 중...') btn.textContent = origText;
+    }
 }
 
 // ── 매칭 점수 계산 ──
@@ -1857,7 +1872,12 @@ async function loadMutualOverview() {
     }
 }
 
+let _searchTimer = null;
 function filterAdminSearch() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(_doAdminSearch, 300);
+}
+function _doAdminSearch() {
     const q = (document.getElementById('admin-search').value || '').trim().toLowerCase();
     if (!q) { filterAdmin(currentAdminFilter); return; }
     const filtered = adminCache.filter(a => (a.name || '').toLowerCase().includes(q) || (a.job || '').toLowerCase().includes(q) || (a.kakao || '').toLowerCase().includes(q));
@@ -2096,7 +2116,7 @@ function openEditForm(id) {
         </div>
         <div class="form-row">
             <div class="input-group"><label>이름</label><input type="text" id="edit-name" value="${esc(a.name||'')}"></div>
-            <div class="input-group"><label>생년월일</label><input type="date" id="edit-birth" value="${a.birth||''}"></div>
+            <div class="input-group"><label>생년월일</label><input type="date" id="edit-birth" value="${a.birth||''}" max="2010-12-31"></div>
         </div>
         <div class="form-row">
             <div class="input-group"><label>직업</label><input type="text" id="edit-job" value="${esc(a.job||'')}"></div>
@@ -2293,6 +2313,14 @@ function selectMatchCandidate(subjectId, candidateId) {
 async function confirmMatch(maleId, femaleId) {
     setLoading(true);
     try {
+        // 매칭 전 상태 재확인 (동시성 충돌 방지)
+        const checkM = await adminFetch('applicants', 'GET', null, `?id=eq.${maleId}&select=status`);
+        const checkF = await adminFetch('applicants', 'GET', null, `?id=eq.${femaleId}&select=status`);
+        if (!checkM?.[0] || !checkF?.[0] || checkM[0].status === 'matched' || checkF[0].status === 'matched') {
+            setLoading(false);
+            toast('이미 매칭된 사용자가 포함되어 있어요. 새로고침합니다.');
+            await renderAdmin(); return;
+        }
         await adminFetch('applicants', 'PATCH', { status: 'matched', matched_with: femaleId }, `?id=eq.${maleId}`);
         await adminFetch('applicants', 'PATCH', { status: 'matched', matched_with: maleId }, `?id=eq.${femaleId}`);
         // 관련 pending 매칭 요청 자동 거절
@@ -2574,10 +2602,12 @@ function closeLightbox() { document.getElementById('lightbox-overlay').classList
 // ── 유틸 ──
 function calcAge(birth) {
     if (!birth) return '?';
-    const today = new Date(), b = new Date(birth);
+    const b = new Date(birth);
+    if (isNaN(b.getTime())) return '?';
+    const today = new Date();
     let age = today.getFullYear() - b.getFullYear();
     if (today.getMonth() - b.getMonth() < 0 || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
-    return age;
+    return (age > 0 && age < 120) ? age : '?';
 }
 function formatDate(iso) {
     if (!iso) return '';
@@ -2668,8 +2698,8 @@ async function prefillRegisterForm(userId) {
     if (p.ideal) {
         document.getElementById('ideal-chips').innerHTML = buildIdealChipsHtml('reg', p.ideal);
         document.getElementById('reg-ideal-memo').value = getIdealMemo(p.ideal);
-        // 점수 이벤트 재연결
-        SCORE_BASIC.forEach(id => document.getElementById(id)?.addEventListener('input', updateScoreBar));
+        // 점수 이벤트 재연결 (중복 방지: 기존 리스너 제거 후 등록)
+        SCORE_BASIC.forEach(id => { const el = document.getElementById(id); if (el) { el.removeEventListener('input', updateScoreBar); el.addEventListener('input', updateScoreBar); } });
     }
     updateScoreBar();
 }
