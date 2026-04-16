@@ -16,6 +16,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -554,7 +556,7 @@
             내 대시보드 보기
         </button>
     </div>
-    <div class="site-footer">Designed &amp; Developed by Kang</div>
+    <div class="site-footer">Designed &amp; Developed by Kang<br>문의: 카카오톡 kyhcyl · kyhwow@gmail.com</div>
 </div>
 
 <!-- ════ REGISTER ════ -->
@@ -764,7 +766,7 @@
             </button>
         </div>
     </div>
-    <div class="site-footer">Designed &amp; Developed by Kang</div>
+    <div class="site-footer">Designed &amp; Developed by Kang<br>문의: 카카오톡 kyhcyl · kyhwow@gmail.com</div>
 </div>
 
 <!-- ════ ADMIN ════ -->
@@ -874,7 +876,7 @@
             <p style="margin-top:12px;"><b>3. 보관 기간</b><br>회원 탈퇴 시 즉시 삭제. 별도 보관하지 않음</p>
             <p style="margin-top:12px;"><b>4. 제3자 제공</b><br>관리자의 매칭 승인 시 상대방에게 카카오ID만 전달. 그 외 제3자에게 제공하지 않음</p>
             <p style="margin-top:12px;"><b>5. 열람·삭제 권리</b><br>언제든 MY 메뉴에서 계정 삭제 가능. 삭제 시 모든 개인정보 즉시 파기</p>
-            <p style="margin-top:12px;"><b>6. 문의</b><br>관리자에게 직접 문의</p>
+            <p style="margin-top:12px;"><b>6. 문의</b><br>카카오톡 ID: kyhcyl | 이메일: kyhwow@gmail.com</p>
         </div>
         <button class="btn btn-outline" onclick="this.closest('#privacy-modal').style.display='none'" style="margin-top:20px;width:100%;">닫기</button>
     </div>
@@ -2780,6 +2782,71 @@ window.addEventListener('popstate', e => {
     _historyNav = true; showScreen(target); _historyNav = false;
 });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+// ── PWA 설치 배너 ──
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+    showInstallBanner();
+});
+window.addEventListener('appinstalled', () => { hideInstallBanner(); });
+
+function showInstallBanner() {
+    if (document.getElementById('pwa-install-banner')) return;
+    // standalone이면 이미 설치됨
+    if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-banner';
+    banner.innerHTML = `
+        <div style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:12px 16px;background:#111;color:#fff;display:flex;align-items:center;gap:12px;font-family:'Pretendard Variable',sans-serif;box-shadow:0 -2px 12px rgba(0,0,0,.15);">
+            <img src="icons/icon-192.png" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:15px;font-weight:700;">반쪽 앱 설치</div>
+                <div style="font-size:12px;color:#a3a3a3;margin-top:2px;">홈 화면에 추가하면 앱처럼 사용할 수 있어요</div>
+            </div>
+            <button onclick="pwaInstall()" style="background:#e11d48;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">설치</button>
+            <button onclick="hideInstallBanner()" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;">✕</button>
+        </div>
+    `;
+    document.body.appendChild(banner);
+}
+function hideInstallBanner() {
+    const b = document.getElementById('pwa-install-banner');
+    if (b) b.remove();
+}
+async function pwaInstall() {
+    if (!_deferredInstallPrompt) return;
+    _deferredInstallPrompt.prompt();
+    const result = await _deferredInstallPrompt.userChoice;
+    if (result.outcome === 'accepted') hideInstallBanner();
+    _deferredInstallPrompt = null;
+}
+
+// iOS Safari 설치 안내 (beforeinstallprompt 미지원)
+if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && !window.matchMedia('(display-mode: standalone)').matches) {
+    const iosKey = 'pwa-ios-dismissed';
+    if (!sessionStorage.getItem(iosKey)) {
+        setTimeout(() => {
+            if (document.getElementById('pwa-install-banner')) return;
+            const banner = document.createElement('div');
+            banner.id = 'pwa-install-banner';
+            banner.innerHTML = `
+                <div style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:16px;background:#111;color:#fff;font-family:'Pretendard Variable',sans-serif;box-shadow:0 -2px 12px rgba(0,0,0,.15);">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <img src="icons/icon-192.png" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;">
+                        <div style="flex:1;">
+                            <div style="font-size:15px;font-weight:700;">반쪽 앱 설치</div>
+                            <div style="font-size:13px;color:#a3a3a3;margin-top:4px;">하단 <span style="font-size:18px;">⎙</span> 공유 버튼 → <b>"홈 화면에 추가"</b>를 눌러주세요</div>
+                        </div>
+                        <button onclick="sessionStorage.setItem('${iosKey}','1');hideInstallBanner();" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;">✕</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(banner);
+        }, 3000);
+    }
+}
 
 // ── 스크롤 시 navbar 글래스모피즘 ──
 document.addEventListener('scroll', () => {
