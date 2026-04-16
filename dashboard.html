@@ -672,7 +672,7 @@ function getTierBadge(pct) {
 }
 
 // ── 매칭 점수 계산 (이상형 선호 반영) ──
-const JOB_SCORES = { '전문직':95, '사업가':85, 'IT/개발':80, '공무원/공기업':78, '일반직장인':65, '자영업':55, '학생':40, '기타':30 };
+const JOB_SCORES = { '전문직':95, '연구·기술직':85, '공공·금융·교육직':80, '대기업·중견기업직':75, '사업·전문자유직':70, '일반사무·기술직':60, '학생':40, '기타':30 };
 function calcJobScore(jc) { return JOB_SCORES[jc] || 50; }
 
 function calcMatchScore(viewer, candidate) {
