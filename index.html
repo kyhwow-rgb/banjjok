@@ -820,7 +820,14 @@
 
         <!-- 문의사항 관리 -->
         <div class="admin-section" id="admin-inquiries-section">
-            <div class="admin-section-title">문의사항 <span id="inquiry-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
+            <div class="admin-section-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                문의사항 <span id="inquiry-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+                <div style="margin-left:auto;display:flex;gap:6px;">
+                    <button class="btn btn-sm" onclick="filterInquiries('all')" id="inq-filter-all" style="font-size:.72em;padding:4px 10px;background:#111;color:#fff;">전체</button>
+                    <button class="btn btn-sm btn-outline" onclick="filterInquiries('unread')" id="inq-filter-unread" style="font-size:.72em;padding:4px 10px;">미답변</button>
+                    <button class="btn btn-sm btn-outline" onclick="filterInquiries('replied')" id="inq-filter-replied" style="font-size:.72em;padding:4px 10px;">답변완료</button>
+                </div>
+            </div>
             <div id="admin-inquiries-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
         </div>
     </div>
@@ -2407,36 +2414,103 @@ async function deleteFromDetail(id) {
 }
 
 // ── 문의사항 관리 ──
+let _inquiryCache = [];
+let _inquiryFilter = 'all';
+
 async function loadAdminInquiries() {
     const list = document.getElementById('admin-inquiries-list');
     try {
-        const data = await adminFetch('inquiries', 'GET', null, '?select=*&order=created_at.desc&limit=30');
-        if (!data || data.length === 0) {
-            list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">문의가 없습니다.</div>';
-            document.getElementById('inquiry-count').textContent = '';
-            return;
-        }
-        const unread = data.filter(q => !q.is_read).length;
-        document.getElementById('inquiry-count').textContent = unread > 0 ? unread + '건 미확인' : data.length + '건';
-        list.innerHTML = data.map(q => {
-            const date = new Date(q.created_at).toLocaleDateString('ko-KR');
-            const bgColor = q.is_read ? '#fff' : '#f9fafb';
-            return '<div style="padding:14px;background:' + bgColor + ';border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">' +
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-                    '<span style="font-weight:700;font-size:.88em;">' + esc(q.user_name || '익명') + '</span>' +
-                    '<span style="font-size:.72em;color:var(--muted);">' + date + '</span>' +
-                '</div>' +
-                '<div style="font-size:.88em;color:#111;margin-bottom:8px;">' + esc(q.message) + '</div>' +
-                (q.reply
-                    ? '<div style="padding:8px;background:#f0fdf4;border-radius:6px;font-size:.82em;color:#065f46;"><b>답변:</b> ' + esc(q.reply) + '</div>'
-                    : '<div style="display:flex;gap:6px;">' +
-                        '<input type="text" id="reply-' + q.id + '" placeholder="답변 입력..." style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.85em;font-family:inherit;">' +
-                        '<button class="btn btn-sm btn-primary" onclick="replyInquiry(' + q.id + ')" style="flex-shrink:0;">답변</button>' +
-                    '</div>'
-                ) +
-            '</div>';
-        }).join('');
+        _inquiryCache = await adminFetch('inquiries', 'GET', null, '?select=*&order=created_at.desc&limit=50') || [];
+        renderAdminInquiries();
     } catch(e) { list.innerHTML = '<div style="color:#ef4444;">로드 실패</div>'; }
+}
+
+function filterInquiries(filter) {
+    _inquiryFilter = filter;
+    ['all','unread','replied'].forEach(f => {
+        const btn = document.getElementById('inq-filter-' + f);
+        if (!btn) return;
+        if (f === filter) { btn.style.background = '#111'; btn.style.color = '#fff'; btn.className = 'btn btn-sm'; }
+        else { btn.style.background = ''; btn.style.color = ''; btn.className = 'btn btn-sm btn-outline'; }
+    });
+    renderAdminInquiries();
+}
+
+function renderAdminInquiries() {
+    const list = document.getElementById('admin-inquiries-list');
+    let data = _inquiryCache;
+    const totalUnread = data.filter(q => !q.reply).length;
+    document.getElementById('inquiry-count').textContent = totalUnread > 0 ? totalUnread + '건 미답변' : data.length + '건';
+
+    if (_inquiryFilter === 'unread') data = data.filter(q => !q.reply);
+    else if (_inquiryFilter === 'replied') data = data.filter(q => q.reply);
+
+    if (data.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">' +
+            (_inquiryFilter === 'all' ? '문의가 없습니다.' : _inquiryFilter === 'unread' ? '미답변 문의가 없습니다.' : '답변 완료된 문의가 없습니다.') + '</div>';
+        return;
+    }
+
+    // 유저별 그룹핑
+    const grouped = new Map();
+    data.forEach(q => {
+        const name = q.user_name || '익명';
+        if (!grouped.has(name)) grouped.set(name, []);
+        grouped.get(name).push(q);
+    });
+
+    let html = '';
+    grouped.forEach((items, userName) => {
+        const unreadCount = items.filter(q => !q.reply).length;
+        html += '<div style="margin-bottom:12px;">';
+        html += '<div style="font-size:.78em;font-weight:700;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
+            '<i class="fa-regular fa-user"></i> ' + esc(userName) +
+            ' <span style="color:#9ca3af;">(' + items.length + '건)</span>' +
+            (unreadCount > 0 ? ' <span style="background:var(--cta);color:#fff;font-size:.8em;padding:1px 6px;border-radius:99px;">' + unreadCount + '</span>' : '') +
+        '</div>';
+        items.forEach(q => {
+            const timeAgo = adminTimeAgo(q.created_at);
+            const isUnread = !q.reply;
+            html += '<div style="padding:12px;background:' + (isUnread ? '#fef3c7' : '#fff') + ';border:1px solid ' + (isUnread ? '#fde68a' : 'var(--border)') + ';border-radius:10px;margin-bottom:6px;' + (isUnread ? 'border-left:3px solid var(--cta);' : '') + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">' +
+                    '<div style="font-size:.88em;color:#111;flex:1;">' + esc(q.message) + '</div>' +
+                    '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px;">' +
+                        '<button onclick="deleteInquiryAdmin(' + q.id + ')" style="background:none;border:none;color:#d1d5db;cursor:pointer;padding:2px 4px;font-size:.75em;" title="삭제"><i class="fa-regular fa-trash-can"></i></button>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="font-size:.7em;color:var(--muted);margin-bottom:6px;">' + timeAgo + '</div>';
+            if (q.reply) {
+                html += '<div style="padding:8px 10px;background:#f0fdf4;border-radius:8px;font-size:.82em;color:#065f46;border-left:3px solid #10b981;">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+                        '<div style="flex:1;">' + esc(q.reply) + '</div>' +
+                        '<button onclick="editReply(' + q.id + ')" style="background:none;border:none;color:#6b7280;cursor:pointer;padding:2px 4px;font-size:.85em;flex-shrink:0;" title="수정"><i class="fa-solid fa-pen-to-square"></i></button>' +
+                    '</div>' +
+                    '<div style="font-size:.72em;color:#6b7280;margin-top:3px;">' + adminTimeAgo(q.replied_at) + ' 답변</div>' +
+                '</div>';
+            } else {
+                html += '<div style="display:flex;gap:6px;">' +
+                    '<input type="text" id="reply-' + q.id + '" placeholder="답변 입력..." style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.85em;font-family:inherit;" onkeydown="if(event.key===\'Enter\')replyInquiry(' + q.id + ')">' +
+                    '<button class="btn btn-sm btn-primary" onclick="replyInquiry(' + q.id + ')" style="flex-shrink:0;">답변</button>' +
+                '</div>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+    });
+    list.innerHTML = html;
+}
+
+function adminTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    var diff = Date.now() - new Date(dateStr).getTime();
+    var mins = Math.floor(diff / 60000);
+    if (mins < 1) return '방금 전';
+    if (mins < 60) return mins + '분 전';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + '시간 전';
+    var days = Math.floor(hrs / 24);
+    if (days < 7) return days + '일 전';
+    return new Date(dateStr).toLocaleDateString('ko-KR');
 }
 
 async function replyInquiry(id) {
@@ -2445,8 +2519,29 @@ async function replyInquiry(id) {
     const reply = input.value.trim();
     if (!reply) { toast('답변을 입력해주세요.', 'warning'); return; }
     try {
-        await adminFetch('inquiries', 'PATCH', { reply: reply, is_read: true, replied_at: new Date().toISOString() }, '?id=eq.' + id);
+        await adminFetch('inquiries', 'PATCH', { reply: reply, is_read: true, replied_at: new Date().toISOString(), user_read: false }, '?id=eq.' + id);
         toast('답변 완료', 'success');
+        loadAdminInquiries();
+    } catch(e) { toast('오류: ' + e.message, 'error'); }
+}
+
+async function editReply(id) {
+    const q = _inquiryCache.find(x => x.id === id);
+    if (!q) return;
+    const newReply = prompt('답변 수정:', q.reply);
+    if (newReply === null || newReply.trim() === '') return;
+    try {
+        await adminFetch('inquiries', 'PATCH', { reply: newReply.trim(), replied_at: new Date().toISOString(), user_read: false }, '?id=eq.' + id);
+        toast('답변 수정 완료', 'success');
+        loadAdminInquiries();
+    } catch(e) { toast('오류: ' + e.message, 'error'); }
+}
+
+async function deleteInquiryAdmin(id) {
+    if (!confirm('이 문의를 삭제하시겠습니까?')) return;
+    try {
+        await adminFetch('inquiries', 'DELETE', null, '?id=eq.' + id);
+        toast('삭제 완료');
         loadAdminInquiries();
     } catch(e) { toast('오류: ' + e.message, 'error'); }
 }
