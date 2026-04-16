@@ -59,6 +59,23 @@
         }
         #screen-home.active, #screen-register.active, #screen-admin.active { display:block; }
 
+        /* INSTALL SPLASH */
+        #install-splash {
+            position:fixed; inset:0; background:#fff; z-index:99999;
+            display:flex; align-items:center; justify-content:center;
+            flex-direction:column; padding:32px; text-align:center;
+        }
+        #install-splash.hidden { display:none; }
+        #install-splash .splash-icon { width:96px; height:96px; border-radius:22px; margin-bottom:28px; }
+        #install-splash .splash-title { font-size:1.6em; font-weight:800; color:#111; margin-bottom:8px; }
+        #install-splash .splash-sub { font-size:.92em; color:#737373; margin-bottom:36px; line-height:1.5; }
+        #install-splash .splash-btn { width:100%; max-width:300px; padding:14px 0; border-radius:12px; font-size:1em; font-weight:700; cursor:pointer; border:none; margin-bottom:12px; transition:all .15s; }
+        #install-splash .splash-btn-install { background:#e11d48; color:#fff; }
+        #install-splash .splash-btn-install:active { background:#be123c; }
+        #install-splash .splash-btn-web { background:#f5f5f5; color:#525252; }
+        #install-splash .splash-btn-web:active { background:#e5e5e5; }
+        #install-splash .splash-ios-guide { font-size:.85em; color:#737373; line-height:1.7; margin-top:8px; }
+
         /* LOADING */
         #loading-overlay {
             position:fixed; inset:0; background:rgba(255,255,255,0.85); backdrop-filter:blur(4px);
@@ -444,6 +461,25 @@
     </style>
 </head>
 <body>
+
+<!-- ════ INSTALL SPLASH ════ -->
+<div id="install-splash" class="hidden">
+    <img src="icons/icon-192.png" class="splash-icon" alt="반쪽">
+    <div class="splash-title">반쪽</div>
+    <div class="splash-sub">초대받은 사람들의 소개팅</div>
+    <div id="splash-buttons">
+        <!-- Android/PC: 설치 + 웹 버튼 -->
+        <button class="splash-btn splash-btn-install" id="splash-install-btn" style="display:none;" onclick="splashInstall()">
+            <i class="fa-solid fa-download"></i>&nbsp; 앱 설치하기
+        </button>
+        <button class="splash-btn splash-btn-web" onclick="splashDismiss()">웹에서 이용할게요</button>
+        <!-- iOS 안내 -->
+        <div id="splash-ios-guide" class="splash-ios-guide" style="display:none;">
+            하단 <span style="font-size:1.2em;">⎙</span> 공유 버튼을 누른 후<br>
+            <b>"홈 화면에 추가"</b>를 선택하면 앱처럼 사용할 수 있어요
+        </div>
+    </div>
+</div>
 
 <div id="loading-overlay">
     <div class="spinner"></div>
@@ -2783,69 +2819,44 @@ window.addEventListener('popstate', e => {
 });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-// ── PWA 설치 배너 ──
+// ── PWA 설치 스플래시 ──
 let _deferredInstallPrompt = null;
+const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const _splashKey = 'pwa-splash-seen';
+const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+// 이미 설치된 앱이면 스플래시 안 보여줌
+if (!_isStandalone && !sessionStorage.getItem(_splashKey)) {
+    const splash = document.getElementById('install-splash');
+    splash.classList.remove('hidden');
+    // iOS면 안내 문구 표시
+    if (_isIOS) {
+        document.getElementById('splash-ios-guide').style.display = 'block';
+    }
+}
+
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredInstallPrompt = e;
-    showInstallBanner();
+    // 스플래시가 보이면 설치 버튼 활성화
+    const btn = document.getElementById('splash-install-btn');
+    if (btn) btn.style.display = 'block';
 });
-window.addEventListener('appinstalled', () => { hideInstallBanner(); });
+window.addEventListener('appinstalled', () => { splashDismiss(); });
 
-function showInstallBanner() {
-    if (document.getElementById('pwa-install-banner')) return;
-    // standalone이면 이미 설치됨
-    if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
-    const banner = document.createElement('div');
-    banner.id = 'pwa-install-banner';
-    banner.innerHTML = `
-        <div style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:12px 16px;background:#111;color:#fff;display:flex;align-items:center;gap:12px;font-family:'Pretendard Variable',sans-serif;box-shadow:0 -2px 12px rgba(0,0,0,.15);">
-            <img src="icons/icon-192.png" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;">
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:15px;font-weight:700;">반쪽 앱 설치</div>
-                <div style="font-size:12px;color:#a3a3a3;margin-top:2px;">홈 화면에 추가하면 앱처럼 사용할 수 있어요</div>
-            </div>
-            <button onclick="pwaInstall()" style="background:#e11d48;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">설치</button>
-            <button onclick="hideInstallBanner()" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;">✕</button>
-        </div>
-    `;
-    document.body.appendChild(banner);
-}
-function hideInstallBanner() {
-    const b = document.getElementById('pwa-install-banner');
-    if (b) b.remove();
-}
-async function pwaInstall() {
+async function splashInstall() {
     if (!_deferredInstallPrompt) return;
     _deferredInstallPrompt.prompt();
     const result = await _deferredInstallPrompt.userChoice;
-    if (result.outcome === 'accepted') hideInstallBanner();
     _deferredInstallPrompt = null;
+    splashDismiss();
 }
-
-// iOS Safari 설치 안내 (beforeinstallprompt 미지원)
-if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && !window.matchMedia('(display-mode: standalone)').matches) {
-    const iosKey = 'pwa-ios-dismissed';
-    if (!sessionStorage.getItem(iosKey)) {
-        setTimeout(() => {
-            if (document.getElementById('pwa-install-banner')) return;
-            const banner = document.createElement('div');
-            banner.id = 'pwa-install-banner';
-            banner.innerHTML = `
-                <div style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:16px;background:#111;color:#fff;font-family:'Pretendard Variable',sans-serif;box-shadow:0 -2px 12px rgba(0,0,0,.15);">
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <img src="icons/icon-192.png" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;">
-                        <div style="flex:1;">
-                            <div style="font-size:15px;font-weight:700;">반쪽 앱 설치</div>
-                            <div style="font-size:13px;color:#a3a3a3;margin-top:4px;">하단 <span style="font-size:18px;">⎙</span> 공유 버튼 → <b>"홈 화면에 추가"</b>를 눌러주세요</div>
-                        </div>
-                        <button onclick="sessionStorage.setItem('${iosKey}','1');hideInstallBanner();" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;">✕</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(banner);
-        }, 3000);
-    }
+function splashDismiss() {
+    sessionStorage.setItem(_splashKey, '1');
+    const splash = document.getElementById('install-splash');
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity .3s ease';
+    setTimeout(() => splash.classList.add('hidden'), 300);
 }
 
 // ── 스크롤 시 navbar 글래스모피즘 ──
