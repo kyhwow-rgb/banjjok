@@ -1,9 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#e5e5e5"/>
-  <clipPath id="half">
-    <rect x="0" y="0" width="270" height="512"/>
-  </clipPath>
-  <g clip-path="url(#half)">
-    <path d="M256 430 C256 430 100 320 100 210 C100 150 140 100 195 100 C225 100 250 118 256 145 C262 118 287 100 317 100 C372 100 412 150 412 210 C412 320 256 430 256 430Z" fill="#f472b6"/>
+  <defs>
+    <!-- 배경 그라데이션 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0f0f0"/>
+      <stop offset="100%" stop-color="#d4d4d4"/>
+    </linearGradient>
+    <!-- 하트 메인 그라데이션 (3D 느낌) -->
+    <linearGradient id="heartMain" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#ff7eb3"/>
+      <stop offset="30%" stop-color="#f4568c"/>
+      <stop offset="60%" stop-color="#e83070"/>
+      <stop offset="100%" stop-color="#c41e56"/>
+    </linearGradient>
+    <!-- 하이라이트 (상단 광택) -->
+    <radialGradient id="highlight" cx="0.35" cy="0.25" r="0.4" fx="0.3" fy="0.2">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 하단 반사광 -->
+    <radialGradient id="bottomGlow" cx="0.5" cy="0.85" r="0.35">
+      <stop offset="0%" stop-color="#ff9ec0" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ff9ec0" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 그림자 -->
+    <filter id="shadow" x="-10%" y="-5%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#a0a0a0" flood-opacity="0.35"/>
+    </filter>
+    <!-- 내부 그림자 (입체감) -->
+    <filter id="innerDepth">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feOffset dx="3" dy="3" result="offsetBlur"/>
+      <feFlood flood-color="#8b1040" flood-opacity="0.3" result="color"/>
+      <feComposite in="color" in2="offsetBlur" operator="in" result="shadow"/>
+      <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
+    </filter>
+    <!-- 반쪽 클리핑 -->
+    <clipPath id="half">
+      <rect x="0" y="0" width="268" height="512"/>
+    </clipPath>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- 하트 그룹 (반쪽 클리핑) -->
+  <g clip-path="url(#half)" filter="url(#shadow)">
+    <!-- 메인 하트 -->
+    <path d="M256 420 C256 420 88 300 88 195 C88 128 133 82 195 82 C230 82 253 105 262 138 C262 138 256 155 256 155 C256 155 250 138 250 138 C250 138 256 120 256 120 L256 420Z
+             M256 120 C262 95 282 82 317 82 C379 82 424 128 424 195 C424 300 256 420 256 420 L256 120Z"
+          fill="url(#heartMain)" filter="url(#innerDepth)"/>
+
+    <!-- 3D 하이라이트 (상단 왼쪽 광택) -->
+    <ellipse cx="175" cy="155" rx="55" ry="40" fill="url(#highlight)" transform="rotate(-25, 175, 155)"/>
+
+    <!-- 작은 스펙큘러 하이라이트 -->
+    <ellipse cx="165" cy="135" rx="20" ry="12" fill="white" opacity="0.55" transform="rotate(-30, 165, 135)"/>
+
+    <!-- 하단 반사 -->
+    <path d="M256 420 C256 420 88 300 88 195 C88 128 133 82 195 82 C230 82 253 105 262 138 L256 420Z
+             M256 420 C256 420 424 300 424 195 C424 128 379 82 317 82 C282 82 262 95 256 120 L256 420Z"
+          fill="url(#bottomGlow)"/>
   </g>
+
+  <!-- 절단면 하이라이트 (반쪽 경계선) -->
+  <line x1="268" y1="90" x2="268" y2="415" stroke="#ffb8d4" stroke-width="2" opacity="0.4"/>
 </svg>
