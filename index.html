@@ -639,10 +639,10 @@
                     <label>학력</label>
                     <select id="reg-education">
                         <option value="">선택해주세요</option>
-                        <option value="고등학교 졸업">고등학교 졸업</option>
-                        <option value="전문대학교 졸업">전문대학교 졸업</option>
-                        <option value="4년제대학교 졸업">4년제대학교 졸업</option>
-                        <option value="대학원 졸업">대학원 졸업</option>
+                        <option value="학사">학사</option>
+                        <option value="석사">석사</option>
+                        <option value="박사">박사</option>
+                        <option value="기타">기타</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -1511,7 +1511,7 @@ function autoDetectJobCategory(jobText) {
     }
     return '일반직장인';
 }
-const EDU_SCORES = { '대학원 졸업':95, '대학원':95, '4년제대학교 졸업':75, '4년제 졸업':75, '명문대':90, '전문대학교 졸업':55, '전문대':55, '고등학교 졸업':35, '고졸':35 };
+const EDU_SCORES = { '박사':95, '석사':80, '학사':65, '기타':45, '대학원 졸업':95, '대학원':95, '4년제대학교 졸업':65, '4년제 졸업':65, '전문대학교 졸업':55, '전문대':55, '고등학교 졸업':45, '고졸':45, '명문대':90 };
 function calcEduScore(education) { return EDU_SCORES[education] || 50; }
 function calcMatchScore(viewer, candidate) {
     let w = { height:34, looks:33, job:33 };
