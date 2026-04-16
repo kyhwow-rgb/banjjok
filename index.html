@@ -1342,8 +1342,6 @@ function resetForm() {
 }
 
 async function submitApplication() {
-    const isLocal = _isLocal;
-    if (!selectedGender)  { toast('성별을 선택해주세요.'); return; }
     const name     = document.getElementById('reg-name').value.trim();
     const birth    = document.getElementById('reg-birth').value;
     const job      = document.getElementById('reg-job').value.trim();
@@ -1363,15 +1361,22 @@ async function submitApplication() {
     const location_ = document.getElementById('reg-location').value.trim();
     const mbti     = document.getElementById('reg-mbti').value.trim();
     const ideal    = collectIdealData('ideal-chips', 'reg-ideal-memo');
-    if (!name)     { toast('이름을 입력해주세요.'); return; }
-    if (!birth)    { toast('생년월일을 입력해주세요.'); return; }
-    if (!job)      { toast('직업을 입력해주세요.'); return; }
-    if (!height)   { toast('키를 입력해주세요.'); return; }
-    if (!location_){ toast('거주지를 입력해주세요.'); return; }
-    if (!mbti)     { toast('MBTI를 입력해주세요.'); return; }
-    if (!ideal)    { toast('이상형을 입력해주세요.'); return; }
-    if (!kakao)    { toast('카카오 ID를 입력해주세요.'); return; }
-    if (!referral) { toast('접속 경로를 입력해주세요.'); return; }
+    const missing = [];
+    if (!selectedGender) missing.push('성별');
+    if (!name)     missing.push('이름');
+    if (!birth)    missing.push('생년월일');
+    if (!job)      missing.push('직업');
+    if (!height)   missing.push('키');
+    if (!location_) missing.push('거주지');
+    if (!mbti)     missing.push('MBTI');
+    if (!ideal)    missing.push('이상형');
+    if (!kakao)    missing.push('카카오 ID');
+    if (!referral) missing.push('접속 경로');
+    if (!photoFiles.some(f => f !== null)) missing.push('사진');
+    if (missing.length > 0) {
+        toast('미입력: ' + missing.join(', '), 'warning');
+        return;
+    }
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
