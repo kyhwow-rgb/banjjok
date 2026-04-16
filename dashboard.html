@@ -498,16 +498,15 @@
         <!-- 문의사항 -->
         <div class="section-card">
             <div class="section-header">
-                <div class="section-title">문의사항</div>
+                <div class="section-title">문의사항 <span id="inquiry-new-badge" style="display:none;font-size:.65em;background:var(--cta);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700;vertical-align:middle;margin-left:6px;">새 답변</span></div>
             </div>
             <div class="section-body">
                 <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">관리자에게 문의하거나 건의할 수 있어요.</div>
-                <div style="padding:12px;background:#fafafa;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:.85em;font-weight:600;">카카오톡 문의</span>
-                    <span style="font-size:.85em;color:var(--muted);">ID: <b style="color:#111;">kyhcyl</b></span>
+                <textarea id="inquiry-input" placeholder="문의 내용을 입력해주세요..." rows="3" maxlength="500" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;"></textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                    <span id="inquiry-charcount" style="font-size:.72em;color:var(--muted);">0 / 500</span>
+                    <button class="btn btn-primary" onclick="sendInquiry()" style="padding:8px 24px;">보내기</button>
                 </div>
-                <textarea id="inquiry-input" placeholder="문의 내용을 입력해주세요..." rows="3" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;"></textarea>
-                <button class="btn btn-primary" onclick="sendInquiry()" style="margin-top:10px;width:100%;">문의 보내기</button>
                 <div id="inquiry-history" style="margin-top:16px;"></div>
             </div>
         </div>
@@ -1630,16 +1629,32 @@ async function markAllRead() {
 }
 
 // ── 문의사항 ──
+(function() {
+    const ta = document.getElementById('inquiry-input');
+    const cc = document.getElementById('inquiry-charcount');
+    if (ta && cc) ta.addEventListener('input', function() { cc.textContent = ta.value.length + ' / 500'; });
+})();
+
 async function sendInquiry() {
     const input = document.getElementById('inquiry-input');
     const msg = input.value.trim();
     if (!msg) { toast('문의 내용을 입력해주세요.', 'warning'); return; }
+    if (msg.length > 500) { toast('500자 이내로 작성해주세요.', 'warning'); return; }
     const { data: { user } } = await db.auth.getUser();
     const name = window._myProfile ? window._myProfile.name : '';
     const { error } = await db.from('inquiries').insert([{ user_id: user.id, user_name: name, message: msg }]);
     if (error) { toast('전송 실패: ' + error.message, 'error'); return; }
     input.value = '';
+    document.getElementById('inquiry-charcount').textContent = '0 / 500';
     toast('문의가 전송되었습니다.', 'success');
+    loadInquiries();
+}
+
+async function deleteInquiry(id) {
+    if (!confirm('이 문의를 삭제하시겠어요?')) return;
+    const { error } = await db.from('inquiries').delete().eq('id', id);
+    if (error) { toast('삭제 실패', 'error'); return; }
+    toast('삭제되었습니다.');
     loadInquiries();
 }
 
@@ -1647,18 +1662,62 @@ async function loadInquiries() {
     const el = document.getElementById('inquiry-history');
     if (!el) return;
     try {
-        const { data } = await db.from('inquiries').select('*').order('created_at', { ascending: false }).limit(10);
-        if (!data || data.length === 0) { el.innerHTML = ''; return; }
-        el.innerHTML = '<div style="font-size:.82em;font-weight:600;color:#111;margin-bottom:8px;">내 문의 내역</div>' +
+        const { data } = await db.from('inquiries').select('*').order('created_at', { ascending: false }).limit(20);
+        if (!data || data.length === 0) { el.innerHTML = ''; updateInquiryBadge(0); return; }
+        // 새 답변 개수 (답변이 있는데 아직 확인 안 한 것)
+        const newReplies = data.filter(q => q.reply && !q.user_read).length;
+        updateInquiryBadge(newReplies);
+        el.innerHTML = '<div style="font-size:.82em;font-weight:600;color:#111;margin-bottom:10px;">내 문의 내역</div>' +
             data.map(q => {
                 const date = new Date(q.created_at).toLocaleDateString('ko-KR');
-                return '<div style="padding:10px;background:#fafafa;border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">' +
-                    '<div style="font-size:.85em;color:#111;">' + esc(q.message) + '</div>' +
-                    '<div style="font-size:.7em;color:var(--muted);margin-top:4px;">' + date + '</div>' +
-                    (q.reply ? '<div style="margin-top:6px;padding:8px;background:#f0fdf4;border-radius:6px;font-size:.82em;color:#065f46;"><b>답변:</b> ' + esc(q.reply) + '</div>' : '') +
+                const timeAgo = getTimeAgo(q.created_at);
+                const isNewReply = q.reply && !q.user_read;
+                return '<div style="padding:12px;background:' + (isNewReply ? '#fefce8' : '#fafafa') + ';border-radius:10px;margin-bottom:8px;border:1px solid ' + (isNewReply ? '#fde68a' : 'var(--border)') + ';position:relative;">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+                        '<div style="flex:1;">' +
+                            '<div style="font-size:.85em;color:#111;">' + esc(q.message) + '</div>' +
+                            '<div style="font-size:.7em;color:var(--muted);margin-top:4px;">' + timeAgo + '</div>' +
+                        '</div>' +
+                        (!q.reply ? '<button onclick="deleteInquiry(' + q.id + ')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:.8em;" title="삭제"><i class="fa-regular fa-trash-can"></i></button>' : '') +
+                    '</div>' +
+                    (q.reply
+                        ? '<div style="margin-top:8px;padding:10px;background:#f0fdf4;border-radius:8px;font-size:.82em;color:#065f46;border-left:3px solid #10b981;">' +
+                            '<div style="font-weight:700;margin-bottom:4px;font-size:.85em;"><i class="fa-solid fa-headset" style="margin-right:4px;"></i>관리자 답변</div>' +
+                            esc(q.reply) +
+                            '<div style="font-size:.72em;color:#6b7280;margin-top:4px;">' + getTimeAgo(q.replied_at) + '</div>' +
+                          '</div>'
+                        : '<div style="margin-top:6px;font-size:.72em;color:var(--muted);"><i class="fa-regular fa-clock" style="margin-right:3px;"></i>답변 대기 중</div>'
+                    ) +
                 '</div>';
             }).join('');
+        // 새 답변이 있으면 user_read 마킹
+        if (newReplies > 0) {
+            const unreadIds = data.filter(q => q.reply && !q.user_read).map(q => q.id);
+            for (const uid of unreadIds) {
+                await db.from('inquiries').update({ user_read: true }).eq('id', uid);
+            }
+        }
     } catch(e) { console.log('loadInquiries error:', e.message); }
+}
+
+function updateInquiryBadge(count) {
+    const badge = document.getElementById('inquiry-new-badge');
+    if (!badge) return;
+    if (count > 0) { badge.style.display = 'inline'; badge.textContent = '새 답변 ' + count; }
+    else { badge.style.display = 'none'; }
+}
+
+function getTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return '방금 전';
+    if (mins < 60) return mins + '분 전';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + '시간 전';
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return days + '일 전';
+    return new Date(dateStr).toLocaleDateString('ko-KR');
 }
 
 async function deleteAccount() {
