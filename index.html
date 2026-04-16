@@ -820,6 +820,11 @@
             </div>
 
             <div class="input-group">
+                <label>추천인 코드 <span style="color:#9ca3af;font-weight:400;">(선택 · 있으면 입력)</span></label>
+                <input type="text" id="reg-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;">
+            </div>
+
+            <div class="input-group">
                 <label>자기소개 <span id="intro-counter" style="color:#9ca3af;font-weight:400;font-size:.9em;float:right;">0/200</span></label>
                 <textarea id="reg-intro" placeholder="간단히 자신을 소개해주세요..." rows="4" maxlength="200" oninput="document.getElementById('intro-counter').textContent=this.value.length+'/200'"></textarea>
             </div>
@@ -1423,7 +1428,7 @@ function resetForm() {
     photoFiles = [null, null, null];
     ['gender-male','gender-female'].forEach(id => document.getElementById(id).className = 'gender-option');
     ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-contact','reg-kakao',
-     'reg-intro','reg-mbti','reg-referral','reg-education','reg-smoking','reg-drinking'].forEach(id => {
+     'reg-intro','reg-mbti','reg-referral','reg-education','reg-smoking','reg-drinking','reg-referral-code'].forEach(id => {
         document.getElementById(id).value = '';
     });
     // 접속경로 드롭다운 초기화
@@ -1566,19 +1571,45 @@ async function submitApplication() {
         icebreaker:    icebreaker,
     };
 
+    // 추천인 코드 처리
+    const referralCodeInput = document.getElementById('reg-referral-code').value.trim().toUpperCase();
+
     let error;
     if (existingId) {
         const { error: updateError } = await db.from('applicants').update(rowData).eq('id', existingId);
         error = updateError;
     } else {
+        // 고유 추천 코드 생성 (이름 첫 글자 + 랜덤 5자리)
+        const myCode = (name.charAt(0) || 'B') + Math.random().toString(36).slice(2, 7).toUpperCase();
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
             status:  'pending',
             user_id: userId,
+            referral_code: myCode,
+            referred_by: referralCodeInput || null,
             ...rowData,
         };
         const { error: insertError } = await db.from('applicants').insert([row]);
         error = insertError;
+
+        // 추천인 인센티브 적용 (추천인 찜 슬롯 +1, 24시간 상위 노출)
+        if (!insertError && referralCodeInput) {
+            try {
+                const { data: referrer } = await db.from('applicants').select('id,referral_count,fav_slots').eq('referral_code', referralCodeInput).limit(1);
+                if (referrer && referrer.length > 0) {
+                    const r = referrer[0];
+                    const newSlots = Math.min((r.fav_slots || 3) + 1, 5);
+                    const boostUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+                    await db.from('applicants').update({
+                        referral_count: (r.referral_count || 0) + 1,
+                        fav_slots: newSlots,
+                        boost_until: boostUntil,
+                    }).eq('id', r.id);
+                    // 피추천인(나)도 24시간 상위 노출
+                    await db.from('applicants').update({ boost_until: boostUntil }).eq('user_id', userId);
+                }
+            } catch(e) { console.log('referral bonus error:', e.message); }
+        }
     }
 
     setLoading(false);
