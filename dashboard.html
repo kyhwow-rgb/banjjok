@@ -379,7 +379,7 @@
 <div class="page">
 
     <!-- ══ TAB: 홈 ══ -->
-    <div class="tab-content active" id="tab-home">
+    <div class="tab-content" id="tab-home">
         <div class="section-card">
             <div class="section-header">
                 <div class="section-title">내 프로필</div>
@@ -410,7 +410,7 @@
     </div>
 
     <!-- ══ TAB: 추천 ══ -->
-    <div class="tab-content" id="tab-discover">
+    <div class="tab-content active" id="tab-discover">
         <div class="section-card" id="match-ranking-card" style="display:none;">
             <div class="section-header">
                 <div class="section-title">오늘의 추천</div>
@@ -466,6 +466,16 @@
 
     <!-- ══ TAB: MY ══ -->
     <div class="tab-content" id="tab-my">
+        <!-- 내 프로필 (MY) -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">내 프로필</div>
+                <a href="index.html#register" id="edit-profile-btn-my" style="display:none;">
+                    <button class="btn btn-outline" style="padding:7px 16px;font-size:.82em;">신청서 수정</button>
+                </a>
+            </div>
+            <div class="section-body" id="my-profile-section"></div>
+        </div>
         <!-- 매칭 가중치 설정 -->
         <div class="section-card" id="weights-card" style="display:none;">
             <div class="section-header">
@@ -550,11 +560,11 @@
 
 <!-- 하단 탭 바 -->
 <div class="tab-bar" id="tab-bar">
-    <div class="tab-item active" onclick="switchTab('home')" id="tab-btn-home">
+    <div class="tab-item" onclick="switchTab('home')" id="tab-btn-home">
         <i class="fa-regular fa-user"></i>
         <span>홈</span>
     </div>
-    <div class="tab-item" onclick="switchTab('discover')" id="tab-btn-discover" style="position:relative;">
+    <div class="tab-item active" onclick="switchTab('discover')" id="tab-btn-discover" style="position:relative;">
         <i class="fa-regular fa-heart"></i>
         <span>추천</span>
     </div>
@@ -574,6 +584,18 @@
 <!-- 프로필 상세 모달 -->
 <div class="profile-modal-overlay" id="profile-modal" onclick="if(event.target===this)closeProfileModal()">
     <div class="profile-modal" id="profile-modal-content"></div>
+</div>
+
+<!-- 피드백 모달 -->
+<div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this&&!window._feedbackRequired)closeFeedbackModal()">
+    <div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:28px 24px;animation:modalPop .3s cubic-bezier(.34,1.56,.64,1);">
+        <div id="feedback-title" style="font-size:1.1em;font-weight:800;margin-bottom:6px;text-align:center;"></div>
+        <div id="feedback-sub" style="font-size:.82em;color:#737373;margin-bottom:18px;text-align:center;line-height:1.5;"></div>
+        <div id="feedback-reasons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+        <textarea id="feedback-text" placeholder="자유롭게 의견을 남겨주세요..." rows="3" maxlength="500" style="width:100%;padding:12px;border:1px solid #e5e7eb;border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;margin-bottom:12px;"></textarea>
+        <button class="btn btn-primary" onclick="submitFeedback()" style="width:100%;padding:12px;">보내기</button>
+        <button id="feedback-skip-btn" class="btn btn-ghost" onclick="closeFeedbackModal()" style="width:100%;margin-top:6px;font-size:.82em;color:#a3a3a3;">다음에 할게요</button>
+    </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -851,16 +873,21 @@ function showOnboarding(status, candidateCount) {
 
 function renderProfile(p) {
     const sec = document.getElementById('profile-section');
+    const mySec = document.getElementById('my-profile-section');
     if (!p) {
-        sec.innerHTML = `
+        const emptyHtml = `
             <div class="no-profile">
                 <div class="no-profile-title">아직 신청서가 없어요</div>
                 <div class="no-profile-sub">소개팅 신청서를 작성하면 보석 순도가 올라가요!</div>
                 <a href="index.html"><button class="btn btn-primary">신청서 작성하기</button></a>
             </div>`;
+        sec.innerHTML = emptyHtml;
+        if (mySec) mySec.innerHTML = emptyHtml;
         return;
     }
     document.getElementById('edit-profile-btn').style.display = '';
+    const myEditBtn = document.getElementById('edit-profile-btn-my');
+    if (myEditBtn) myEditBtn.style.display = '';
     const { pct } = calcScore(p);
     const age = calcAge(p.birth);
     const gem = gemIcon(pct);
@@ -893,6 +920,7 @@ function renderProfile(p) {
         </div>
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
         ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="index.html#register" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}`;
+    if (mySec) mySec.innerHTML = sec.innerHTML;
 }
 
 function renderFavorites(favApplicants) {
@@ -911,12 +939,12 @@ function renderFavorites(favApplicants) {
             : `<div class="fav-photo">${a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
         const tags = [age ? `${age}세` : null, a.job, a.location, a.mbti].filter(Boolean)
             .map(t => `<span class="fav-tag">${t}</span>`).join('');
-        return `<div class="fav-item">
+        return `<div class="fav-item" style="cursor:pointer;" onclick="openProfileModal('${a.id}')">
             ${photoHtml}
             <div class="fav-info">
                 <div class="fav-tags">${tags}</div>
             </div>
-            <button class="btn-unfav" onclick="removeFav('${a.id}')" title="찜 해제">✕</button>
+            <button class="btn-unfav" onclick="event.stopPropagation();removeFav('${a.id}')" title="찜 해제">✕</button>
         </div>`;
     }).join('')}</div>`;
     updateInterestEmptyState();
@@ -1182,6 +1210,10 @@ function renderCardView(sec, favSet) {
             </div>
             <div class="card-counter"></div>
             <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →</div>
+            <div style="text-align:center;margin-top:12px;display:flex;justify-content:center;gap:16px;">
+                <button onclick="reportUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-flag"></i> 신고</button>
+                <button onclick="blockUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-ban"></i> 차단</button>
+            </div>
         </div>`;
     // 스와이프 이벤트 바인딩
     setTimeout(initSwipe, 50);
@@ -1231,6 +1263,7 @@ function cardPass() {
     if (el) { el.classList.add('swiping-left'); }
     _swipedCount++;
     saveDailySwipeCount();
+    logEvent('card_pass', { index: _cardIndex });
     setTimeout(() => {
         _cardIndex++;
         _isCardAnimating = false;
@@ -1271,6 +1304,7 @@ async function toggleFav(applicantId) {
         await db.from('favorites').insert([{ user_id: user.id, applicant_id: applicantId }]);
         favSet.add(applicantId);
         toast(`찜 목록에 담았어요 (${favSet.size}/3)`, 'success');
+        logEvent('card_like', { liked: applicantId });
     }
     window._favSet = favSet;
     renderMatchRanking(window._allCandidates || []);
@@ -1799,30 +1833,39 @@ function getTimeAgo(dateStr) {
 async function deleteAccount() {
     if (!confirm('정말 계정을 삭제하시겠어요?\n모든 프로필, 사진, 찜, 알림이 즉시 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.')) return;
     if (!confirm('마지막 확인: 계정을 삭제합니다.')) return;
-    setLoading(true);
-    try {
-        const { data: { user } } = await db.auth.getUser();
-        if (user && window._myProfile) {
-            // 내 applicant 데이터 삭제
-            await db.from('favorites').delete().eq('user_id', user.id);
-            await db.from('favorites').delete().eq('applicant_id', window._myProfile.id);
-            await db.from('notifications').delete().eq('user_id', user.id);
-            await db.from('applicants').delete().eq('user_id', user.id);
+    openFeedbackModal('exit', {
+        required: true,
+        callback: async () => {
+            setLoading(true);
+            try {
+                const { data: { user } } = await db.auth.getUser();
+                if (user && window._myProfile) {
+                    await db.from('favorites').delete().eq('user_id', user.id);
+                    await db.from('favorites').delete().eq('applicant_id', window._myProfile.id);
+                    await db.from('notifications').delete().eq('user_id', user.id);
+                    await db.from('applicants').delete().eq('user_id', user.id);
+                }
+                await db.auth.signOut();
+                localStorage.clear();
+            } catch(e) { console.log('delete error:', e.message); }
+            setLoading(false);
+            toast('계정이 삭제되었습니다.', 'success');
+            setTimeout(() => { window.location.href = 'index.html'; }, 1500);
         }
-        await db.auth.signOut();
-        localStorage.clear();
-    } catch(e) { console.log('delete error:', e.message); }
-    setLoading(false);
-    toast('계정이 삭제되었습니다.', 'success');
-    setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+    });
 }
 
 async function doLogout(silent) {
     if (!silent && !confirm('로그아웃 하시겠습니까?')) return;
-    await db.auth.signOut();
-    localStorage.removeItem('kj_role');
-    localStorage.removeItem('kj_screen');
-    window.location.href = 'index.html';
+    openFeedbackModal('exit', {
+        required: true,
+        callback: async () => {
+            await db.auth.signOut();
+            localStorage.removeItem('kj_role');
+            localStorage.removeItem('kj_screen');
+            window.location.href = 'index.html';
+        }
+    });
 }
 
 // ── 비활성 자동 로그아웃 (30분) ──
@@ -1993,13 +2036,14 @@ async function init() {
     // 차단 목록 로드
     if (window._myProfile) {
         try {
-            const { data: blockData } = await db.from('blocks').select('blocked_id').eq('blocker_id', window._myProfile.id);
-            window._blockedSet = new Set((blockData || []).map(b => b.blocked_id));
+            const { data: blockData } = await db.from('blocks').select('blocked_applicant_id').eq('blocker_id', user.id);
+            window._blockedSet = new Set((blockData || []).map(b => b.blocked_applicant_id));
         } catch(e) { window._blockedSet = new Set(); }
     }
     // 알림 로드
     await loadNotifications();
     loadInquiries();
+    logEvent('dashboard_open');
     setLoading(false);
     } catch(e) {
         console.error('dashboard init error:', e);
@@ -2009,6 +2053,161 @@ async function init() {
 }
 
 init();
+
+// ── 피드백 모달 ──
+window._feedbackRequired = false;
+window._feedbackType = '';
+window._feedbackCallback = null;
+
+function openFeedbackModal(type, options = {}) {
+    const modal = document.getElementById('feedback-modal');
+    const title = document.getElementById('feedback-title');
+    const sub = document.getElementById('feedback-sub');
+    const reasons = document.getElementById('feedback-reasons');
+    const skipBtn = document.getElementById('feedback-skip-btn');
+    document.getElementById('feedback-text').value = '';
+    window._feedbackType = type;
+    window._feedbackRequired = options.required || false;
+    window._feedbackCallback = options.callback || null;
+
+    if (type === 'exit') {
+        title.textContent = '떠나시기 전에...';
+        sub.textContent = '더 좋은 반쪽이 되기 위해 의견을 남겨주세요.';
+        skipBtn.style.display = 'none';
+        const exitReasons = ['매칭이 안 돼서', '마음에 드는 사람이 없어서', '사용하기 불편해서', '개인정보가 걱정돼서', '다른 앱을 사용 중', '기타'];
+        reasons.innerHTML = exitReasons.map(r =>
+            `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:10px;font-size:.88em;cursor:pointer;border:1px solid #e5e7eb;transition:all .15s;">
+                <input type="radio" name="feedback-reason" value="${r}" style="accent-color:#e11d48;">
+                <span>${r}</span>
+            </label>`
+        ).join('');
+    } else if (type === 'suggestion') {
+        title.textContent = '반쪽 어떠세요?';
+        sub.textContent = '불편한 점이나 추가됐으면 하는 기능이 있다면 알려주세요!';
+        skipBtn.style.display = '';
+        reasons.innerHTML = '';
+    }
+    modal.style.display = 'flex';
+}
+
+function closeFeedbackModal() {
+    document.getElementById('feedback-modal').style.display = 'none';
+    window._feedbackRequired = false;
+    if (window._feedbackCallback) {
+        const cb = window._feedbackCallback;
+        window._feedbackCallback = null;
+        cb();
+    }
+}
+
+async function submitFeedback() {
+    const type = window._feedbackType;
+    const text = document.getElementById('feedback-text').value.trim();
+    const reasonEl = document.querySelector('input[name="feedback-reason"]:checked');
+    const reason = reasonEl ? reasonEl.value : null;
+
+    if (type === 'exit' && !reason && !text) {
+        toast('사유를 선택하거나 의견을 작성해주세요.', 'warning');
+        return;
+    }
+
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        await db.from('event_logs').insert({
+            user_id: user?.id || null,
+            event_type: type === 'exit' ? 'exit_feedback' : 'suggestion',
+            metadata: { reason, text }
+        });
+    } catch(e) {}
+
+    toast('소중한 의견 감사합니다!', 'success');
+    closeFeedbackModal();
+}
+
+// 1~2분 후 건의사항 팝업 (세션당 1회)
+(function() {
+    const key = 'bj_suggestion_shown_' + new Date().toISOString().slice(0, 10);
+    if (sessionStorage.getItem(key)) return;
+    const delay = 60000 + Math.random() * 60000; // 1~2분
+    setTimeout(() => {
+        if (document.getElementById('feedback-modal').style.display === 'flex') return;
+        sessionStorage.setItem(key, '1');
+        openFeedbackModal('suggestion');
+    }, delay);
+})();
+
+// ── 이벤트 로깅 ──
+async function logEvent(eventType, metadata = {}) {
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        await db.from('event_logs').insert({ user_id: user?.id || null, event_type: eventType, metadata });
+    } catch(e) {}
+}
+
+// ── 신고/차단 ──
+async function blockUser(applicantId) {
+    if (!confirm('이 사람을 차단하시겠어요?\n차단하면 서로의 추천에서 보이지 않아요.')) return;
+    const { data: { user } } = await db.auth.getUser();
+    try {
+        await db.from('blocks').insert({ blocker_id: user.id, blocked_applicant_id: applicantId });
+        if (!window._blockedSet) window._blockedSet = new Set();
+        window._blockedSet.add(applicantId);
+        // 찜에서도 제거
+        await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', applicantId);
+        toast('차단되었어요. 이 사람은 더 이상 보이지 않아요.', 'success');
+        logEvent('block', { blocked: applicantId });
+        // 추천 카드 넘기기
+        cardPass();
+        await loadFavorites(user.id);
+    } catch(e) { toast('차단 처리 중 오류가 발생했어요.', 'error'); }
+}
+
+async function reportUser(applicantId) {
+    const reasons = ['부적절한 사진', '허위 프로필', '불쾌한 내용', '스팸/광고', '기타'];
+    const reason = prompt('신고 사유를 선택해주세요:\n' + reasons.map((r, i) => `${i+1}. ${r}`).join('\n') + '\n\n번호를 입력해주세요:');
+    if (!reason) return;
+    const idx = parseInt(reason) - 1;
+    const reasonText = reasons[idx] || reason;
+    const { data: { user } } = await db.auth.getUser();
+    try {
+        await db.from('reports').insert({ reporter_id: user.id, reported_applicant_id: applicantId, reason: reasonText });
+        toast('신고가 접수되었어요. 관리자가 검토할게요.', 'success');
+        logEvent('report', { reported: applicantId, reason: reasonText });
+    } catch(e) { toast('신고 처리 중 오류가 발생했어요.', 'error'); }
+}
+
+// ── Pull-to-refresh ──
+(function() {
+    let startY = 0, pulling = false;
+    const threshold = 80;
+    let indicator = null;
+    document.addEventListener('touchstart', e => {
+        if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        if (!pulling) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy > 20 && dy < threshold * 1.5) {
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'ptr-indicator';
+                indicator.style.cssText = 'position:fixed;top:0;left:0;right:0;text-align:center;padding:10px;font-size:.8em;color:var(--muted);z-index:9998;transition:opacity .2s;';
+                document.body.appendChild(indicator);
+            }
+            indicator.textContent = dy > threshold ? '놓으면 새로고침' : '아래로 당기세요';
+            indicator.style.opacity = Math.min(1, dy / threshold);
+        }
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+        if (!pulling) return;
+        pulling = false;
+        const dy = e.changedTouches[0].clientY - startY;
+        if (indicator) { indicator.remove(); indicator = null; }
+        if (dy > threshold && window.scrollY === 0) {
+            location.reload();
+        }
+    }, { passive: true });
+})();
 </script>
 </body>
 </html>
