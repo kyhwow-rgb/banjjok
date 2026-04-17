@@ -367,6 +367,44 @@
         .admin-section { background:white; border-radius:var(--radius); padding:24px; margin-bottom:16px; border:1px solid var(--border); }
         .admin-section-title { font-size:.95em; font-weight:700; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
 
+        /* ── 관리자 탭 네비 ── */
+        .admin-tabs {
+            position:sticky; top:56px; z-index:90;
+            display:flex; gap:2px; padding:8px 16px;
+            background:rgba(255,255,255,.95); backdrop-filter:blur(12px);
+            border-bottom:1px solid var(--border);
+            overflow-x:auto; scrollbar-width:none;
+        }
+        .admin-tabs::-webkit-scrollbar { display:none; }
+        .admin-tab {
+            padding:8px 16px; border-radius:10px; border:none; background:transparent;
+            font-size:.88em; font-weight:700; font-family:inherit; cursor:pointer;
+            color:var(--muted); white-space:nowrap; display:flex; align-items:center; gap:6px;
+            transition:all .15s;
+        }
+        .admin-tab:hover { background:#f3f4f6; color:#111; }
+        .admin-tab.active { background:#111; color:#fff; }
+        .admin-tab .admin-tab-badge {
+            background:#dc2626; color:#fff; font-size:.65em; font-weight:800;
+            padding:2px 7px; border-radius:99px; min-width:18px; text-align:center;
+        }
+        .admin-tab.active .admin-tab-badge { background:#fff; color:#111; }
+        .admin-tab-panel { display:none; animation:adminTabFade .25s ease; }
+        .admin-tab-panel.active { display:block; }
+        @keyframes adminTabFade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+        @media(max-width:640px) { .admin-tabs { padding:6px 10px; top:52px; } .admin-tab { padding:7px 12px; font-size:.82em; } }
+
+        /* 신청자 탭 sub-nav */
+        .admin-subnav { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+        .admin-subnav-btn {
+            padding:6px 14px; border-radius:8px; border:1px solid var(--border); background:#fff;
+            font-size:.82em; font-weight:700; font-family:inherit; cursor:pointer; color:#6b7280;
+            display:flex; align-items:center; gap:6px;
+        }
+        .admin-subnav-btn:hover { background:#f9fafb; }
+        .admin-subnav-btn.active { background:#111; color:#fff; border-color:#111; }
+        .admin-subnav-btn .cnt { font-size:.72em; font-weight:800; opacity:.8; }
+
         /* ── 관리자 대시보드 위젯 ── */
         .todo-widget { background:linear-gradient(135deg,#fef3c7,#fde68a); border:1px solid #fcd34d; border-radius:14px; padding:20px; margin-bottom:16px; }
         .todo-title { font-size:1em; font-weight:800; color:#92400e; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
@@ -974,118 +1012,157 @@
         <div class="navbar-brand" onclick="logout()" style="cursor:pointer;">반쪽 <span style="font-size:.6em;color:var(--muted);font-weight:500;">관리자</span></div>
         <div class="navbar-right" style="display:flex;gap:8px;align-items:center;">
             <button class="btn btn-nav" onclick="renderAdmin()" title="새로고침 (R)"><i class="fa-solid fa-arrows-rotate"></i></button>
-            <button class="btn btn-nav" onclick="alert('관리자 단축키:\\n/ : 검색 포커스\\n1~6 : 통계 탭 전환\\nR : 새로고침\\nEsc : 모달 닫기\\n\\n상세 모달에서:\\nA : 승인\\nX : 거절\\n? : 도움말');" title="단축키 (?)"><i class="fa-solid fa-keyboard"></i></button>
+            <button class="btn btn-nav" onclick="alert('관리자 단축키:\\n/ : 검색 포커스\\n1~5 : 탭 전환 (홈·신청자·매칭·문의·설정)\\nR : 새로고침\\nEsc : 모달 닫기\\n\\n상세 모달에서:\\nA : 승인\\nX : 거절');" title="단축키"><i class="fa-solid fa-keyboard"></i></button>
             <button class="btn btn-nav" onclick="logout()">로그아웃</button>
         </div>
     </div>
+
+    <!-- 관리자 탭 네비 -->
+    <div class="admin-tabs">
+        <button class="admin-tab active" data-admin-tab="home" onclick="switchAdminTab('home')"><i class="fa-solid fa-house"></i> 홈</button>
+        <button class="admin-tab" data-admin-tab="applicants" onclick="switchAdminTab('applicants')"><i class="fa-solid fa-users"></i> 신청자 <span class="admin-tab-badge" id="tab-badge-applicants" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="matching" onclick="switchAdminTab('matching')"><i class="fa-solid fa-heart"></i> 매칭 <span class="admin-tab-badge" id="tab-badge-matching" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="inquiries" onclick="switchAdminTab('inquiries')"><i class="fa-solid fa-comments"></i> 문의 <span class="admin-tab-badge" id="tab-badge-inquiries" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="settings" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> 설정</button>
+    </div>
+
     <div class="page-container" style="max-width:920px;">
 
-        <!-- 오늘 처리할 것 위젯 -->
-        <div class="todo-widget" id="todo-widget" style="display:none;">
-            <div class="todo-title"><i class="fa-solid fa-bolt"></i> 오늘 처리할 것 <span id="todo-total-count" style="font-size:.75em;color:#b45309;font-weight:700;"></span></div>
-            <div class="todo-list" id="todo-list"></div>
-        </div>
+        <!-- ══ 홈 탭 ══ -->
+        <div class="admin-tab-panel active" id="adminPanel-home">
+            <!-- 오늘 처리할 것 위젯 -->
+            <div class="todo-widget" id="todo-widget" style="display:none;">
+                <div class="todo-title"><i class="fa-solid fa-bolt"></i> 오늘 처리할 것 <span id="todo-total-count" style="font-size:.75em;color:#b45309;font-weight:700;"></span></div>
+                <div class="todo-list" id="todo-list"></div>
+            </div>
 
-        <!-- 건강 지표 -->
-        <div class="health-grid">
-            <div class="health-card">
-                <div class="health-label">오늘 활동 유저</div>
-                <div class="health-value" id="health-dau">-</div>
-                <div class="health-delta" id="health-dau-delta"></div>
-            </div>
-            <div class="health-card">
-                <div class="health-label">7일 신규 가입</div>
-                <div class="health-value" id="health-signups">-</div>
-                <div class="health-chart" id="health-signup-chart"></div>
-            </div>
-            <div class="health-card">
-                <div class="health-label">오늘 메시지</div>
-                <div class="health-value" id="health-messages">-</div>
-                <div class="health-delta" id="health-messages-delta"></div>
-            </div>
-            <div class="health-card">
-                <div class="health-label">성비 (승인 기준)</div>
-                <div class="health-value" id="health-ratio">-</div>
-                <div class="ratio-bar"><div class="ratio-male" id="ratio-male-bar" style="width:50%;"></div><div class="ratio-female" id="ratio-female-bar" style="width:50%;"></div></div>
-                <div class="health-delta" id="health-ratio-warn"></div>
-            </div>
-        </div>
-
-        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-            <div class="stat-card active" id="card-total"   onclick="filterAdmin('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
-            <div class="stat-card"        id="card-pending" onclick="filterAdmin('pending')"  ><div class="stat-num" id="stat-pending" style="color:var(--cta);">0</div><div class="stat-label">대기</div></div>
-            <div class="stat-card"        id="card-male"    onclick="filterAdmin('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
-            <div class="stat-card"        id="card-female"  onclick="filterAdmin('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
-            <div class="stat-card"        id="card-mutual"  onclick="filterAdmin('mutual')"    ><div class="stat-num" id="stat-mutual">0</div><div class="stat-label">상호관심</div></div>
-            <div class="stat-card"        id="card-matched" onclick="filterAdmin('matched')"  ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
-        </div>
-
-        <!-- 실시간 활동 + 피드백 집계 -->
-        <div class="admin-section">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-                <div>
-                    <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i> 실시간 활동</div>
-                    <div class="activity-feed" id="activity-feed"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;">로딩 중...</div></div>
+            <!-- 건강 지표 -->
+            <div class="health-grid">
+                <div class="health-card">
+                    <div class="health-label">오늘 활동 유저</div>
+                    <div class="health-value" id="health-dau">-</div>
+                    <div class="health-delta" id="health-dau-delta"></div>
                 </div>
-                <div>
-                    <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-comments" style="color:var(--primary);"></i> 유저 목소리 (7일)</div>
-                    <div class="feedback-widget" id="feedback-widget"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;grid-column:1/-1;">로딩 중...</div></div>
+                <div class="health-card">
+                    <div class="health-label">7일 신규 가입</div>
+                    <div class="health-value" id="health-signups">-</div>
+                    <div class="health-chart" id="health-signup-chart"></div>
+                </div>
+                <div class="health-card">
+                    <div class="health-label">오늘 메시지</div>
+                    <div class="health-value" id="health-messages">-</div>
+                    <div class="health-delta" id="health-messages-delta"></div>
+                </div>
+                <div class="health-card">
+                    <div class="health-label">성비 (승인 기준)</div>
+                    <div class="health-value" id="health-ratio">-</div>
+                    <div class="ratio-bar"><div class="ratio-male" id="ratio-male-bar" style="width:50%;"></div><div class="ratio-female" id="ratio-female-bar" style="width:50%;"></div></div>
+                    <div class="health-delta" id="health-ratio-warn"></div>
                 </div>
             </div>
-        </div>
 
-        <div class="admin-section" id="match-requests-section" style="display:none;">
-            <div class="admin-section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:var(--primary);"></i> 매칭 신청 <span id="match-req-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span></div>
-            <div id="match-requests-list"></div>
-        </div>
+            <!-- 통계 카드 (클릭하면 해당 탭으로) -->
+            <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="stat-card" id="card-total"   onclick="jumpToApplicants('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
+                <div class="stat-card" id="card-pending" onclick="jumpToApplicants('pending')"  ><div class="stat-num" id="stat-pending" style="color:var(--cta);">0</div><div class="stat-label">대기</div></div>
+                <div class="stat-card" id="card-male"    onclick="jumpToApplicants('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
+                <div class="stat-card" id="card-female"  onclick="jumpToApplicants('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
+                <div class="stat-card" id="card-mutual"  onclick="switchAdminTab('matching')"   ><div class="stat-num" id="stat-mutual">0</div><div class="stat-label">상호관심</div></div>
+                <div class="stat-card" id="card-matched" onclick="switchAdminTab('matching')"   ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
+            </div>
 
-        <!-- 상호 관심 현황 -->
-        <div class="admin-section" id="mutual-overview-section" style="display:none;">
-            <div class="admin-section-title">상호 관심 현황 <span id="mutual-overview-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
-            <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">서로 찜한 쌍입니다. 매칭을 승인하면 양쪽에 알림이 전송됩니다.</div>
-            <div id="mutual-overview-list"></div>
-        </div>
-
-        <div class="admin-section" id="applicant-list-section">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                <div class="admin-section-title" id="filter-title" style="margin-bottom:0;">전체 신청</div>
-                <div id="batch-actions" style="display:none;">
-                    <button class="btn btn-sm btn-approve" onclick="batchApproveAll()">전체 승인</button>
+            <!-- 실시간 활동 + 피드백 집계 -->
+            <div class="admin-section">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div>
+                        <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i> 실시간 활동</div>
+                        <div class="activity-feed" id="activity-feed"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;">로딩 중...</div></div>
+                    </div>
+                    <div>
+                        <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-comments" style="color:var(--primary);"></i> 유저 목소리 (7일)</div>
+                        <div class="feedback-widget" id="feedback-widget"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;grid-column:1/-1;">로딩 중...</div></div>
+                    </div>
                 </div>
             </div>
-            <input type="text" id="admin-search" placeholder="이름·지역·직업·MBTI로 검색..." oninput="filterAdminSearch()" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;margin:10px 0 6px;">
-            <div class="admin-quickfilter" id="admin-quickfilter">
-                <button class="quickfilter-btn active" data-qf="none" onclick="applyQuickFilter('none')">전체</button>
-                <button class="quickfilter-btn" data-qf="no-look" onclick="applyQuickFilter('no-look')">외모 미평가</button>
-                <button class="quickfilter-btn" data-qf="no-photo" onclick="applyQuickFilter('no-photo')">사진 없음</button>
-                <button class="quickfilter-btn" data-qf="long-wait" onclick="applyQuickFilter('long-wait')">대기 3일+</button>
-                <button class="quickfilter-btn" data-qf="online" onclick="applyQuickFilter('online')">최근 24h 접속</button>
-                <button class="quickfilter-btn" data-qf="inactive" onclick="applyQuickFilter('inactive')">7일+ 미접속</button>
-            </div>
-            <div id="filtered-list"></div>
         </div>
 
-        <div class="admin-section">
-            <div class="admin-section-title"><i class="fa-solid fa-lock" style="color:var(--primary);"></i> 비밀번호 변경</div>
-            <div class="pw-settings">
-                <div class="input-group"><label>열람 비밀번호</label><input type="password" id="new-viewer-pw" placeholder="새 열람 비밀번호"></div>
-                <div class="input-group"><label>관리자 비밀번호</label><input type="password" id="new-admin-pw" placeholder="새 관리자 비밀번호"></div>
+        <!-- ══ 신청자 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-applicants">
+            <div class="admin-subnav">
+                <button class="admin-subnav-btn active" data-sub="all" onclick="filterAdmin('all')">전체 <span class="cnt" id="sub-cnt-all">0</span></button>
+                <button class="admin-subnav-btn" data-sub="pending" onclick="filterAdmin('pending')">대기 <span class="cnt" id="sub-cnt-pending">0</span></button>
+                <button class="admin-subnav-btn" data-sub="male" onclick="filterAdmin('male')">남성 <span class="cnt" id="sub-cnt-male">0</span></button>
+                <button class="admin-subnav-btn" data-sub="female" onclick="filterAdmin('female')">여성 <span class="cnt" id="sub-cnt-female">0</span></button>
             </div>
-            <button class="btn btn-primary" style="max-width:180px;" onclick="savePasswords()">저장</button>
-        </div>
-
-        <!-- 문의사항 관리 -->
-        <div class="admin-section" id="admin-inquiries-section">
-            <div class="admin-section-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                문의사항 <span id="inquiry-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
-                <div style="margin-left:auto;display:flex;gap:6px;">
-                    <button class="btn btn-sm" onclick="filterInquiries('all')" id="inq-filter-all" style="font-size:.72em;padding:4px 10px;background:#111;color:#fff;">전체</button>
-                    <button class="btn btn-sm btn-outline" onclick="filterInquiries('unread')" id="inq-filter-unread" style="font-size:.72em;padding:4px 10px;">미답변</button>
-                    <button class="btn btn-sm btn-outline" onclick="filterInquiries('replied')" id="inq-filter-replied" style="font-size:.72em;padding:4px 10px;">답변완료</button>
+            <div class="admin-section" id="applicant-list-section">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                    <div class="admin-section-title" id="filter-title" style="margin-bottom:0;">전체 신청</div>
+                    <div id="batch-actions" style="display:none;">
+                        <button class="btn btn-sm btn-approve" onclick="batchApproveAll()">전체 승인</button>
+                    </div>
                 </div>
+                <input type="text" id="admin-search" placeholder="이름·지역·직업·MBTI로 검색..." oninput="filterAdminSearch()" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;margin:10px 0 6px;">
+                <div class="admin-quickfilter" id="admin-quickfilter">
+                    <button class="quickfilter-btn active" data-qf="none" onclick="applyQuickFilter('none')">전체</button>
+                    <button class="quickfilter-btn" data-qf="no-look" onclick="applyQuickFilter('no-look')">외모 미평가</button>
+                    <button class="quickfilter-btn" data-qf="no-photo" onclick="applyQuickFilter('no-photo')">사진 없음</button>
+                    <button class="quickfilter-btn" data-qf="long-wait" onclick="applyQuickFilter('long-wait')">대기 3일+</button>
+                    <button class="quickfilter-btn" data-qf="online" onclick="applyQuickFilter('online')">최근 24h 접속</button>
+                    <button class="quickfilter-btn" data-qf="inactive" onclick="applyQuickFilter('inactive')">7일+ 미접속</button>
+                </div>
+                <div id="filtered-list"></div>
             </div>
-            <div id="admin-inquiries-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
         </div>
+
+        <!-- ══ 매칭 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-matching">
+            <!-- 매칭 요청 -->
+            <div class="admin-section" id="match-requests-section" style="display:none;">
+                <div class="admin-section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:var(--primary);"></i> 매칭 신청 <span id="match-req-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span></div>
+                <div id="match-requests-list"></div>
+            </div>
+
+            <!-- 상호 관심 현황 -->
+            <div class="admin-section" id="mutual-overview-section" style="display:none;">
+                <div class="admin-section-title">💘 상호 관심 현황 <span id="mutual-overview-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">서로 찜한 쌍입니다. 매칭을 승인하면 양쪽에 알림이 전송됩니다.</div>
+                <div id="mutual-overview-list"></div>
+            </div>
+
+            <!-- 매칭된 커플 -->
+            <div class="admin-section" id="matched-couples-section">
+                <div class="admin-section-title">🎉 매칭된 커플 <span id="matched-couples-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
+                <div id="matched-couples-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- ══ 문의 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-inquiries">
+            <div class="admin-section" id="admin-inquiries-section">
+                <div class="admin-section-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    문의사항 <span id="inquiry-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+                    <div style="margin-left:auto;display:flex;gap:6px;">
+                        <button class="btn btn-sm" onclick="filterInquiries('all')" id="inq-filter-all" style="font-size:.72em;padding:4px 10px;background:#111;color:#fff;">전체</button>
+                        <button class="btn btn-sm btn-outline" onclick="filterInquiries('unread')" id="inq-filter-unread" style="font-size:.72em;padding:4px 10px;">미답변</button>
+                        <button class="btn btn-sm btn-outline" onclick="filterInquiries('replied')" id="inq-filter-replied" style="font-size:.72em;padding:4px 10px;">답변완료</button>
+                    </div>
+                </div>
+                <div id="admin-inquiries-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- ══ 설정 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-settings">
+            <div class="admin-section">
+                <div class="admin-section-title"><i class="fa-solid fa-lock" style="color:var(--primary);"></i> 비밀번호 변경</div>
+                <div class="pw-settings">
+                    <div class="input-group"><label>열람 비밀번호</label><input type="password" id="new-viewer-pw" placeholder="새 열람 비밀번호"></div>
+                    <div class="input-group"><label>관리자 비밀번호</label><input type="password" id="new-admin-pw" placeholder="새 관리자 비밀번호"></div>
+                </div>
+                <button class="btn btn-primary" style="max-width:180px;" onclick="savePasswords()">저장</button>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -2040,23 +2117,94 @@ async function renderAdmin() {
 
     // pending 카드 강조 제거 (숫자 색상만 빨간색으로 표시)
 
-    // 첫 로드 시 pending이 있으면 자동으로 pending 탭
+    // 첫 로드 시 pending이 있으면 신청자 탭 필터를 pending으로 미리 설정 (탭 전환은 안 함 — 홈 탭 유지)
     if (currentAdminFilter === 'all' && pending.length > 0 && !_adminRendered) {
         _adminRendered = true;
-        filterAdmin('pending');
+        filterAdmin('pending', { silent: true });
     } else {
-        filterAdmin(currentAdminFilter);
+        filterAdmin(currentAdminFilter, { silent: true });
     }
 
     // 매칭 요청 + 상호관심 현황 로드
     loadMatchRequests();
     loadMutualOverview();
     loadAdminInquiries();
+    renderMatchedCouples();
     // 신규 관리자 대시보드 위젯 로드
     loadAdminTodoWidget();
     loadAdminHealthMetrics();
     loadAdminActivityFeed();
     loadAdminFeedbackWidget();
+    // 탭 배지 업데이트 (약간 지연 — 비동기 카운트 로드 후)
+    updateAdminTabBadges();
+    setTimeout(updateAdminTabBadges, 800);
+}
+
+// ── 관리자 탭 전환 ──
+function switchAdminTab(name) {
+    document.querySelectorAll('.admin-tab').forEach(b => b.classList.toggle('active', b.dataset.adminTab === name));
+    document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'adminPanel-' + name));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 탭별 로드 트리거 (이미 renderAdmin에서 로드하지만 안전하게)
+    if (name === 'matching') {
+        loadMatchRequests(); loadMutualOverview(); renderMatchedCouples();
+    }
+}
+
+function jumpToApplicants(type) {
+    switchAdminTab('applicants');
+    filterAdmin(type);
+}
+
+// 매칭된 커플 리스트 (매칭 탭 전용 섹션)
+function renderMatchedCouples() {
+    const sec = document.getElementById('matched-couples-section');
+    const list = document.getElementById('matched-couples-list');
+    const count = document.getElementById('matched-couples-count');
+    if (!list) return;
+    const seen = new Set();
+    const pairs = [];
+    for (const a of adminCache.filter(x => x.status === 'matched')) {
+        if (seen.has(a.id)) continue;
+        seen.add(a.id);
+        if (a.matched_with) seen.add(a.matched_with);
+        const partner = adminCache.find(x => x.id === a.matched_with);
+        const male   = a.gender === 'male' ? a : partner;
+        const female = a.gender === 'female' ? a : partner;
+        pairs.push([male, female]);
+    }
+    count.textContent = pairs.length > 0 ? pairs.length + '쌍' : '';
+    list.style.color = '';
+    list.style.padding = '';
+    list.style.textAlign = '';
+    list.innerHTML = pairs.length === 0
+        ? '<p style="color:#9ca3af;text-align:center;padding:16px;">매칭된 커플이 없습니다.</p>'
+        : pairs.map(([m, f]) => coupleCardHtml(m, f)).join('');
+}
+
+// 탭 배지 업데이트
+function updateAdminTabBadges() {
+    const pending = adminCache.filter(a => a.status === 'pending').length;
+    const mutualBadge = (window._adminMutuals || []).length;
+    const inquiriesUnread = window._adminUnreadInq || 0;
+
+    const setBadge = (id, n) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.style.display = ''; }
+        else el.style.display = 'none';
+    };
+    setBadge('tab-badge-applicants', pending);
+    setBadge('tab-badge-matching', mutualBadge);
+    setBadge('tab-badge-inquiries', inquiriesUnread);
+
+    // 신청자 sub-nav 카운트
+    const byG = (g) => adminCache.filter(a => a.status === 'approved' && a.gender === g).length;
+    const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+    set('sub-cnt-all', adminCache.length);
+    set('sub-cnt-pending', pending);
+    set('sub-cnt-male', byG('male'));
+    set('sub-cnt-female', byG('female'));
 }
 
 // ── 오늘 처리할 것 위젯 ──
@@ -2563,6 +2711,8 @@ async function loadMutualOverview() {
         }
 
         document.getElementById('stat-mutual').textContent = pairs.length;
+        window._adminMutuals = pairs; // 탭 배지용
+        if (typeof updateAdminTabBadges === 'function') updateAdminTabBadges();
         if (pairs.length === 0) { sec.style.display = 'none'; return; }
         sec.style.display = '';
         document.getElementById('mutual-overview-count').textContent = pairs.length + '쌍';
@@ -2653,57 +2803,58 @@ function _doAdminSearch() {
     if (batchEl) batchEl.style.display = 'none';
 }
 
-function filterAdmin(type) {
-    currentAdminFilter = type;
-    document.getElementById('admin-search').value = '';
-
-    const cards = { all:'card-total', pending:'card-pending', male:'card-male', female:'card-female', mutual:'card-mutual', matched:'card-matched' };
-    const titles = { all:'전체 신청', pending:'승인 대기', male:'승인된 남성', female:'승인된 여성', mutual:'상호 관심', matched:'매칭된 커플' };
-    const empty  = { all:'지원자가 없습니다.', pending:'대기 중인 신청이 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.', mutual:'상호 관심 쌍이 없습니다.', matched:'매칭된 커플이 없습니다.' };
-
-    Object.values(cards).forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
-    const activeCard = document.getElementById(cards[type]);
-    if (activeCard) activeCard.classList.add('active');
-    document.getElementById('filter-title').innerHTML = titles[type];
-
-    // 상호관심 ↔ 신청자목록 토글
-    if (type === 'mutual') {
-        document.getElementById('mutual-overview-section').style.display = '';
-        document.getElementById('applicant-list-section').style.display = 'none';
-        return;
-    } else {
-        document.getElementById('mutual-overview-section').style.display = 'none';
-        document.getElementById('applicant-list-section').style.display = '';
-    }
-
-    if (type === 'matched') {
-        const seen = new Set();
-        const pairs = [];
-        for (const a of adminCache.filter(x => x.status === 'matched')) {
-            if (seen.has(a.id)) continue;
-            seen.add(a.id);
-            if (a.matched_with) seen.add(a.matched_with);
-            const partner = adminCache.find(x => x.id === a.matched_with);
-            const male   = a.gender === 'male' ? a : partner;
-            const female = a.gender === 'female' ? a : partner;
-            pairs.push([male, female]);
+function filterAdmin(type, opts) {
+    opts = opts || {};
+    // 상호관심/매칭 타입은 매칭 탭으로 리다이렉트
+    if (type === 'mutual' || type === 'matched') {
+        if (!opts.silent) {
+            switchAdminTab('matching');
+            setTimeout(() => {
+                const targetId = type === 'mutual' ? 'mutual-overview-section' : 'matched-couples-section';
+                document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
         }
-        document.getElementById('filtered-list').innerHTML = pairs.length === 0
-            ? `<p style="color:#9ca3af;text-align:center;padding:16px;">${empty[type]}</p>`
-            : pairs.map(([m, f]) => coupleCardHtml(m, f)).join('');
-        localStorage.setItem('kj_filter', type);
         return;
     }
+
+    currentAdminFilter = type;
+    const searchEl = document.getElementById('admin-search');
+    if (searchEl) searchEl.value = '';
+
+    // 사용자 조작 시에만 신청자 탭 자동 전환
+    if (!opts.silent) {
+        const applicantsPanel = document.getElementById('adminPanel-applicants');
+        if (applicantsPanel && !applicantsPanel.classList.contains('active')) {
+            switchAdminTab('applicants');
+        }
+    }
+
+    const titles = { all:'전체 신청', pending:'승인 대기', male:'승인된 남성', female:'승인된 여성' };
+    const empty  = { all:'지원자가 없습니다.', pending:'대기 중인 신청이 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.' };
+
+    // 신청자 탭 sub-nav 활성화
+    document.querySelectorAll('.admin-subnav-btn').forEach(b => b.classList.toggle('active', b.dataset.sub === type));
+
+    // 홈 탭 stat card 활성화 표시
+    ['card-total','card-pending','card-male','card-female','card-mutual','card-matched'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.classList.remove('active');
+    });
+    const cardIdMap = { all:'card-total', pending:'card-pending', male:'card-male', female:'card-female' };
+    const activeCard = document.getElementById(cardIdMap[type]);
+    if (activeCard) activeCard.classList.add('active');
+
+    document.getElementById('filter-title').innerHTML = titles[type] || '전체';
 
     const filtered = adminCache.filter(a => {
         if (type === 'all')     return true;
         if (type === 'pending') return a.status === 'pending';
         if (type === 'male')    return a.status === 'approved' && a.gender === 'male';
         if (type === 'female')  return a.status === 'approved' && a.gender === 'female';
+        return true;
     });
 
     document.getElementById('filtered-list').innerHTML = filtered.length === 0
-        ? `<p style="color:#9ca3af;text-align:center;padding:16px;">${empty[type]}</p>`
+        ? `<p style="color:#9ca3af;text-align:center;padding:16px;">${empty[type] || '데이터가 없습니다.'}</p>`
         : filtered.map((a, i) => applicantRowHtml(a, i)).join('');
 
     // pending 필터 시 일괄 승인 버튼 표시
@@ -3394,7 +3545,9 @@ async function loadAdminInquiries() {
     const list = document.getElementById('admin-inquiries-list');
     try {
         _inquiryCache = await adminFetch('inquiries', 'GET', null, '?select=*&order=created_at.desc&limit=50') || [];
+        window._adminUnreadInq = _inquiryCache.filter(q => !q.reply).length;
         renderAdminInquiries();
+        if (typeof updateAdminTabBadges === 'function') updateAdminTabBadges();
     } catch(e) { list.innerHTML = '<div style="color:#ef4444;">로드 실패</div>'; }
 }
 
@@ -3610,11 +3763,16 @@ document.addEventListener('keydown', function(e) {
     if (!adminScreen || !adminScreen.classList.contains('active')) return;
     const detailOpen = document.getElementById('admin-detail-overlay').classList.contains('open');
 
-    if (e.key === '/') { e.preventDefault(); document.getElementById('admin-search').focus(); return; }
-    if (e.key === '?') { alert('관리자 단축키:\n/ : 검색\n1~6 : 통계 탭 전환 (전체/대기/남/여/상호/매칭)\nR : 새로고침\nEsc : 모달 닫기\n상세 모달 열린 상태:\nA : 승인, X : 거절'); return; }
+    if (e.key === '/') {
+        const searchEl = document.getElementById('admin-search');
+        if (searchEl) { e.preventDefault(); switchAdminTab('applicants'); setTimeout(() => searchEl.focus(), 100); }
+        return;
+    }
+    if (e.key === '?') { alert('관리자 단축키:\n1~5 : 탭 전환 (홈·신청자·매칭·문의·설정)\n/ : 검색 포커스\nR : 새로고침\nEsc : 모달 닫기\n\n상세 모달 열린 상태:\nA : 승인, X : 거절'); return; }
     if (e.key === 'r' || e.key === 'R') { if (!detailOpen) renderAdmin(); return; }
-    const tabMap = {'1':'all','2':'pending','3':'male','4':'female','5':'mutual','6':'matched'};
-    if (tabMap[e.key] && !detailOpen) { filterAdmin(tabMap[e.key]); return; }
+    // 1~5: 메인 탭 전환
+    const tabMap = {'1':'home','2':'applicants','3':'matching','4':'inquiries','5':'settings'};
+    if (tabMap[e.key] && !detailOpen) { switchAdminTab(tabMap[e.key]); return; }
 
     // 상세 모달에서 A(승인), X(거절)
     if (detailOpen) {
