@@ -1,4 +1,4 @@
-const CACHE = 'banjjok-v4';
+const CACHE = 'banjjok-v5';
 const ASSETS = ['/banjjok/', '/banjjok/index.html', '/banjjok/dashboard.html', '/banjjok/icons/icon-192.png', '/banjjok/icons/icon-512.png', '/banjjok/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -42,11 +42,26 @@ self.addEventListener('push', e => {
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || '/banjjok/dashboard.html';
+  // 해시에서 탭 이름 추출 (예: #tab-chat → 'chat')
+  let section = null;
+  try {
+    const u = new URL(url, self.registration.scope);
+    if (u.hash && u.hash.startsWith('#tab-')) section = u.hash.slice(5);
+  } catch {}
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // 이미 열린 dashboard 탭 찾기
       for (const c of list) {
-        if (c.url.includes('/banjjok/') && 'focus' in c) { c.focus(); c.navigate && c.navigate(url); return; }
+        if (c.url.includes('/banjjok/dashboard')) {
+          c.focus();
+          // 해시만 다른 경우 navigate는 page reload 안 일으킴 → postMessage로 탭 전환 트리거
+          if (section) c.postMessage({ type: 'navigate', section });
+          // navigate도 시도 (해시 업데이트)
+          if (c.navigate) c.navigate(url).catch(() => {});
+          return;
+        }
       }
+      // 열린 창이 없으면 새로 열기
       if (clients.openWindow) return clients.openWindow(url);
     })
   );
