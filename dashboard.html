@@ -1436,11 +1436,11 @@ async function toggleFav(applicantId) {
                         .select('id').eq('user_id', tgt[0].user_id).eq('applicant_id', window._myProfile.id).limit(1);
                     if (reverse && reverse.length > 0) {
                         // 상호 찜! 양쪽 푸시
-                        sendPushNotif(tgt[0].user_id, '💘 상호 관심 매칭!', `${window._myProfile.name}님과 서로 찜했어요`, 'https://kyhwow-rgb.github.io/banjjok/dashboard.html');
-                        sendPushNotif(user.id, '💘 상호 관심 매칭!', `${tgt[0].name}님과 서로 찜했어요`, 'https://kyhwow-rgb.github.io/banjjok/dashboard.html');
+                        sendPushNotif(tgt[0].user_id, '💘 상호 관심 매칭!', `${window._myProfile.name}님과 서로 찜했어요`, dashUrl('interest'));
+                        sendPushNotif(user.id, '💘 상호 관심 매칭!', `${tgt[0].name}님과 서로 찜했어요`, dashUrl('interest'));
                     } else {
                         // 단방향: 상대에게 관심 알림
-                        sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', 'https://kyhwow-rgb.github.io/banjjok/dashboard.html');
+                        sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', dashUrl('interest'));
                     }
                 }
             } catch(e) { console.log('fav push error:', e.message); }
@@ -1866,6 +1866,81 @@ async function sendPushNotif(userId, title, body, url) {
     }
 }
 
+// ── 알림 네비게이션 ──
+const DASH_BASE = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html';
+function dashUrl(section) { return DASH_BASE + '#tab-' + section; }
+
+// 알림 type → 이동할 탭/섹션
+function navigateByNotifType(type, relatedId) {
+    switch(type) {
+        case 'interest':
+        case 'mutual':
+            switchTab('interest');
+            setTimeout(() => {
+                if (type === 'mutual') {
+                    document.getElementById('mutual-card')?.scrollIntoView({ behavior:'smooth', block:'start' });
+                }
+            }, 150);
+            break;
+        case 'matched':
+            switchTab('my');
+            setTimeout(() => document.getElementById('match-result-card')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
+            break;
+        case 'chat_message':
+            switchTab('chat');
+            break;
+        case 'approved':
+            switchTab('discover');
+            break;
+        case 'rejected':
+            switchTab('my');
+            break;
+        case 'inquiry_reply':
+            switchTab('my');
+            setTimeout(() => document.getElementById('inquiry-history')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
+            break;
+    }
+}
+
+// URL hash로 탭 이동 (푸시 알림 클릭 등)
+function handleNavHash() {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    if (hash.startsWith('tab-')) {
+        const tab = hash.slice(4);
+        if (['discover','interest','chat','my'].includes(tab)) {
+            setTimeout(() => switchTab(tab), 120);
+            // MY 탭 내 특정 섹션 스크롤 (e.g., #tab-my-inquiries)
+            const rest = location.hash.slice(5 + tab.length);
+            if (rest) {
+                setTimeout(() => {
+                    const el = document.querySelector(rest);
+                    if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+                }, 350);
+            }
+        }
+    }
+}
+
+// 해시 변경 감지 (같은 페이지에서 푸시 클릭 시)
+window.addEventListener('hashchange', handleNavHash);
+
+// 서비스 워커 → 클라이언트 메시지 (푸시 클릭 시 네비게이션 백업)
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        const data = event.data || {};
+        if (data.type === 'navigate' && data.section) {
+            switchTab(data.section);
+            if (data.scrollTo) {
+                setTimeout(() => {
+                    const el = document.querySelector(data.scrollTo);
+                    if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+                }, 300);
+            }
+        }
+    });
+}
+
 function updatePushToggleUI() {
     const sw = document.getElementById('push-toggle-switch');
     const status = document.getElementById('push-toggle-status');
@@ -1970,12 +2045,14 @@ function closeNotifPanel() {
 }
 
 async function readNotif(id) {
-    await db.from('notifications').update({ is_read: true }).eq('id', id);
     const n = _notifications.find(x => x.id === id);
+    await db.from('notifications').update({ is_read: true }).eq('id', id);
     if (n) n.is_read = true;
     renderNotifBadge();
     renderNotifList();
     closeNotifPanel();
+    // 타입별 화면 이동
+    if (n) navigateByNotifType(n.type, n.related_id);
 }
 
 async function markAllRead() {
@@ -2339,6 +2416,8 @@ async function init() {
     loadInquiries();
     logEvent('dashboard_open');
     setLoading(false);
+    // URL 해시 → 해당 탭 (푸시 알림 클릭으로 진입한 경우)
+    handleNavHash();
     } catch(e) {
         console.error('dashboard init error:', e);
         setLoading(false);
@@ -2671,7 +2750,7 @@ async function sendChatMessage() {
             _chatPartnerUserId,
             `${window._myProfile?.name || '반쪽'}님`,
             text.length > 60 ? text.slice(0, 60) + '...' : text,
-            'https://kyhwow-rgb.github.io/banjjok/dashboard.html'
+            dashUrl('chat')
         );
     } catch(e) {
         toast('메시지 전송에 실패했어요', 'error');
