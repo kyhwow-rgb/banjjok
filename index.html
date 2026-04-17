@@ -1000,6 +1000,18 @@
     </div>
 </div>
 
+<!-- 대화 보기 모달 (관리자) -->
+<div id="chat-viewer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeChatViewer()">
+    <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;animation:modalPop .3s cubic-bezier(.34,1.56,.64,1);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e5e5;">
+            <div id="chat-viewer-title" style="font-weight:800;font-size:.95em;"></div>
+            <button class="btn btn-nav" onclick="closeChatViewer()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="chat-viewer-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px;min-height:200px;"></div>
+        <div id="chat-viewer-stats" style="font-size:.75em;color:#a3a3a3;text-align:center;padding:12px;border-top:1px solid #e5e5e5;"></div>
+    </div>
+</div>
+
 <!-- 라이트박스 -->
 <!-- 개인정보 처리방침 -->
 <div id="privacy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.style.display='none'">
@@ -2592,11 +2604,12 @@ function coupleCardHtml(male, female) {
                     <div class="couple-profile-meta">${fMeta}</div>
                 </div>
             </div>
-            <div style="text-align:center;padding-top:10px;border-top:1px solid var(--border);">
+            <div style="text-align:center;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
                 ${bothReleased
                     ? `<span style="font-size:.82em;color:#10b981;font-weight:700;"><i class="fa-solid fa-circle-check"></i> 연락처 공개됨</span>`
                     : `<button class="btn btn-sm btn-primary" onclick="releaseContact('${mId}','${fId}')" style="font-size:.82em;"><i class="fa-solid fa-paper-plane"></i> 연락처 공개하기</button>`
                 }
+                <button class="btn btn-sm btn-outline" onclick="viewConversation('${mId}','${fId}')" style="font-size:.82em;"><i class="fa-solid fa-comments"></i> 대화 보기</button>
             </div>
         </div>`;
 }
@@ -2616,6 +2629,70 @@ async function releaseContact(maleId, femaleId) {
 }
 
 function closeMatchingView() { document.getElementById('matching-overlay').classList.remove('open'); }
+
+// ── 대화 보기 (관리자) ──
+async function viewConversation(maleId, femaleId) {
+    const male = adminCache.find(a => a.id === maleId);
+    const female = adminCache.find(a => a.id === femaleId);
+    if (!male || !female || !male.user_id || !female.user_id) {
+        toast('사용자 정보를 찾을 수 없습니다.');
+        return;
+    }
+    const mName = male.name, fName = female.name;
+    const uid1 = male.user_id, uid2 = female.user_id;
+    const matchKey = uid1 < uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1;
+
+    document.getElementById('chat-viewer-title').textContent = `${mName} ♡ ${fName} 대화`;
+    document.getElementById('chat-viewer-messages').innerHTML = '<div style="text-align:center;padding:40px;color:#a3a3a3;">불러오는 중...</div>';
+    document.getElementById('chat-viewer-stats').textContent = '';
+    document.getElementById('chat-viewer-overlay').style.display = 'flex';
+
+    try {
+        const res = await adminFetch('chat_messages', 'GET', null, `?match_key=eq.${matchKey}&order=created_at.asc&limit=500`);
+        const messages = Array.isArray(res) ? res : [];
+        const container = document.getElementById('chat-viewer-messages');
+
+        if (messages.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#a3a3a3;"><i class="fa-regular fa-comment-dots" style="font-size:2em;display:block;margin-bottom:8px;"></i>아직 대화가 없습니다</div>';
+            document.getElementById('chat-viewer-stats').textContent = '메시지 0건';
+            return;
+        }
+
+        let html = '';
+        let lastDate = '';
+        for (const msg of messages) {
+            const d = new Date(msg.created_at);
+            const dateStr = `${d.getMonth()+1}월 ${d.getDate()}일`;
+            if (dateStr !== lastDate) {
+                html += `<div style="text-align:center;padding:8px 0;font-size:.72em;color:#a3a3a3;font-weight:600;">${dateStr}</div>`;
+                lastDate = dateStr;
+            }
+            const isMale = msg.sender_id === uid1;
+            const senderName = isMale ? mName : fName;
+            const bgColor = isMale ? '#111' : '#f3f4f6';
+            const textColor = isMale ? '#fff' : '#111';
+            const align = isMale ? 'flex-end' : 'flex-start';
+            const time = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+            html += `<div style="max-width:80%;padding:10px 14px;border-radius:16px;font-size:.85em;word-break:break-word;line-height:1.5;background:${bgColor};color:${textColor};align-self:${align};">`;
+            html += `<div style="font-size:.7em;font-weight:700;margin-bottom:3px;opacity:.6;">${esc(senderName)}</div>`;
+            html += esc(msg.content).replace(/\n/g, '<br>');
+            html += `<div style="font-size:.65em;margin-top:3px;opacity:.5;">${time}${msg.read_at ? ' · 읽음' : ''}</div>`;
+            html += `</div>`;
+        }
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+
+        // 통계
+        const first = new Date(messages[0].created_at);
+        const last = new Date(messages[messages.length - 1].created_at);
+        document.getElementById('chat-viewer-stats').textContent =
+            `총 ${messages.length}건 · 첫 메시지: ${first.getMonth()+1}/${first.getDate()} ${first.getHours()}:${first.getMinutes().toString().padStart(2,'0')} · 마지막: ${last.getMonth()+1}/${last.getDate()} ${last.getHours()}:${last.getMinutes().toString().padStart(2,'0')}`;
+    } catch(e) {
+        document.getElementById('chat-viewer-messages').innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;">대화 로드 실패: ${esc(e.message)}</div>`;
+    }
+}
+
+function closeChatViewer() { document.getElementById('chat-viewer-overlay').style.display = 'none'; }
 
 async function updateStatusFromDetail(id, status) {
     setLoading(true);
