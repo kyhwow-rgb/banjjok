@@ -378,37 +378,6 @@
 
 <div class="page">
 
-    <!-- ══ TAB: 홈 ══ -->
-    <div class="tab-content" id="tab-home">
-        <div class="section-card">
-            <div class="section-header">
-                <div class="section-title">내 프로필</div>
-                <a href="index.html#register" id="edit-profile-btn" style="display:none;">
-                    <button class="btn btn-outline" style="padding:7px 16px;font-size:.82em;">신청서 수정</button>
-                </a>
-            </div>
-            <div class="section-body" id="profile-section">
-                <div id="profile-skeleton">
-                    <div class="skeleton skeleton-block" style="height:10px;width:70%;margin-bottom:16px;"></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                        <div class="skeleton skeleton-block" style="height:68px;"></div>
-                        <div class="skeleton skeleton-block" style="height:68px;"></div>
-                        <div class="skeleton skeleton-block" style="height:68px;"></div>
-                        <div class="skeleton skeleton-block" style="height:68px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 매칭 결과 (홈 탭에서 표시) -->
-        <div class="section-card" id="match-result-card" style="display:none;">
-            <div class="section-header">
-                <div class="section-title">매칭 성사</div>
-            </div>
-            <div class="section-body" id="match-result-section"></div>
-        </div>
-    </div>
-
     <!-- ══ TAB: 추천 ══ -->
     <div class="tab-content active" id="tab-discover">
         <div class="section-card" id="match-ranking-card" style="display:none;">
@@ -475,6 +444,13 @@
                 </a>
             </div>
             <div class="section-body" id="my-profile-section"></div>
+        </div>
+        <!-- 매칭 결과 -->
+        <div class="section-card" id="match-result-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title">매칭 성사</div>
+            </div>
+            <div class="section-body" id="match-result-section"></div>
         </div>
         <!-- 매칭 가중치 설정 -->
         <div class="section-card" id="weights-card" style="display:none;">
@@ -560,10 +536,6 @@
 
 <!-- 하단 탭 바 -->
 <div class="tab-bar" id="tab-bar">
-    <div class="tab-item" onclick="switchTab('home')" id="tab-btn-home">
-        <i class="fa-regular fa-user"></i>
-        <span>홈</span>
-    </div>
     <div class="tab-item active" onclick="switchTab('discover')" id="tab-btn-discover" style="position:relative;">
         <i class="fa-regular fa-heart"></i>
         <span>추천</span>
@@ -886,8 +858,8 @@ function showOnboarding(status, candidateCount) {
 }
 
 function renderProfile(p) {
-    const sec = document.getElementById('profile-section');
-    const mySec = document.getElementById('my-profile-section');
+    const sec = document.getElementById('my-profile-section');
+    const mySec = null; // 홈 탭 제거됨 — sec이 MY 프로필
     if (!p) {
         const emptyHtml = `
             <div class="no-profile">
@@ -899,7 +871,6 @@ function renderProfile(p) {
         if (mySec) mySec.innerHTML = emptyHtml;
         return;
     }
-    document.getElementById('edit-profile-btn').style.display = '';
     const myEditBtn = document.getElementById('edit-profile-btn-my');
     if (myEditBtn) myEditBtn.style.display = '';
     const { pct } = calcScore(p);
