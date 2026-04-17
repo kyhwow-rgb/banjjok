@@ -35,34 +35,37 @@
       <feComposite in="color" in2="offsetBlur" operator="in" result="shadow"/>
       <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
     </filter>
-    <!-- 반쪽 클리핑 -->
+    <!-- 정확히 반쪽 클리핑 (하트 중심선 x=256 기준) -->
     <clipPath id="half">
-      <rect x="0" y="0" width="268" height="512"/>
+      <rect x="0" y="0" width="256" height="512"/>
     </clipPath>
   </defs>
 
   <!-- 배경 -->
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
 
-  <!-- 하트 그룹 (반쪽 클리핑) -->
-  <g clip-path="url(#half)" filter="url(#shadow)">
-    <!-- 메인 하트 -->
-    <path d="M256 420 C256 420 88 300 88 195 C88 128 133 82 195 82 C230 82 253 105 262 138 C262 138 256 155 256 155 C256 155 250 138 250 138 C250 138 256 120 256 120 L256 420Z
-             M256 120 C262 95 282 82 317 82 C379 82 424 128 424 195 C424 300 256 420 256 420 L256 120Z"
-          fill="url(#heartMain)" filter="url(#innerDepth)"/>
+  <!-- 센터링 그룹: 반쪽 하트(168x338)를 512x512 정중앙에 배치 -->
+  <g transform="translate(84, 5)">
+    <!-- 하트 그룹 (반쪽 클리핑) -->
+    <g clip-path="url(#half)" filter="url(#shadow)">
+      <!-- 메인 하트 -->
+      <path d="M256 420 C256 420 88 300 88 195 C88 128 133 82 195 82 C230 82 253 105 262 138 C262 138 256 155 256 155 C256 155 250 138 250 138 C250 138 256 120 256 120 L256 420Z
+               M256 120 C262 95 282 82 317 82 C379 82 424 128 424 195 C424 300 256 420 256 420 L256 120Z"
+            fill="url(#heartMain)" filter="url(#innerDepth)"/>
 
-    <!-- 3D 하이라이트 (상단 왼쪽 광택) -->
-    <ellipse cx="175" cy="155" rx="55" ry="40" fill="url(#highlight)" transform="rotate(-25, 175, 155)"/>
+      <!-- 3D 하이라이트 (상단 왼쪽 광택) -->
+      <ellipse cx="175" cy="155" rx="55" ry="40" fill="url(#highlight)" transform="rotate(-25, 175, 155)"/>
 
-    <!-- 작은 스펙큘러 하이라이트 -->
-    <ellipse cx="165" cy="135" rx="20" ry="12" fill="white" opacity="0.55" transform="rotate(-30, 165, 135)"/>
+      <!-- 작은 스펙큘러 하이라이트 -->
+      <ellipse cx="165" cy="135" rx="20" ry="12" fill="white" opacity="0.55" transform="rotate(-30, 165, 135)"/>
 
-    <!-- 하단 반사 -->
-    <path d="M256 420 C256 420 88 300 88 195 C88 128 133 82 195 82 C230 82 253 105 262 138 L256 420Z
-             M256 420 C256 420 424 300 424 195 C424 128 379 82 317 82 C282 82 262 95 256 120 L256 420Z"
-          fill="url(#bottomGlow)"/>
+      <!-- 하단 반사 -->
+      <path d="M256 420 C256 420 88 300 88 195 C88 128 133 82 195 82 C230 82 253 105 262 138 L256 420Z
+               M256 420 C256 420 424 300 424 195 C424 128 379 82 317 82 C282 82 262 95 256 120 L256 420Z"
+            fill="url(#bottomGlow)"/>
+    </g>
+
+    <!-- 절단면 하이라이트 (반쪽 경계선) -->
+    <line x1="256" y1="90" x2="256" y2="415" stroke="#ffb8d4" stroke-width="2" opacity="0.4"/>
   </g>
-
-  <!-- 절단면 하이라이트 (반쪽 경계선) -->
-  <line x1="268" y1="90" x2="268" y2="415" stroke="#ffb8d4" stroke-width="2" opacity="0.4"/>
 </svg>
