@@ -563,6 +563,16 @@
         <!-- MY 메뉴 -->
         <div class="section-card">
             <div class="section-body" style="display:flex;flex-direction:column;gap:10px;">
+                <div id="push-toggle-row" onclick="togglePush()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-bell" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;font-size:.9em;">푸시 알림</div>
+                        <div id="push-toggle-status" style="font-size:.72em;color:var(--muted);margin-top:2px;">매칭·메시지·찜 알림 받기</div>
+                    </div>
+                    <div id="push-toggle-switch" style="width:40px;height:22px;background:#e5e7eb;border-radius:11px;position:relative;transition:all .2s;">
+                        <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+                    </div>
+                </div>
                 <a href="index.html#register" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
                     <i class="fa-solid fa-pen" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
                     <div><div style="font-weight:600;font-size:.9em;">신청서 수정</div></div>
@@ -843,27 +853,39 @@ function gemIcon(pct) {
 function showOnboarding(status, candidateCount) {
     const overlay = document.getElementById('onboard-overlay');
     if (status === 'pending') {
-        overlay.style.display = 'flex';
-        overlay.innerHTML = `<div class="onboard-content">
-            <div class="onboard-icon">⏳</div>
-            <div class="onboard-title">심사 중이에요</div>
-            <div class="onboard-sub">관리자가 신청서를 검토하고 있어요.<br>승인되면 바로 매칭을 시작할 수 있어요!</div>
-            <div class="waiting-progress">
-                <div class="waiting-dot"></div>
-                <div class="waiting-dot"></div>
-                <div class="waiting-dot"></div>
-            </div>
-            <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:14px;text-align:left;">
-                <div style="font-size:.82em;font-weight:700;color:var(--text);margin-bottom:8px;">이런 분들이 기다리고 있어요</div>
-                <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
-                    지금 여러 이성 참가자가 매칭을 기다리고 있어요.
-                    승인 후 바로 추천 반쪽을 확인해보세요!
+        // 첫 방문만 전체 화면 안내, 이후엔 상단 배너만
+        if (!localStorage.getItem('bj_pending_seen')) {
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `<div class="onboard-content">
+                <div class="onboard-icon">⏳</div>
+                <div class="onboard-title">심사 중이에요</div>
+                <div class="onboard-sub">관리자가 신청서를 검토하고 있어요.<br>승인 전에도 추천 반쪽을 미리 볼 수 있어요!</div>
+                <div class="waiting-progress">
+                    <div class="waiting-dot"></div>
+                    <div class="waiting-dot"></div>
+                    <div class="waiting-dot"></div>
                 </div>
-            </div>
-            <div style="margin-top:20px;">
-                <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none'">프로필 미리보기</button>
-            </div>
-        </div>`;
+                <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:14px;text-align:left;">
+                    <div style="font-size:.82em;font-weight:700;color:var(--text);margin-bottom:8px;"><i class="fa-solid fa-eye" style="color:var(--primary);"></i> 지금 할 수 있는 것</div>
+                    <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
+                        · 이성 참가자 프로필 둘러보기<br>
+                        · 관심 가는 사람 기억해두기
+                    </div>
+                    <div style="font-size:.82em;font-weight:700;color:var(--text);margin-top:12px;margin-bottom:8px;"><i class="fa-solid fa-lock" style="color:var(--muted);"></i> 승인 후 가능</div>
+                    <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
+                        · 찜하기 / 상호 매칭<br>
+                        · 매칭된 반쪽과 대화하기
+                    </div>
+                </div>
+                <div style="margin-top:20px;">
+                    <button class="onboard-btn" onclick="localStorage.setItem('bj_pending_seen','1');document.getElementById('onboard-overlay').style.display='none';">
+                        <i class="fa-solid fa-eye"></i> 둘러보기 시작
+                    </button>
+                </div>
+            </div>`;
+        } else {
+            overlay.style.display = 'none';
+        }
     } else if (status === 'approved' && !localStorage.getItem('kj_onboarded')) {
         overlay.style.display = 'flex';
         overlay.innerHTML = `<div class="onboard-content">
@@ -1114,6 +1136,7 @@ function switchTab(tab) {
     // MY 탭 전환 시 문의 내역 새로고침 (관리자 답변 반영)
     if (tab === 'my') {
         loadInquiries();
+        updatePushToggleUI();
     }
     // 대화 탭 전환 시 읽음 처리
     if (tab === 'chat') {
@@ -1360,6 +1383,11 @@ function cardPass() {
 
 function cardLike(id) {
     if (_isCardAnimating) return;
+    // pending 상태 안내
+    if (window._myProfile && window._myProfile.status === 'pending') {
+        toast('심사 통과 후 찜할 수 있어요. 먼저 둘러보세요!', 'info');
+        return;
+    }
     _isCardAnimating = true;
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-right'); }
@@ -1375,6 +1403,11 @@ function cardLike(id) {
 
 async function toggleFav(applicantId) {
     if (window._favToggling) return;
+    // pending 상태 차단
+    if (window._myProfile && window._myProfile.status === 'pending') {
+        toast('심사 통과 후 찜할 수 있어요', 'info');
+        return;
+    }
     window._favToggling = true;
     try {
     const { data: { user } } = await db.auth.getUser();
@@ -1393,6 +1426,25 @@ async function toggleFav(applicantId) {
         favSet.add(applicantId);
         toast(`찜 목록에 담았어요 (${favSet.size}/${maxFav})`, 'success');
         logEvent('card_like', { liked: applicantId });
+        // 상대방 user_id 조회 후 관심 알림
+        (async () => {
+            try {
+                const { data: tgt } = await db.from('applicants').select('user_id,name').eq('id', applicantId).limit(1);
+                if (tgt && tgt[0] && tgt[0].user_id) {
+                    // 상호 찜인지 확인 (상대가 나를 이미 찜했는지)
+                    const { data: reverse } = await db.from('favorites')
+                        .select('id').eq('user_id', tgt[0].user_id).eq('applicant_id', window._myProfile.id).limit(1);
+                    if (reverse && reverse.length > 0) {
+                        // 상호 찜! 양쪽 푸시
+                        sendPushNotif(tgt[0].user_id, '💘 상호 관심 매칭!', `${window._myProfile.name}님과 서로 찜했어요`, 'https://kyhwow-rgb.github.io/banjjok/dashboard.html');
+                        sendPushNotif(user.id, '💘 상호 관심 매칭!', `${tgt[0].name}님과 서로 찜했어요`, 'https://kyhwow-rgb.github.io/banjjok/dashboard.html');
+                    } else {
+                        // 단방향: 상대에게 관심 알림
+                        sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', 'https://kyhwow-rgb.github.io/banjjok/dashboard.html');
+                    }
+                }
+            } catch(e) { console.log('fav push error:', e.message); }
+        })();
     }
     window._favSet = favSet;
     renderMatchRanking(window._allCandidates || []);
@@ -1745,6 +1797,124 @@ function showBrowserNotif(title, body) {
     }
 }
 
+// ── 웹 푸시 구독 ──
+const VAPID_PUBLIC_KEY = 'BOdeItX6XfLYpClc_aGeMhO5Y3YZkJJmxCCDuMlCnGtlwslwKWPgkEakeafVBgTbS-qufoU-vWwuecUhA0vxees';
+
+function urlB64ToUint8Array(base64) {
+    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(b64);
+    const arr = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+}
+
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
+
+async function setupPushSubscription(showToast) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        if (showToast) toast('이 브라우저는 푸시 알림을 지원하지 않아요', 'info');
+        return false;
+    }
+    try {
+        const perm = Notification.permission === 'granted'
+            ? 'granted'
+            : await Notification.requestPermission();
+        if (perm !== 'granted') {
+            if (showToast) toast('알림 권한이 거부되었어요', 'info');
+            return false;
+        }
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+        }
+        const { data: { user } } = await db.auth.getUser();
+        if (!user) return false;
+        const p256dh = arrayBufferToBase64(sub.getKey('p256dh'));
+        const auth = arrayBufferToBase64(sub.getKey('auth'));
+        await db.from('push_subscriptions').upsert({
+            user_id: user.id,
+            endpoint: sub.endpoint,
+            p256dh, auth
+        }, { onConflict: 'endpoint' });
+        if (showToast) toast('알림이 켜졌어요!', 'success');
+        localStorage.setItem('bj_push_enabled', '1');
+        return true;
+    } catch(e) {
+        console.error('Push subscription error:', e);
+        if (showToast) toast('푸시 설정 실패: ' + e.message, 'error');
+        return false;
+    }
+}
+
+async function sendPushNotif(userId, title, body, url) {
+    try {
+        await db.functions.invoke('send-push', {
+            body: { user_id: userId, title, body, url }
+        });
+    } catch(e) {
+        console.log('send-push error:', e.message);
+    }
+}
+
+function updatePushToggleUI() {
+    const sw = document.getElementById('push-toggle-switch');
+    const status = document.getElementById('push-toggle-status');
+    if (!sw) return;
+    const enabled = 'Notification' in window && Notification.permission === 'granted';
+    const knob = sw.firstElementChild;
+    if (enabled) {
+        sw.style.background = '#111';
+        if (knob) knob.style.left = '20px';
+        status.textContent = '켜짐 · 매칭·메시지·찜 알림';
+        status.style.color = '#059669';
+    } else if ('Notification' in window && Notification.permission === 'denied') {
+        sw.style.background = '#e5e7eb';
+        if (knob) knob.style.left = '2px';
+        status.textContent = '브라우저 설정에서 알림을 허용해주세요';
+        status.style.color = '#ef4444';
+    } else {
+        sw.style.background = '#e5e7eb';
+        if (knob) knob.style.left = '2px';
+        status.textContent = '매칭·메시지·찜 알림 받기';
+        status.style.color = 'var(--muted)';
+    }
+}
+
+async function togglePush() {
+    if (!('Notification' in window)) { toast('이 브라우저는 푸시 알림을 지원하지 않아요', 'info'); return; }
+    if (Notification.permission === 'denied') {
+        toast('브라우저 설정에서 알림을 허용해주세요', 'info');
+        return;
+    }
+    if (Notification.permission === 'granted') {
+        // 이미 켜진 상태 → 구독 해제
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+                await sub.unsubscribe();
+            }
+            localStorage.removeItem('bj_push_enabled');
+            toast('알림이 꺼졌어요', 'info');
+        } catch(e) { console.log('unsubscribe err:', e); }
+    } else {
+        // 켜기
+        await setupPushSubscription(true);
+    }
+    updatePushToggleUI();
+}
+
 function renderNotifBadge() {
     const unread = _notifications.filter(n => !n.is_read).length;
     const badge = document.getElementById('notif-badge');
@@ -2072,10 +2242,21 @@ async function init() {
             showOnboarding(profile.status, (candidates || []).length);
         }
 
-        // 승인된 상태에서만 추천/가중치 표시
-        const showRecommendations = isApproved;
-        document.getElementById('weights-card').style.display = showRecommendations ? '' : 'none';
-        if (showRecommendations) loadWeights(profile.ideal_weights);
+        // 승인/대기 상태에서 추천 표시 (대기는 찜 불가 모드)
+        const isPending = profile.status === 'pending';
+        const showRecommendations = isApproved || isPending;
+        document.getElementById('weights-card').style.display = isApproved ? '' : 'none';
+        if (isApproved) loadWeights(profile.ideal_weights);
+
+        // pending 상단 배너
+        if (isPending) {
+            const banner = document.createElement('div');
+            banner.id = 'pending-banner';
+            banner.style.cssText = 'background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;padding:10px 16px;font-size:.82em;font-weight:700;text-align:center;border-bottom:1px solid #fcd34d;';
+            banner.innerHTML = '<i class="fa-solid fa-hourglass-half"></i>&nbsp; 심사 중 — 둘러보기만 가능해요. 찜은 승인 후 이용 가능합니다.';
+            const navbar = document.querySelector('.navbar');
+            if (navbar && !document.getElementById('pending-banner')) navbar.insertAdjacentElement('afterend', banner);
+        }
 
         // 나를 찜한 사람 수 (아만다 스타일 인기도) — RPC로 RLS 우회
         const { data: myPop } = await db.rpc('get_my_popularity', { my_applicant_id: profile.id });
@@ -2137,8 +2318,10 @@ async function init() {
         document.getElementById('match-ranking-card').style.display = 'none';
         document.getElementById('mutual-card').style.display = 'none';
     }
-    // 브라우저 알림 권한 요청
-    requestNotifPermission();
+    // 웹 푸시 — 이미 허용했으면 자동 구독 갱신
+    if ('Notification' in window && Notification.permission === 'granted') {
+        setupPushSubscription(false);
+    }
     // 차단 목록 로드
     if (window._myProfile) {
         try {
@@ -2158,6 +2341,7 @@ async function init() {
     }
 }
 
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 init();
 
 // ── 피드백 모달 ──
@@ -2477,6 +2661,13 @@ async function sendChatMessage() {
         };
         appendChatMessage(tempMsg);
         logEvent('chat_send');
+        // 상대방에게 푸시 알림
+        sendPushNotif(
+            _chatPartnerUserId,
+            `${window._myProfile?.name || '반쪽'}님`,
+            text.length > 60 ? text.slice(0, 60) + '...' : text,
+            'https://kyhwow-rgb.github.io/banjjok/dashboard.html'
+        );
     } catch(e) {
         toast('메시지 전송에 실패했어요', 'error');
         input.value = text; // 복원
