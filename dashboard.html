@@ -747,23 +747,30 @@ function calcMatchScore(viewer, candidate) {
         }
     }
 
-    // 5. 나이 점수 (이상형 선호 반영)
+    // 5. 나이 점수 (연상/연하 허용 범위 반영)
     let ageScore = 50;
     if (candidate.birth && viewer.birth) {
         const cAge = calcAge(candidate.birth);
         const vAge = calcAge(viewer.birth);
         const diff = cAge - vAge; // 양수 = 상대가 연상
-        const prefAge = ideal['나이'] || [];
-        if (prefAge.includes('상관없음') || prefAge.length === 0) {
+        const maxUpper = (ideal['나이_연상'] != null) ? ideal['나이_연상'] : 99;
+        const maxLower = (ideal['나이_연하'] != null) ? ideal['나이_연하'] : 99;
+        if (maxUpper >= 99 && maxLower >= 99) {
+            // 범위 미설정 → 가까울수록 높은 점수
             ageScore = Math.abs(diff) <= 3 ? 85 : Math.abs(diff) <= 5 ? 70 : Math.abs(diff) <= 8 ? 50 : 30;
+        } else if (diff > 0 && diff <= maxUpper) {
+            // 허용 연상 범위 내
+            ageScore = 95 - (diff * 3);
+        } else if (diff < 0 && Math.abs(diff) <= maxLower) {
+            // 허용 연하 범위 내
+            ageScore = 95 - (Math.abs(diff) * 3);
+        } else if (diff === 0) {
+            ageScore = 95;
         } else {
-            let bonus = 0;
-            if (prefAge.includes('연상') && diff > 0) bonus = diff <= 5 ? 95 : diff <= 8 ? 75 : 50;
-            else if (prefAge.includes('연하') && diff < 0) bonus = Math.abs(diff) <= 5 ? 95 : Math.abs(diff) <= 8 ? 75 : 50;
-            else if (prefAge.includes('동갑') && Math.abs(diff) <= 2) bonus = 95;
-            if (bonus > 0) ageScore = bonus;
-            else ageScore = Math.abs(diff) <= 3 ? 60 : Math.abs(diff) <= 6 ? 40 : 25;
+            // 범위 밖
+            ageScore = 15;
         }
+        ageScore = Math.max(10, Math.min(95, ageScore));
     }
 
     // 6. MBTI 궁합 점수 (이상형 성향 칩 + 궁합표 결합)
@@ -776,6 +783,13 @@ function calcMatchScore(viewer, candidate) {
         mbtiScore = Math.min(100, mbtiScore + prefBonus);
     }
 
+    // 7. 종교 보너스/패널티 (칩에서 선호 종교 선택한 경우)
+    let religionBonus = 0;
+    const prefReligion = ideal['종교'] || [];
+    if (prefReligion.length > 0 && !prefReligion.includes('상관없음') && candidate.religion) {
+        religionBonus = prefReligion.includes(candidate.religion) ? 5 : -5;
+    }
+
     // 가중 평균
     const weighted = (
         heightScore * (w.height||0) +
@@ -786,7 +800,7 @@ function calcMatchScore(viewer, candidate) {
         mbtiScore * (w.mbti||0)
     ) / total;
 
-    return Math.min(100, Math.max(0, Math.round(weighted)));
+    return Math.min(100, Math.max(0, Math.round(weighted + religionBonus)));
 }
 
 function gemIcon(pct) {
@@ -916,6 +930,8 @@ function renderProfile(p) {
             ${p.education? `<div class="profile-item"><div class="profile-label">학력</div><div class="profile-value">${esc(p.education)}</div></div>` : ''}
             ${p.smoking  ? `<div class="profile-item"><div class="profile-label">흡연</div><div class="profile-value">${esc(p.smoking)}</div></div>` : ''}
             ${p.drinking ? `<div class="profile-item"><div class="profile-label">음주</div><div class="profile-value">${esc(p.drinking)}</div></div>` : ''}
+            ${p.religion ? `<div class="profile-item"><div class="profile-label">종교</div><div class="profile-value">${esc(p.religion)}</div></div>` : ''}
+            ${p.hobby    ? `<div class="profile-item"><div class="profile-label">취미</div><div class="profile-value">${esc(p.hobby)}</div></div>` : ''}
             ${p.status   ? `<div class="profile-item"><div class="profile-label">상태</div><div class="profile-value">${{pending:'심사중 ⏳',approved:'승인 ✅',rejected:'거절',matched:'매칭됨 💑'}[p.status]||p.status}</div></div>` : ''}
         </div>
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
@@ -1115,7 +1131,26 @@ function renderMatchRanking(candidates) {
         if (!a._boosted && b._boosted) return 1;
         return b._score - a._score;
     });
-    _scoredCandidates = _scoredCandidates.slice(0, 3);
+    // 일일 추천 3명 고정: 하루 동안 같은 3명을 계속 열람 가능
+    const dailyKey = 'bj_daily_recs_' + new Date().toISOString().slice(0, 10);
+    const savedIds = JSON.parse(localStorage.getItem(dailyKey) || 'null');
+    if (savedIds && savedIds.length > 0) {
+        // 저장된 ID 기준으로 복원 (차단된 사람 제외)
+        const idMap = {};
+        _scoredCandidates.forEach(c => { idMap[c.id] = c; });
+        const restored = savedIds.map(id => idMap[id]).filter(Boolean);
+        if (restored.length > 0) {
+            _scoredCandidates = restored;
+        } else {
+            _scoredCandidates = _scoredCandidates.slice(0, 3);
+            localStorage.setItem(dailyKey, JSON.stringify(_scoredCandidates.map(c => c.id)));
+        }
+    } else {
+        _scoredCandidates = _scoredCandidates.slice(0, 3);
+        localStorage.setItem(dailyKey, JSON.stringify(_scoredCandidates.map(c => c.id)));
+        // 이전 날짜 키 정리
+        Object.keys(localStorage).filter(k => k.startsWith('bj_daily_recs_') && k !== dailyKey).forEach(k => localStorage.removeItem(k));
+    }
     document.getElementById('match-count').textContent = '';
 
     if (!_isCardAnimating) renderCardView(sec, favSet);
@@ -1158,24 +1193,20 @@ function renderCardView(sec, favSet) {
         </div>`;
         return;
     }
-    // 3장 모두 스와이프 완료
+    // 3장 모두 스와이프 완료 → 처음부터 다시 보기
     if (_swipedCount >= _scoredCandidates.length && _scoredCandidates.length > 0) {
-        const now = new Date();
-        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        const hoursLeft = Math.floor((midnight - now) / 3600000);
-        const minsLeft = Math.floor(((midnight - now) % 3600000) / 60000);
         sec.innerHTML = `
             <div style="text-align:center;padding:48px 20px;">
                 <div style="font-size:3.5em;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-check" style="color:var(--primary);"></i></div>
-                <div style="font-size:1.15em;font-weight:800;color:var(--text);margin-bottom:8px;">오늘의 추천이 끝났어요</div>
+                <div style="font-size:1.15em;font-weight:800;color:var(--text);margin-bottom:8px;">오늘의 추천을 모두 확인했어요</div>
                 <div style="font-size:.88em;color:var(--muted);line-height:1.6;margin-bottom:20px;">
-                    내일 새로운 반쪽을 만나보세요!
+                    다시 보면서 찜 여부를 변경할 수 있어요
                 </div>
-                <div style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#f3f4f6;border-radius:12px;font-size:.82em;font-weight:600;color:var(--muted);margin-bottom:20px;">
-                    <i class="fa-solid fa-clock"></i> 오늘 자정에 새 추천이 열려요 (${hoursLeft}시간 ${minsLeft}분 후)
+                <div onclick="_swipedCount=0;_cardIndex=0;renderCardView(document.getElementById('match-ranking-section'),window._favSet||new Set());" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--primary);color:#fff;border-radius:14px;font-size:.88em;font-weight:700;cursor:pointer;transition:transform .15s;margin-bottom:12px;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                    <i class="fa-solid fa-rotate"></i> 다시 보기
                 </div>
                 <br>
-                <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;margin-top:8px;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                     <i class="fa-solid fa-gem"></i> 찜 목록 확인하기
                 </div>
             </div>`;
@@ -1596,7 +1627,7 @@ function openProfileModal(applicantId) {
         } catch {}
     }
 
-    const tags = [age ? `${age}세` : null, c.job, c.height ? c.height + 'cm' : null, c.location, c.mbti, c.education].filter(Boolean);
+    const tags = [age ? `${age}세` : null, c.job, c.height ? c.height + 'cm' : null, c.location, c.mbti, c.education, c.religion, c.smoking, c.drinking, c.hobby].filter(Boolean);
     const popCount = c._favCount || 0;
 
     document.getElementById('profile-modal-content').innerHTML = `
