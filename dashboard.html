@@ -300,6 +300,49 @@
         .onboard-content { padding:32px 20px; }
     }
 
+    /* 카드 사진 다중 스와이프 */
+    .photo-dots { position:absolute; top:8px; left:10px; right:10px; display:flex; gap:3px; z-index:5; pointer-events:none; }
+    .photo-dot { flex:1; height:3px; background:rgba(255,255,255,.35); border-radius:2px; transition:background .2s; }
+    .photo-dot.active { background:rgba(255,255,255,.95); }
+    .photo-tap { position:absolute; top:0; bottom:0; width:38%; z-index:4; cursor:pointer; }
+    .photo-tap-left { left:0; }
+    .photo-tap-right { right:0; }
+
+    /* 카드 상단 오버레이 배지 (매칭점수·최근접속) */
+    .card-top-badges { position:absolute; top:18px; left:12px; right:12px; display:flex; justify-content:space-between; z-index:3; pointer-events:none; }
+    .seen-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:99px; font-size:.7em; font-weight:700; background:rgba(255,255,255,.92); color:#111; backdrop-filter:blur(6px); }
+    .seen-badge.seen-online { color:#059669; }
+    .seen-badge.seen-recent { color:#d97706; }
+    .match-score-card-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:99px; font-size:.72em; font-weight:800; backdrop-filter:blur(6px); }
+    .match-score-card-badge.high { background:linear-gradient(135deg,#10b981,#059669); color:#fff; }
+    .match-score-card-badge.mid { background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; }
+    .match-score-card-badge.low { background:rgba(255,255,255,.92); color:#6b7280; }
+
+    /* 필터 */
+    .filter-btn-bar { display:flex; justify-content:flex-end; margin-bottom:10px; }
+    .filter-btn { padding:6px 14px; border-radius:99px; border:1px solid var(--border); background:#fff; font-size:.78em; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; color:#374151; }
+    .filter-btn.has-filter { background:#111; color:#fff; border-color:#111; }
+    .filter-btn:hover { background:#f3f4f6; }
+    .filter-btn.has-filter:hover { background:#000; }
+    .filter-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:2100; display:none; align-items:center; justify-content:center; padding:16px; }
+    .filter-modal-overlay.open { display:flex; }
+    .filter-modal { background:#fff; border-radius:20px; max-width:420px; width:100%; max-height:85vh; overflow-y:auto; padding:22px; }
+    .filter-section { margin-bottom:18px; }
+    .filter-section-title { font-size:.82em; font-weight:800; color:#111; margin-bottom:10px; }
+    .filter-chip { display:inline-block; padding:6px 12px; border-radius:99px; border:1px solid var(--border); background:#fff; font-size:.78em; font-weight:600; cursor:pointer; color:#6b7280; margin:3px; }
+    .filter-chip.selected { background:#111; color:#fff; border-color:#111; }
+    .filter-range-row { display:flex; gap:10px; align-items:center; }
+    .filter-range-row input { flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:.88em; }
+
+    /* 알림 세분화 */
+    .notif-prefs-list { margin-top:4px; display:flex; flex-direction:column; gap:6px; padding:10px; background:#fafafa; border-radius:10px; }
+    .notif-pref-row { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; font-size:.82em; }
+    .notif-pref-label { font-weight:600; color:#374151; }
+    .notif-pref-switch { width:36px; height:20px; background:#e5e7eb; border-radius:10px; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; }
+    .notif-pref-switch.on { background:#111; }
+    .notif-pref-switch::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; background:#fff; border-radius:50%; transition:left .2s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+    .notif-pref-switch.on::after { left:18px; }
+
     /* CHAT */
     .chat-messages { height:calc(100vh - 280px); overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:6px; }
     .chat-bubble { max-width:75%; padding:10px 14px; border-radius:16px; font-size:.88em; word-break:break-word; line-height:1.5; position:relative; }
@@ -397,6 +440,11 @@
 
     <!-- ══ TAB: 추천 ══ -->
     <div class="tab-content active" id="tab-discover">
+        <div class="filter-btn-bar">
+            <button class="filter-btn" id="discover-filter-btn" onclick="openFiltersModal()">
+                <i class="fa-solid fa-sliders"></i> 필터 <span id="filter-count-badge"></span>
+            </button>
+        </div>
         <div class="section-card" id="match-ranking-card" style="display:none;">
             <div class="section-header">
                 <div class="section-title">오늘의 추천</div>
@@ -573,6 +621,16 @@
                         <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
                     </div>
                 </div>
+                <div class="notif-prefs-list" id="notif-prefs-list">
+                    <div style="font-size:.72em;color:var(--muted);font-weight:700;padding:4px 6px 2px;">알림 받을 항목</div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">🎉 매칭 성사</div><div class="notif-pref-switch on" data-pref="match" onclick="toggleNotifPref('match')"></div></div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">💬 새 메시지</div><div class="notif-pref-switch on" data-pref="message" onclick="toggleNotifPref('message')"></div></div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">💝 관심 표시</div><div class="notif-pref-switch on" data-pref="interest" onclick="toggleNotifPref('interest')"></div></div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">💘 상호 찜</div><div class="notif-pref-switch on" data-pref="mutual" onclick="toggleNotifPref('mutual')"></div></div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">✅ 신청 결과</div><div class="notif-pref-switch on" data-pref="approved" onclick="toggleNotifPref('approved')"></div></div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">📨 문의 답변</div><div class="notif-pref-switch on" data-pref="inquiry_reply" onclick="toggleNotifPref('inquiry_reply')"></div></div>
+                    <div class="notif-pref-row"><div class="notif-pref-label">📢 공지사항</div><div class="notif-pref-switch on" data-pref="announcement" onclick="toggleNotifPref('announcement')"></div></div>
+                </div>
                 <a href="index.html#register" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;text-decoration:none;color:var(--text);transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
                     <i class="fa-solid fa-pen" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
                     <div><div style="font-weight:600;font-size:.9em;">신청서 수정</div></div>
@@ -633,6 +691,37 @@
         <textarea id="feedback-text" placeholder="자유롭게 의견을 남겨주세요..." rows="3" maxlength="500" style="width:100%;padding:12px;border:1px solid #e5e7eb;border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;margin-bottom:12px;"></textarea>
         <button class="btn btn-primary" onclick="submitFeedback()" style="width:100%;padding:12px;">보내기</button>
         <button id="feedback-skip-btn" class="btn btn-ghost" onclick="closeFeedbackModal()" style="width:100%;margin-top:6px;font-size:.82em;color:#a3a3a3;">다음에 할게요</button>
+    </div>
+</div>
+
+<!-- 필터 모달 -->
+<div class="filter-modal-overlay" id="filter-modal-overlay" onclick="if(event.target===this)closeFiltersModal()">
+    <div class="filter-modal">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:1.05em;font-weight:800;"><i class="fa-solid fa-sliders"></i> 추천 필터</div>
+            <button class="btn btn-nav" onclick="closeFiltersModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">나이 범위</div>
+            <div class="filter-range-row">
+                <input type="number" id="f-age-min" min="18" max="80" placeholder="최소">
+                <span style="color:var(--muted);">~</span>
+                <input type="number" id="f-age-max" min="18" max="80" placeholder="최대">
+                <span style="color:var(--muted);font-size:.82em;">세</span>
+            </div>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">지역</div>
+            <div id="f-regions" style="margin:-3px;"></div>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">MBTI</div>
+            <div id="f-mbtis" style="margin:-3px;"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:20px;">
+            <button class="btn btn-outline" onclick="resetFilters()" style="flex:1;">초기화</button>
+            <button class="btn btn-primary" onclick="applyFilters()" style="flex:2;">적용</button>
+        </div>
     </div>
 </div>
 
@@ -1171,7 +1260,20 @@ function renderMatchRanking(candidates) {
     card.style.display = '';
     const favSet = window._favSet || new Set();
     const blockedSet = window._blockedSet || new Set();
-    const filtered = candidates.filter(c => !blockedSet.has(c.id));
+    // 필터 적용
+    const f = _discoverFilters;
+    const filtered = candidates.filter(c => {
+        if (blockedSet.has(c.id)) return false;
+        if (f.ageMin || f.ageMax) {
+            const age = calcAge(c.birth);
+            if (age == null) return false;
+            if (f.ageMin && age < f.ageMin) return false;
+            if (f.ageMax && age > f.ageMax) return false;
+        }
+        if (f.regions && f.regions.length && !f.regions.includes(c.location)) return false;
+        if (f.mbtis && f.mbtis.length && !f.mbtis.includes(c.mbti)) return false;
+        return true;
+    });
     const now = new Date();
     _scoredCandidates = filtered.map(c => ({
         ...c,
@@ -1269,16 +1371,34 @@ function renderCardView(sec, favSet) {
     if (_cardIndex >= _scoredCandidates.length) _cardIndex = 0;
     const c = _scoredCandidates[_cardIndex];
     if (!c) { sec.innerHTML = '<div class="match-empty">추천할 반쪽이 없어요</div>'; return; }
+    // 새 카드이면 사진 인덱스 리셋
+    if (window._lastRenderedCardId !== c.id) { _cardPhotoIdx = 0; window._lastRenderedCardId = c.id; }
+
     const age = calcAge(c.birth);
-    const photo = c.photos && c.photos[0];
-    const photoHtml = photo
-        ? `<img src="${photo}" alt="">`
+    const photos = c.photos || [];
+    const photoIdx = Math.min(_cardPhotoIdx, Math.max(0, photos.length - 1));
+    const mainPhoto = photos[photoIdx];
+    const photoHtml = mainPhoto
+        ? `<img src="${mainPhoto}" alt="" id="card-main-photo">`
         : `<div class="card-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+    const photoDotsHtml = photos.length > 1
+        ? `<div class="photo-dots">${photos.map((_, i) => `<div class="photo-dot ${i === photoIdx ? 'active' : ''}"></div>`).join('')}</div>`
+        : '';
+    const photoTapsHtml = photos.length > 1
+        ? `<div class="photo-tap photo-tap-left" onclick="cardPrevPhoto(event)"></div><div class="photo-tap photo-tap-right" onclick="cardNextPhoto(event)"></div>`
+        : '';
+
     const isFav = favSet.has(c.id);
     const isMutual = (window._mutualSet || new Set()).has(c.id);
     const mbtiCompat = c._mbtiCompat;
     const mbtiLabel = mbtiCompat >= 80 ? 'MBTI 찰떡궁합! <i class="fa-solid fa-fire" style="color:#ef4444;"></i>' : mbtiCompat >= 65 ? 'MBTI 궁합 좋아요 <i class="fa-solid fa-star" style="color:#f59e0b;"></i>' : mbtiCompat >= 50 ? 'MBTI 보통' : 'MBTI 약간 다른 스타일';
     const tags = [age ? `${age}세` : null, c.location, c.job_category].filter(Boolean);
+
+    // 매칭 점수 배지
+    const scoreCls = c._score >= 80 ? 'high' : c._score >= 60 ? 'mid' : 'low';
+    const scoreBadge = `<span class="match-score-card-badge ${scoreCls}"><i class="fa-solid fa-gem"></i> ${c._score}% 궁합</span>`;
+    // 최근 접속 배지
+    const seenBadge = buildSeenBadge(c.last_seen_at);
 
     // Ice Breaker
     let ibHtml = '';
@@ -1297,6 +1417,12 @@ function renderCardView(sec, favSet) {
             <div class="profile-card" id="current-card">
                 <div class="card-photo-area">
                     ${photoHtml}
+                    ${photoDotsHtml}
+                    ${photoTapsHtml}
+                    <div class="card-top-badges">
+                        <div>${seenBadge}</div>
+                        <div>${scoreBadge}</div>
+                    </div>
                     <div class="card-photo-overlay">
                         <div class="card-age-badge">${age ? age + '세' : ''}</div>
                         ${c.mbti ? `<div class="card-mbti">${c.mbti}</div>` : ''}
@@ -1319,7 +1445,7 @@ function renderCardView(sec, favSet) {
                 </div>
             </div>
             <div class="card-counter"></div>
-            <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →</div>
+            <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 → · 사진 좌우 탭</div>
             <div style="text-align:center;margin-top:12px;display:flex;justify-content:center;gap:16px;">
                 <button onclick="reportUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-flag"></i> 신고</button>
                 <button onclick="blockUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-ban"></i> 차단</button>
@@ -1327,6 +1453,128 @@ function renderCardView(sec, favSet) {
         </div>`;
     // 스와이프 이벤트 바인딩
     setTimeout(initSwipe, 50);
+}
+
+// ── 다중 사진 네비 ──
+let _cardPhotoIdx = 0;
+function cardNextPhoto(e) {
+    if (e) e.stopPropagation();
+    const c = _scoredCandidates[_cardIndex];
+    if (!c) return;
+    const photos = c.photos || [];
+    if (_cardPhotoIdx < photos.length - 1) {
+        _cardPhotoIdx++;
+        refreshCardPhoto();
+    }
+}
+function cardPrevPhoto(e) {
+    if (e) e.stopPropagation();
+    if (_cardPhotoIdx > 0) {
+        _cardPhotoIdx--;
+        refreshCardPhoto();
+    }
+}
+function refreshCardPhoto() {
+    const c = _scoredCandidates[_cardIndex];
+    if (!c) return;
+    const photos = c.photos || [];
+    const img = document.getElementById('card-main-photo');
+    if (img && photos[_cardPhotoIdx]) img.src = photos[_cardPhotoIdx];
+    document.querySelectorAll('#current-card .photo-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === _cardPhotoIdx);
+    });
+}
+
+// ── 필터 시스템 ──
+let _discoverFilters = JSON.parse(localStorage.getItem('bj_filters') || '{}');
+
+const MBTI_LIST = ['ISTJ','ISFJ','INFJ','INTJ','ISTP','ISFP','INFP','INTP','ESTP','ESFP','ENFP','ENTP','ESTJ','ESFJ','ENFJ','ENTJ'];
+
+function openFiltersModal() {
+    // 지역 칩 렌더 (현재 후보군의 distinct 지역)
+    const all = window._allCandidates || [];
+    const regions = [...new Set(all.map(c => c.location).filter(Boolean))].sort();
+    const selRegions = _discoverFilters.regions || [];
+    const selMbtis = _discoverFilters.mbtis || [];
+    document.getElementById('f-regions').innerHTML = regions.length === 0
+        ? '<div style="color:var(--muted);font-size:.78em;">지역 데이터 없음</div>'
+        : regions.map(r => `<span class="filter-chip ${selRegions.includes(r)?'selected':''}" onclick="toggleFilterChip(this,'regions','${esc(r)}')">${esc(r)}</span>`).join('');
+    document.getElementById('f-mbtis').innerHTML = MBTI_LIST.map(m =>
+        `<span class="filter-chip ${selMbtis.includes(m)?'selected':''}" onclick="toggleFilterChip(this,'mbtis','${m}')">${m}</span>`
+    ).join('');
+    document.getElementById('f-age-min').value = _discoverFilters.ageMin || '';
+    document.getElementById('f-age-max').value = _discoverFilters.ageMax || '';
+    document.getElementById('filter-modal-overlay').classList.add('open');
+}
+
+function closeFiltersModal() {
+    document.getElementById('filter-modal-overlay').classList.remove('open');
+}
+
+function toggleFilterChip(el, key, value) {
+    el.classList.toggle('selected');
+    // 실제 저장은 applyFilters에서
+}
+
+function resetFilters() {
+    _discoverFilters = {};
+    localStorage.removeItem('bj_filters');
+    document.getElementById('f-age-min').value = '';
+    document.getElementById('f-age-max').value = '';
+    document.querySelectorAll('#f-regions .filter-chip, #f-mbtis .filter-chip').forEach(c => c.classList.remove('selected'));
+    updateFilterBtnBadge();
+    toast('필터 초기화', 'success');
+}
+
+function applyFilters() {
+    const ageMin = parseInt(document.getElementById('f-age-min').value) || null;
+    const ageMax = parseInt(document.getElementById('f-age-max').value) || null;
+    const regions = [...document.querySelectorAll('#f-regions .filter-chip.selected')].map(c => c.textContent);
+    const mbtis = [...document.querySelectorAll('#f-mbtis .filter-chip.selected')].map(c => c.textContent);
+    _discoverFilters = {};
+    if (ageMin) _discoverFilters.ageMin = ageMin;
+    if (ageMax) _discoverFilters.ageMax = ageMax;
+    if (regions.length) _discoverFilters.regions = regions;
+    if (mbtis.length) _discoverFilters.mbtis = mbtis;
+    localStorage.setItem('bj_filters', JSON.stringify(_discoverFilters));
+    closeFiltersModal();
+    updateFilterBtnBadge();
+    // 일일 추천 캐시 무효화 후 재렌더
+    const dailyKey = 'bj_daily_recs_' + new Date().toISOString().slice(0, 10);
+    localStorage.removeItem(dailyKey);
+    _cardIndex = 0;
+    _swipedCount = 0;
+    saveDailySwipeCount();
+    if (window._allCandidates) renderMatchRanking(window._allCandidates);
+    toast('필터 적용됨', 'success');
+}
+
+function updateFilterBtnBadge() {
+    const btn = document.getElementById('discover-filter-btn');
+    const badge = document.getElementById('filter-count-badge');
+    if (!btn || !badge) return;
+    const count = (_discoverFilters.ageMin ? 1 : 0)
+        + (_discoverFilters.ageMax ? 1 : 0)
+        + (_discoverFilters.regions?.length || 0 ? 1 : 0)
+        + (_discoverFilters.mbtis?.length || 0 ? 1 : 0);
+    if (count > 0) {
+        btn.classList.add('has-filter');
+        badge.textContent = '(' + count + ')';
+    } else {
+        btn.classList.remove('has-filter');
+        badge.textContent = '';
+    }
+}
+
+// 최근 접속 배지 빌더
+function buildSeenBadge(iso) {
+    if (!iso) return '';
+    const hours = (Date.now() - new Date(iso).getTime()) / 3600000;
+    if (hours < 1) return '<span class="seen-badge seen-online"><i class="fa-solid fa-circle" style="font-size:.55em;"></i> 방금 접속</span>';
+    if (hours < 24) return '<span class="seen-badge seen-online"><i class="fa-solid fa-circle" style="font-size:.55em;"></i> 오늘 접속</span>';
+    if (hours < 72) return '<span class="seen-badge seen-recent">최근 접속</span>';
+    if (hours < 24*14) return '<span class="seen-badge" style="color:#9ca3af;">1주일 전</span>';
+    return '';
 }
 
 // ── 터치 스와이프 ──
@@ -1436,11 +1684,11 @@ async function toggleFav(applicantId) {
                         .select('id').eq('user_id', tgt[0].user_id).eq('applicant_id', window._myProfile.id).limit(1);
                     if (reverse && reverse.length > 0) {
                         // 상호 찜! 양쪽 푸시
-                        sendPushNotif(tgt[0].user_id, '💘 상호 관심 매칭!', `${window._myProfile.name}님과 서로 찜했어요`, dashUrl('interest'));
-                        sendPushNotif(user.id, '💘 상호 관심 매칭!', `${tgt[0].name}님과 서로 찜했어요`, dashUrl('interest'));
+                        sendPushNotif(tgt[0].user_id, '💘 상호 관심 매칭!', `${window._myProfile.name}님과 서로 찜했어요`, dashUrl('interest'), 'mutual');
+                        sendPushNotif(user.id, '💘 상호 관심 매칭!', `${tgt[0].name}님과 서로 찜했어요`, dashUrl('interest'), 'mutual');
                     } else {
                         // 단방향: 상대에게 관심 알림
-                        sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', dashUrl('interest'));
+                        sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', dashUrl('interest'), 'interest');
                     }
                 }
             } catch(e) { console.log('fav push error:', e.message); }
@@ -1856,14 +2104,42 @@ async function setupPushSubscription(showToast) {
     }
 }
 
-async function sendPushNotif(userId, title, body, url) {
+async function sendPushNotif(userId, title, body, url, type) {
     try {
+        // 수신자 알림 환경설정 확인
+        if (type) {
+            const { data } = await db.from('applicants')
+                .select('notification_prefs').eq('user_id', userId).limit(1);
+            const prefs = data?.[0]?.notification_prefs;
+            if (prefs && prefs[type] === false) return; // 해당 타입 off
+        }
         await db.functions.invoke('send-push', {
             body: { user_id: userId, title, body, url }
         });
     } catch(e) {
         console.log('send-push error:', e.message);
     }
+}
+
+// 알림 환경설정 토글
+async function toggleNotifPref(type) {
+    if (!window._myProfile) return;
+    const prefs = { match:true, message:true, interest:true, mutual:true, approved:true, inquiry_reply:true, announcement:true, ...(window._myProfile.notification_prefs || {}) };
+    prefs[type] = !(prefs[type] !== false); // toggle (default true → false → true)
+    window._myProfile.notification_prefs = prefs;
+    try {
+        await db.from('applicants').update({ notification_prefs: prefs }).eq('id', window._myProfile.id);
+        renderNotifPrefsUI();
+    } catch(e) { toast('설정 저장 실패', 'error'); }
+}
+
+function renderNotifPrefsUI() {
+    if (!window._myProfile) return;
+    const prefs = { match:true, message:true, interest:true, mutual:true, approved:true, inquiry_reply:true, announcement:true, ...(window._myProfile.notification_prefs || {}) };
+    document.querySelectorAll('.notif-pref-switch').forEach(sw => {
+        const key = sw.dataset.pref;
+        sw.classList.toggle('on', prefs[key] !== false);
+    });
 }
 
 // ── 알림 네비게이션 ──
@@ -2314,7 +2590,7 @@ async function init() {
         // 이성 승인 참가자 로드 (온보딩에서도 숫자 필요)
         const oppGender = profile.gender === 'male' ? 'female' : 'male';
         const { data: candidates } = await db.from('applicants')
-            .select('id,name,gender,birth,job,job_category,height,education,look_score,location,mbti,photos,icebreaker,ideal')
+            .select('id,name,gender,birth,job,job_category,height,education,look_score,location,mbti,photos,icebreaker,ideal,smoking,drinking,religion,hobby,last_seen_at,user_id')
             .eq('status', 'approved')
             .eq('gender', oppGender);
         window._allCandidates = candidates || [];
@@ -2418,6 +2694,10 @@ async function init() {
     setLoading(false);
     // URL 해시 → 해당 탭 (푸시 알림 클릭으로 진입한 경우)
     handleNavHash();
+    // 필터 버튼 배지 초기화
+    updateFilterBtnBadge();
+    // 알림 환경설정 UI 동기화
+    if (typeof renderNotifPrefsUI === 'function') renderNotifPrefsUI();
     } catch(e) {
         console.error('dashboard init error:', e);
         setLoading(false);
@@ -2750,7 +3030,8 @@ async function sendChatMessage() {
             _chatPartnerUserId,
             `${window._myProfile?.name || '반쪽'}님`,
             text.length > 60 ? text.slice(0, 60) + '...' : text,
-            dashUrl('chat')
+            dashUrl('chat'),
+            'message'
         );
     } catch(e) {
         toast('메시지 전송에 실패했어요', 'error');
