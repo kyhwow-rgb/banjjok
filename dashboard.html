@@ -353,7 +353,7 @@
 </div>
 
 <div class="navbar">
-    <div class="navbar-brand" onclick="window.location.href='index.html'">반쪽</div>
+    <div class="navbar-brand" onclick="goHome()" style="cursor:pointer;">반쪽</div>
     <div style="display:flex;align-items:center;gap:12px;">
         <span class="navbar-email" id="user-email"></span>
         <button class="notif-bell" id="notif-bell" onclick="toggleNotifPanel()">
@@ -1881,6 +1881,15 @@ async function deleteAccount() {
             setTimeout(() => { window.location.href = 'index.html'; }, 1500);
         }
     });
+}
+
+async function goHome() {
+    if (confirm('로그아웃되어 홈으로 이동합니다.\n계속하시겠어요?')) {
+        await db.auth.signOut();
+        localStorage.removeItem('kj_role');
+        localStorage.removeItem('kj_screen');
+        window.location.href = 'index.html';
+    }
 }
 
 async function doLogout(silent) {
