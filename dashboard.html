@@ -2220,6 +2220,11 @@ async function init() {
     const { data: profiles } = await db.from('applicants')
         .select('*').eq('user_id', user.id).limit(1);
     const profile = profiles && profiles[0] ? profiles[0] : null;
+    // 최근 접속 기록 (관리자 대시보드 활동성 파악용)
+    if (profile) {
+        db.from('applicants').update({ last_seen_at: new Date().toISOString() })
+            .eq('user_id', user.id).then(() => {}, () => {});
+    }
     window._popularityCount = 0;
     window._favCounts = {};
     renderProfile(profile);
