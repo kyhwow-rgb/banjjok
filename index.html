@@ -793,9 +793,26 @@
                     </select>
                 </div>
             </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>종교</label>
+                    <select id="reg-religion">
+                        <option value="">선택해주세요</option>
+                        <option value="무교">무교</option>
+                        <option value="기독교">기독교</option>
+                        <option value="천주교">천주교</option>
+                        <option value="불교">불교</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>연락처 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>
+                    <input type="tel" id="reg-contact" placeholder="010-0000-0000">
+                </div>
+            </div>
             <div class="input-group">
-                <label>연락처 <span style="color:#9ca3af;font-weight:400;">(선택 · 관리자만 공개)</span></label>
-                <input type="tel" id="reg-contact" placeholder="010-0000-0000">
+                <label>취미 <span style="color:#9ca3af;font-weight:400;">(자유롭게 작성)</span></label>
+                <input type="text" id="reg-hobby" placeholder="예: 등산, 영화감상, 요리, 러닝">
             </div>
 
             <!-- 접속 경로 (필수) -->
@@ -1428,7 +1445,7 @@ function resetForm() {
     photoFiles = [null, null, null];
     ['gender-male','gender-female'].forEach(id => document.getElementById(id).className = 'gender-option');
     ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-contact','reg-kakao',
-     'reg-intro','reg-mbti','reg-referral','reg-education','reg-smoking','reg-drinking','reg-referral-code'].forEach(id => {
+     'reg-intro','reg-mbti','reg-referral','reg-education','reg-smoking','reg-drinking','reg-religion','reg-hobby','reg-referral-code'].forEach(id => {
         document.getElementById(id).value = '';
     });
     // 접속경로 드롭다운 초기화
@@ -1568,6 +1585,8 @@ async function submitApplication() {
         job_category:  job || null,
         smoking:   document.getElementById('reg-smoking').value || null,
         drinking:  document.getElementById('reg-drinking').value || null,
+        religion:  document.getElementById('reg-religion').value || null,
+        hobby:     document.getElementById('reg-hobby').value.trim() || null,
         icebreaker:    icebreaker,
     };
 
@@ -1716,11 +1735,11 @@ function calcMbtiCompat(mbti1, mbti2) {
 
 const IDEAL_CATEGORIES = [
     { key:'키',     label:'선호하는 키',                   options:['작은 편','보통','큰 편','상관없음'] },
-    { key:'나이',   label:'선호하는 연령대',               options:['연상','연하','동갑','상관없음'] },
     { key:'성향',   label:'선호하는 MBTI',                options:['E','I','N','S','F','T','P','J','상관없음'] },
     { key:'지역',   label:'선호하는 지역',                 options:['서울','경기','인천','충청','강원','전라','경상','제주','상관없음'] },
     { key:'흡연',   label:'흡연 여부',                    options:['비흡연자 선호','흡연 OK','전자담배 OK'] },
     { key:'음주',   label:'음주 여부',                    options:['안 마시는 분','가끔 한 잔','자주 즐기는 분','상관없음'] },
+    { key:'종교',   label:'선호하는 종교',                 options:['무교','기독교','천주교','불교','상관없음'] },
 ];
 
 function buildIdealChipsHtml(prefix, idealJson) {
@@ -1734,7 +1753,23 @@ function buildIdealChipsHtml(prefix, idealJson) {
         } catch {}
     }
     const cid = prefix === 'reg' ? 'ideal-chips' : 'edit-ideal-chips';
-    return IDEAL_CATEGORIES.map(cat => `
+    // 나이 허용 범위 (숫자)
+    const ageUpper = (selected['나이_연상'] != null) ? selected['나이_연상'] : 5;
+    const ageLower = (selected['나이_연하'] != null) ? selected['나이_연하'] : 5;
+    const ageHtml = `
+        <div class="chip-group">
+            <span class="chip-group-label">선호 나이 범위</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.88em;">
+                <span style="color:#737373;">연상</span>
+                <input type="number" id="${prefix}-age-upper" value="${ageUpper}" min="0" max="20" style="width:52px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;font-size:.95em;" oninput="updateScoreBar()">
+                <span style="color:#737373;">살까지 ·</span>
+                <span style="color:#737373;">연하</span>
+                <input type="number" id="${prefix}-age-lower" value="${ageLower}" min="0" max="20" style="width:52px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;font-size:.95em;" oninput="updateScoreBar()">
+                <span style="color:#737373;">살까지</span>
+            </div>
+        </div>`;
+
+    return ageHtml + IDEAL_CATEGORIES.map(cat => `
         <div class="chip-group">
             <span class="chip-group-label">${cat.label}</span>
             <div class="chip-list">
@@ -1759,6 +1794,12 @@ function collectIdealData(chipsId, memoId) {
         if (!data[cat]) data[cat] = [];
         data[cat].push(c.dataset.val);
     });
+    // 나이 범위 수집
+    const prefix = chipsId === 'ideal-chips' ? 'reg' : 'edit';
+    const ageUpper = document.getElementById(prefix + '-age-upper');
+    const ageLower = document.getElementById(prefix + '-age-lower');
+    if (ageUpper) data['나이_연상'] = parseInt(ageUpper.value) || 5;
+    if (ageLower) data['나이_연하'] = parseInt(ageLower.value) || 5;
     const memo = document.getElementById(memoId)?.value.trim();
     if (memo) data.memo = memo;
     return Object.keys(data).length ? JSON.stringify(data) : null;
@@ -2168,6 +2209,8 @@ function openAdminDetail(id) {
         a.mbti      ? ['MBTI',   a.mbti]          : null,
         a.smoking   ? ['흡연',   a.smoking]       : null,
         a.drinking  ? ['음주',   a.drinking]      : null,
+        a.religion  ? ['종교',   a.religion]      : null,
+        a.hobby     ? ['취미',   a.hobby]         : null,
         a.referral  ? ['접속경로', a.referral]    : null,
         a.intro     ? ['자기소개', a.intro]       : null,
         ['신청일',  formatDate(a.created_at)],
@@ -2294,6 +2337,13 @@ function openEditForm(id) {
                 ${['안 마심','가끔','자주'].map(v => '<option value="'+v+'" '+(a.drinking===v?'selected':'')+'>'+v+'</option>').join('')}
             </select></div>
         </div>
+        <div class="form-row">
+            <div class="input-group"><label>종교</label><select id="edit-religion">
+                <option value="">선택...</option>
+                ${['무교','기독교','천주교','불교','기타'].map(v => '<option value="'+v+'" '+(a.religion===v?'selected':'')+'>'+v+'</option>').join('')}
+            </select></div>
+            <div class="input-group"><label>취미</label><input type="text" id="edit-hobby" value="${esc(a.hobby||'')}"></div>
+        </div>
         <div class="input-group"><label>연락처 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label><input type="tel" id="edit-contact" value="${esc(a.contact||'')}"></div>
         <div class="input-group"><label>접속경로</label><input type="text" id="edit-referral" value="${esc(a.referral||'')}"></div>
         <div class="input-group">
@@ -2383,6 +2433,8 @@ async function saveEdit(id) {
             job_category: document.getElementById('edit-job-category')?.value || job || null,
             smoking: document.getElementById('edit-smoking').value || null,
             drinking: document.getElementById('edit-drinking').value || null,
+            religion: document.getElementById('edit-religion').value || null,
+            hobby: document.getElementById('edit-hobby')?.value.trim() || null,
             look_score: document.getElementById('edit-look-score').value ? parseInt(document.getElementById('edit-look-score').value) : null,
             icebreaker: editIcebreaker,
         }, `?id=eq.${id}`);
@@ -2831,6 +2883,7 @@ async function prefillRegisterForm(userId) {
         ['reg-kakao', p.kakao], ['reg-intro', p.intro], ['reg-contact', p.contact],
         ['reg-referral', p.referral], ['reg-education', p.education],
         ['reg-smoking', p.smoking], ['reg-drinking', p.drinking],
+        ['reg-religion', p.religion], ['reg-hobby', p.hobby],
     ];
     fields.forEach(([id, val]) => {
         const el = document.getElementById(id);
