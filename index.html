@@ -1071,6 +1071,13 @@
                 <div class="stat-card" id="card-matched" onclick="switchAdminTab('matching')"   ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
             </div>
 
+            <!-- AI 매칭 제안 -->
+            <div class="admin-section" id="ai-match-section" style="display:none;">
+                <div class="admin-section-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> AI 매칭 제안 <span id="ai-match-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span></div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">상호 찜한 쌍 중 궁합 점수가 가장 높은 매칭 후보입니다.</div>
+                <div id="ai-match-list"></div>
+            </div>
+
             <!-- 실시간 활동 + 피드백 집계 -->
             <div class="admin-section">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
@@ -1153,6 +1160,39 @@
 
         <!-- ══ 설정 탭 ══ -->
         <div class="admin-tab-panel" id="adminPanel-settings">
+            <!-- 공지사항 발송 -->
+            <div class="admin-section">
+                <div class="admin-section-title"><i class="fa-solid fa-bullhorn" style="color:var(--primary);"></i> 공지사항 발송</div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">전체 또는 특정 세그먼트 유저에게 공지를 보냅니다. 알림 센터에 저장되고, 푸시 알림도 함께 발송됩니다.</div>
+                <div class="input-group" style="margin-bottom:10px;">
+                    <label>제목</label>
+                    <input type="text" id="broadcast-title" placeholder="예: 업데이트 안내" maxlength="60">
+                </div>
+                <div class="input-group" style="margin-bottom:10px;">
+                    <label>내용</label>
+                    <textarea id="broadcast-body" rows="3" placeholder="공지 내용을 입력하세요 (최대 300자)" maxlength="300" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9em;"></textarea>
+                </div>
+                <div class="input-group" style="margin-bottom:10px;">
+                    <label>대상</label>
+                    <select id="broadcast-target" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9em;">
+                        <option value="all">전체 유저</option>
+                        <option value="approved">승인된 유저 (activated)</option>
+                        <option value="pending">승인 대기중</option>
+                        <option value="matched">매칭된 유저</option>
+                        <option value="male">남성 (승인됨)</option>
+                        <option value="female">여성 (승인됨)</option>
+                    </select>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:.85em;margin-bottom:12px;">
+                    <input type="checkbox" id="broadcast-push" checked> 푸시 알림도 함께 발송
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-outline" onclick="previewBroadcast()" style="flex:1;">대상 확인</button>
+                    <button class="btn btn-primary" onclick="sendBroadcast()" style="flex:2;"><i class="fa-solid fa-paper-plane"></i> 발송</button>
+                </div>
+                <div id="broadcast-status" style="margin-top:10px;font-size:.82em;"></div>
+            </div>
+
             <div class="admin-section">
                 <div class="admin-section-title"><i class="fa-solid fa-lock" style="color:var(--primary);"></i> 비밀번호 변경</div>
                 <div class="pw-settings">
@@ -2060,8 +2100,14 @@ async function adminFetch(table, method='GET', body=null, query='') {
 }
 
 // ── 관리자: 푸시 알림 전송 ──
-async function sendAdminPush(userId, title, body, url) {
+async function sendAdminPush(userId, title, body, url, type) {
     try {
+        // 수신자 알림 환경설정 확인
+        if (type) {
+            const cached = (adminCache || []).find(a => a.user_id === userId);
+            const prefs = cached?.notification_prefs;
+            if (prefs && prefs[type] === false) return;
+        }
         const { data: { session } } = await db.auth.getSession();
         const token = session ? session.access_token : SUPABASE_KEY;
         await fetch(SUPABASE_URL + '/functions/v1/send-push', {
@@ -2138,7 +2184,7 @@ async function renderAdmin() {
 
     // 매칭 요청 + 상호관심 현황 로드
     loadMatchRequests();
-    loadMutualOverview();
+    await loadMutualOverview();
     loadAdminInquiries();
     renderMatchedCouples();
     // 신규 관리자 대시보드 위젯 로드
@@ -2146,6 +2192,7 @@ async function renderAdmin() {
     loadAdminHealthMetrics();
     loadAdminActivityFeed();
     loadAdminFeedbackWidget();
+    renderAiMatchSuggestions();
     // 탭 배지 업데이트 (약간 지연 — 비동기 카운트 로드 후)
     updateAdminTabBadges();
     setTimeout(updateAdminTabBadges, 800);
@@ -2216,6 +2263,131 @@ function updateAdminTabBadges() {
     set('sub-cnt-pending', pending);
     set('sub-cnt-male', byG('male'));
     set('sub-cnt-female', byG('female'));
+}
+
+// ── 공지사항 발송 ──
+function getBroadcastTargets() {
+    const target = document.getElementById('broadcast-target').value;
+    return adminCache.filter(a => {
+        if (!a.user_id) return false;
+        if (target === 'all') return true;
+        if (target === 'approved') return a.status === 'approved';
+        if (target === 'pending') return a.status === 'pending';
+        if (target === 'matched') return a.status === 'matched';
+        if (target === 'male') return a.status === 'approved' && a.gender === 'male';
+        if (target === 'female') return a.status === 'approved' && a.gender === 'female';
+        return false;
+    });
+}
+
+function previewBroadcast() {
+    const targets = getBroadcastTargets();
+    const names = targets.slice(0, 10).map(a => a.name).join(', ');
+    alert(`총 ${targets.length}명에게 발송됩니다.\n\n예시: ${names}${targets.length > 10 ? ` ...외 ${targets.length - 10}명` : ''}`);
+}
+
+async function sendBroadcast() {
+    const title = document.getElementById('broadcast-title').value.trim();
+    const body = document.getElementById('broadcast-body').value.trim();
+    const withPush = document.getElementById('broadcast-push').checked;
+    if (!title) { toast('제목을 입력해주세요', 'warning'); return; }
+    if (!body) { toast('내용을 입력해주세요', 'warning'); return; }
+
+    const targets = getBroadcastTargets();
+    if (targets.length === 0) { toast('대상이 없습니다', 'warning'); return; }
+    if (!confirm(`총 ${targets.length}명에게 공지를 발송하시겠습니까?`)) return;
+
+    const statusEl = document.getElementById('broadcast-status');
+    statusEl.innerHTML = '<span style="color:var(--muted);">발송 중...</span>';
+    setLoading(true);
+
+    // 1) notifications 테이블 bulk insert
+    const rows = targets.map(t => ({ user_id: t.user_id, type: 'announcement', title, body }));
+    try {
+        // 50개씩 배치 insert
+        const batches = [];
+        for (let i = 0; i < rows.length; i += 50) batches.push(rows.slice(i, i + 50));
+        let okCount = 0;
+        for (const batch of batches) {
+            try {
+                await adminFetch('notifications', 'POST', batch);
+                okCount += batch.length;
+            } catch(e) { console.log('notif batch err:', e.message); }
+        }
+        statusEl.innerHTML = `<span style="color:#059669;">✓ 알림 센터에 ${okCount}건 저장됨</span>`;
+
+        // 2) 푸시 발송 (선택 시)
+        if (withPush) {
+            statusEl.innerHTML += '<br><span style="color:var(--muted);">푸시 발송 중...</span>';
+            let pushOk = 0;
+            const URL_HOME = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html';
+            for (const t of targets) {
+                if (!t.user_id) continue;
+                // announcement 환경설정 확인은 edge function이 아니라 여기서 클라이언트 레벨로
+                try {
+                    const prefs = t.notification_prefs;
+                    if (prefs && prefs.announcement === false) continue;
+                    await sendAdminPush(t.user_id, '📢 ' + title, body.length > 100 ? body.slice(0, 100) + '...' : body, URL_HOME, 'announcement');
+                    pushOk++;
+                } catch(e) {}
+            }
+            statusEl.innerHTML += `<br><span style="color:#059669;">✓ 푸시 ${pushOk}건 발송 완료</span>`;
+        }
+        toast('공지사항 발송 완료!', 'success');
+        setLoading(false);
+        document.getElementById('broadcast-title').value = '';
+        document.getElementById('broadcast-body').value = '';
+    } catch(e) {
+        setLoading(false);
+        statusEl.innerHTML = '<span style="color:#ef4444;">발송 실패: ' + esc(e.message) + '</span>';
+    }
+}
+
+// ── AI 매칭 제안 위젯 ──
+function renderAiMatchSuggestions() {
+    const sec = document.getElementById('ai-match-section');
+    const list = document.getElementById('ai-match-list');
+    const count = document.getElementById('ai-match-count');
+    if (!sec || !list) return;
+
+    const mutuals = window._adminMutualPairs || [];
+    if (mutuals.length === 0) { sec.style.display = 'none'; return; }
+
+    // 점수 계산 + 정렬
+    const scored = mutuals.map(pair => {
+        const [m, f] = pair; // [male, female]
+        if (!m || !f) return null;
+        const compat = calcPairCompat(m, f);
+        return { m, f, compat };
+    }).filter(Boolean).sort((a, b) => b.compat.score - a.compat.score);
+
+    const top = scored.slice(0, 5);
+    sec.style.display = '';
+    count.textContent = `${top.length}쌍`;
+
+    list.innerHTML = top.map((item, idx) => {
+        const { m, f, compat } = item;
+        const mAge = calcAge(m.birth), fAge = calcAge(f.birth);
+        const scoreCls = compat.score >= 80 ? 'match-score-high' : compat.score >= 60 ? 'match-score-mid' : 'match-score-low';
+        const rankIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+        const warnHtml = compat.warnings.length > 0 ? `<span style="color:#d97706;font-size:.72em;">⚠ ${esc(compat.warnings.join(', '))}</span>` : '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:#fafafa;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <div style="font-size:1.1em;font-weight:800;min-width:36px;">${rankIcon}</div>
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:.9em;font-weight:700;">
+                    <i class="fa-solid fa-mars" style="color:#3b82f6;font-size:.9em;"></i> ${esc(m.name)} (${mAge}세)
+                    <span style="color:#ec4899;margin:0 4px;">💘</span>
+                    <i class="fa-solid fa-venus" style="color:#ec4899;font-size:.9em;"></i> ${esc(f.name)} (${fAge}세)
+                </div>
+                <div style="font-size:.72em;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <span class="match-score-badge ${scoreCls}">🎯 ${compat.score}점</span>
+                    <span>MBTI ${compat.mbti}%</span>
+                    ${warnHtml}
+                </div>
+            </div>
+            <button class="btn btn-sm btn-match" onclick="confirmMatch('${m.id}','${f.id}')" style="font-size:.8em;padding:7px 14px;"><i class="fa-solid fa-heart-pulse"></i> 매칭하기</button>
+        </div>`;
+    }).join('');
 }
 
 // ── 오늘 처리할 것 위젯 ──
@@ -2650,8 +2822,8 @@ async function approveMatchRequest(reqId, fromId, toId) {
             '?status=eq.pending&or=(from_applicant.eq.' + fromId + ',to_applicant.eq.' + fromId + ',from_applicant.eq.' + toId + ',to_applicant.eq.' + toId + ')');
         // 양쪽에 매칭 푸시
         const MATCH_URL = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
-        if (fromUser?.user_id) sendAdminPush(fromUser.user_id, '🎉 매칭 성사!', `${toUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
-        if (toUser?.user_id) sendAdminPush(toUser.user_id, '🎉 매칭 성사!', `${fromUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
+        if (fromUser?.user_id) sendAdminPush(fromUser.user_id, '🎉 매칭 성사!', `${toUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
+        if (toUser?.user_id) sendAdminPush(toUser.user_id, '🎉 매칭 성사!', `${fromUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('매칭이 승인되었습니다!', 'success');
@@ -2755,7 +2927,8 @@ async function loadMutualOverview() {
         }
 
         document.getElementById('stat-mutual').textContent = pairs.length;
-        window._adminMutuals = pairs; // 탭 배지용
+        window._adminMutuals = pairs; // 탭 배지 카운트용
+        window._adminMutualPairs = pairs; // AI 매칭 제안용 [male, female] 객체 쌍
         if (typeof updateAdminTabBadges === 'function') updateAdminTabBadges();
         if (pairs.length === 0) { sec.style.display = 'none'; return; }
         sec.style.display = '';
@@ -3405,8 +3578,8 @@ async function confirmMatch(maleId, femaleId) {
         const male = adminCache.find(a => a.id === maleId);
         const female = adminCache.find(a => a.id === femaleId);
         const MATCH_URL = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
-        if (male?.user_id) sendAdminPush(male.user_id, '🎉 매칭 성사!', `${female?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
-        if (female?.user_id) sendAdminPush(female.user_id, '🎉 매칭 성사!', `${male?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
+        if (male?.user_id) sendAdminPush(male.user_id, '🎉 매칭 성사!', `${female?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
+        if (female?.user_id) sendAdminPush(female.user_id, '🎉 매칭 성사!', `${male?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('매칭이 완료되었습니다!', 'success');
@@ -3479,8 +3652,8 @@ async function releaseContact(maleId, femaleId) {
         const male = adminCache.find(a => a.id === maleId);
         const female = adminCache.find(a => a.id === femaleId);
         const URL_MY = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
-        if (male?.user_id) sendAdminPush(male.user_id, '📬 연락처가 공개되었어요', `${female?.name || '반쪽'}님의 카카오 ID를 확인하세요`, URL_MY);
-        if (female?.user_id) sendAdminPush(female.user_id, '📬 연락처가 공개되었어요', `${male?.name || '반쪽'}님의 카카오 ID를 확인하세요`, URL_MY);
+        if (male?.user_id) sendAdminPush(male.user_id, '📬 연락처가 공개되었어요', `${female?.name || '반쪽'}님의 카카오 ID를 확인하세요`, URL_MY, 'match');
+        if (female?.user_id) sendAdminPush(female.user_id, '📬 연락처가 공개되었어요', `${male?.name || '반쪽'}님의 카카오 ID를 확인하세요`, URL_MY, 'match');
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('연락처가 공개되었습니다. 양쪽에 카카오 ID가 전달됩니다.', 'success');
@@ -3563,7 +3736,7 @@ async function updateStatusFromDetail(id, status) {
     if (target?.user_id) {
         if (status === 'approved') {
             sendAdminPush(target.user_id, '✅ 신청서가 승인되었어요!', '이제 매칭을 시작할 수 있어요. 추천 반쪽을 확인해보세요.',
-                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-discover');
+                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-discover', 'approved');
         } else if (status === 'rejected') {
             // rejected 알림도 DB에 수동 insert (trigger가 처리 안 함)
             try {
@@ -3573,7 +3746,7 @@ async function updateStatusFromDetail(id, status) {
                 });
             } catch(e) {}
             sendAdminPush(target.user_id, '신청서 검토 결과', '프로필을 보완해서 다시 신청해주세요',
-                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my');
+                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my', 'approved');
         }
     }
     setLoading(false);
@@ -3595,7 +3768,7 @@ async function batchApproveAll() {
             success++;
             if (a.user_id) {
                 sendAdminPush(a.user_id, '✅ 신청서가 승인되었어요!', '이제 매칭을 시작할 수 있어요. 추천 반쪽을 확인해보세요.',
-                    'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-discover');
+                    'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-discover', 'approved');
             }
         } catch { fail++; }
     }
@@ -3734,7 +3907,7 @@ async function replyInquiry(id) {
         if (q?.user_id) {
             sendAdminPush(q.user_id, '💬 문의에 답변이 달렸어요',
                 reply.length > 60 ? reply.slice(0, 60) + '...' : reply,
-                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my');
+                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my', 'inquiry_reply');
         }
         toast('답변 완료', 'success');
         loadAdminInquiries();
