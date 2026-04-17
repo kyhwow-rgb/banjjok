@@ -300,6 +300,23 @@
         .onboard-content { padding:32px 20px; }
     }
 
+    /* CHAT */
+    .chat-messages { height:calc(100vh - 280px); overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:6px; }
+    .chat-bubble { max-width:75%; padding:10px 14px; border-radius:16px; font-size:.88em; word-break:break-word; line-height:1.5; position:relative; }
+    .chat-mine { background:#111; color:#fff; border-bottom-right-radius:4px; align-self:flex-end; }
+    .chat-theirs { background:#f3f4f6; color:#111; border-bottom-left-radius:4px; align-self:flex-start; }
+    .chat-time { font-size:.65em; color:#9ca3af; margin-top:2px; }
+    .chat-mine .chat-time { text-align:right; color:rgba(255,255,255,.5); }
+    .chat-read { font-size:.6em; color:rgba(255,255,255,.4); text-align:right; margin-top:1px; }
+    .chat-date-divider { text-align:center; padding:12px 0 8px; font-size:.72em; color:var(--muted); font-weight:600; }
+    .chat-input-wrap { padding:12px 16px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:flex-end; background:#fff; }
+    .chat-input-wrap textarea { flex:1; padding:10px 14px; border:1px solid #e5e7eb; border-radius:16px; font-size:.88em; font-family:inherit; resize:none; background:#fafafa; max-height:80px; outline:none; line-height:1.4; }
+    .chat-input-wrap textarea:focus { border-color:#111; background:#fff; }
+    .chat-send-btn { width:40px; height:40px; border-radius:50%; border:none; cursor:pointer; background:#111; color:#fff; font-size:1em; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .15s; }
+    .chat-send-btn:disabled { opacity:.3; cursor:not-allowed; }
+    .chat-empty { text-align:center; padding:48px 20px; color:var(--muted); }
+    .chat-empty i { font-size:3em; color:#e5e7eb; margin-bottom:12px; display:block; }
+
     /* NOTIFICATION BELL */
     .notif-bell { position:relative; background:none; border:none; cursor:pointer; font-size:1.3em; padding:6px; line-height:1; }
     .notif-badge { position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:.6em; font-weight:800; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
@@ -433,6 +450,40 @@
         </div>
     </div>
 
+    <!-- ══ TAB: 대화 ══ -->
+    <div class="tab-content" id="tab-chat">
+        <!-- 매칭 안 된 상태 -->
+        <div id="chat-not-matched" style="display:none;">
+            <div class="chat-empty">
+                <i class="fa-regular fa-comment-dots"></i>
+                <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 대화할 수 없어요</div>
+                <div style="font-size:.82em;">매칭이 성사되면 대화를 시작할 수 있어요</div>
+            </div>
+        </div>
+        <!-- 채팅 UI -->
+        <div class="section-card" id="chat-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-regular fa-comment-dots"></i> 대화</div>
+                <span id="chat-partner-name" style="font-size:.82em;color:var(--muted);font-weight:600;"></span>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="chat-empty" id="chat-empty-msg">
+                    <i class="fa-regular fa-paper-plane"></i>
+                    <div style="font-size:.92em;font-weight:600;margin-bottom:4px;">첫 메시지를 보내보세요!</div>
+                    <div style="font-size:.82em;">매칭된 반쪽과 대화를 시작해보세요</div>
+                </div>
+            </div>
+            <div class="chat-input-wrap">
+                <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1" maxlength="500"
+                    oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+                <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ══ TAB: MY ══ -->
     <div class="tab-content" id="tab-my">
         <!-- 내 프로필 (MY) -->
@@ -544,6 +595,11 @@
         <i class="fa-regular fa-bell"></i>
         <span>관심</span>
         <span class="tab-badge" id="interest-badge" style="display:none;">0</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('chat')" id="tab-btn-chat" style="position:relative;">
+        <i class="fa-regular fa-comment-dots"></i>
+        <span>대화</span>
+        <span class="tab-badge" id="chat-badge" style="display:none;">0</span>
     </div>
     <div class="tab-item" onclick="switchTab('my')" id="tab-btn-my">
         <i class="fa-solid fa-user"></i>
@@ -1058,6 +1114,10 @@ function switchTab(tab) {
     // MY 탭 전환 시 문의 내역 새로고침 (관리자 답변 반영)
     if (tab === 'my') {
         loadInquiries();
+    }
+    // 대화 탭 전환 시 읽음 처리
+    if (tab === 'chat') {
+        markChatAsRead();
     }
 }
 
@@ -2050,19 +2110,28 @@ async function init() {
             renderMatchRanking(window._allCandidates);
         }
 
-        // 매칭 성사 확인 → 상대방 정보 표시
+        // 매칭 성사 확인 → 상대방 정보 표시 + 채팅 초기화
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
-                    .select('id,name,gender,birth,job,location,kakao,contact,photos,contact_released')
+                    .select('id,name,gender,birth,job,location,kakao,contact,photos,contact_released,user_id')
                     .eq('id', profile.matched_with).limit(1);
-                if (partners && partners[0]) renderMatchResult(partners[0]);
+                if (partners && partners[0]) {
+                    renderMatchResult(partners[0]);
+                    // 채팅 초기화
+                    if (partners[0].user_id) {
+                        await initChat(profile, partners[0].user_id, partners[0].name);
+                    }
+                }
             } catch(e) { console.log('match partner load error:', e.message); }
         }
     }
 
     if (!isMatched) {
         await loadFavorites(user.id);
+        // 미매칭 상태 → 대화 불가 표시
+        document.getElementById('chat-not-matched').style.display = '';
+        document.getElementById('chat-card').style.display = 'none';
     } else {
         // 매칭된 후에는 찜 목록/추천 숨김
         document.getElementById('match-ranking-card').style.display = 'none';
@@ -2212,6 +2281,243 @@ async function reportUser(applicantId) {
         logEvent('report', { reported: applicantId, reason: reasonText });
     } catch(e) { toast('신고 처리 중 오류가 발생했어요.', 'error'); }
 }
+
+// ── 채팅 시스템 ──
+let _chatChannel = null;
+let _chatPartnerUserId = null;
+let _chatPartnerName = '';
+let _chatMatchKey = null;
+let _lastChatSent = 0;
+
+function computeMatchKey(uid1, uid2) {
+    return uid1 < uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1;
+}
+
+function formatChatTime(ts) {
+    const d = new Date(ts);
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function formatChatDate(ts) {
+    const d = new Date(ts);
+    const m = d.getMonth() + 1, day = d.getDate();
+    const days = ['일','월','화','수','목','금','토'];
+    return `${m}월 ${day}일 (${days[d.getDay()]})`;
+}
+
+function renderChatMessages(messages) {
+    const container = document.getElementById('chat-messages');
+    const emptyMsg = document.getElementById('chat-empty-msg');
+    if (!messages || messages.length === 0) {
+        if (emptyMsg) emptyMsg.style.display = '';
+        return;
+    }
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    const { data: { session } } = { data: { session: window._chatSession } };
+    const myUid = session?.user?.id;
+    let html = '';
+    let lastDate = '';
+
+    for (const msg of messages) {
+        const msgDate = formatChatDate(msg.created_at);
+        if (msgDate !== lastDate) {
+            html += `<div class="chat-date-divider">${msgDate}</div>`;
+            lastDate = msgDate;
+        }
+        const isMine = msg.sender_id === myUid;
+        html += `<div class="chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}" data-id="${msg.id}">`;
+        html += esc(msg.content).replace(/\n/g, '<br>');
+        html += `<div class="chat-time">${formatChatTime(msg.created_at)}</div>`;
+        if (isMine && msg.read_at) {
+            html += `<div class="chat-read">읽음</div>`;
+        }
+        html += `</div>`;
+    }
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+}
+
+function appendChatMessage(msg) {
+    const container = document.getElementById('chat-messages');
+    const emptyMsg = document.getElementById('chat-empty-msg');
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    const myUid = window._chatSession?.user?.id;
+    const isMine = msg.sender_id === myUid;
+
+    // 날짜 구분선 필요 여부
+    const lastBubble = container.querySelector('.chat-bubble:last-child, .chat-date-divider:last-child');
+    const msgDate = formatChatDate(msg.created_at);
+    const existingDividers = container.querySelectorAll('.chat-date-divider');
+    const lastDivider = existingDividers[existingDividers.length - 1];
+    if (!lastDivider || lastDivider.textContent !== msgDate) {
+        const divEl = document.createElement('div');
+        divEl.className = 'chat-date-divider';
+        divEl.textContent = msgDate;
+        container.appendChild(divEl);
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`;
+    bubble.dataset.id = msg.id;
+    bubble.innerHTML = esc(msg.content).replace(/\n/g, '<br>')
+        + `<div class="chat-time">${formatChatTime(msg.created_at)}</div>`
+        + (isMine && msg.read_at ? `<div class="chat-read">읽음</div>` : '');
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+}
+
+async function initChat(profile, partnerUserId, partnerName) {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) return;
+    window._chatSession = session;
+    _chatPartnerUserId = partnerUserId;
+    _chatPartnerName = partnerName;
+    _chatMatchKey = computeMatchKey(session.user.id, partnerUserId);
+
+    document.getElementById('chat-card').style.display = '';
+    document.getElementById('chat-not-matched').style.display = 'none';
+    document.getElementById('chat-partner-name').textContent = partnerName + '님과의 대화';
+
+    // 기존 메시지 로드
+    const { data: messages } = await db.from('chat_messages')
+        .select('*')
+        .eq('match_key', _chatMatchKey)
+        .order('created_at', { ascending: true })
+        .limit(200);
+    renderChatMessages(messages || []);
+
+    // 안 읽은 메시지 읽음 처리
+    await markChatAsRead();
+
+    // 실시간 구독
+    if (_chatChannel) db.removeChannel(_chatChannel);
+    _chatChannel = db.channel('chat-' + _chatMatchKey)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: 'match_key=eq.' + _chatMatchKey
+        }, payload => {
+            // 중복 체크 (내가 보낸 건 이미 append 됐을 수 있음)
+            if (document.querySelector(`.chat-bubble[data-id="${payload.new.id}"]`)) return;
+            appendChatMessage(payload.new);
+            // 대화 탭이 활성화되어 있으면 바로 읽음 처리
+            const chatTab = document.getElementById('tab-chat');
+            if (chatTab && chatTab.classList.contains('active')) {
+                markChatAsRead();
+            } else {
+                updateChatBadge();
+            }
+        })
+        .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: 'match_key=eq.' + _chatMatchKey
+        }, payload => {
+            // 읽음 처리 반영
+            if (payload.new.read_at && payload.new.sender_id === window._chatSession?.user?.id) {
+                const bubble = document.querySelector(`.chat-bubble[data-id="${payload.new.id}"]`);
+                if (bubble && !bubble.querySelector('.chat-read')) {
+                    const readEl = document.createElement('div');
+                    readEl.className = 'chat-read';
+                    readEl.textContent = '읽음';
+                    bubble.appendChild(readEl);
+                }
+            }
+        })
+        .subscribe();
+
+    // 초기 배지 업데이트
+    updateChatBadge();
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!_chatPartnerUserId || !_chatMatchKey) return;
+
+    // 레이트 리밋 (1초)
+    const now = Date.now();
+    if (now - _lastChatSent < 1000) {
+        toast('메시지를 너무 빨리 보내고 있어요', 'info');
+        return;
+    }
+    _lastChatSent = now;
+
+    // 매칭 상태 확인
+    if (!window._myProfile || window._myProfile.status !== 'matched') {
+        toast('매칭된 상태에서만 대화할 수 있어요', 'error');
+        return;
+    }
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    try {
+        // 서버 사이드 매칭 검증 RPC 사용
+        const { data, error } = await db.rpc('send_chat_message', {
+            p_receiver_id: _chatPartnerUserId,
+            p_content: text
+        });
+        if (error) throw error;
+
+        // 즉시 UI에 표시 (Realtime이 오기 전에)
+        const tempMsg = {
+            id: data,
+            sender_id: window._chatSession.user.id,
+            receiver_id: _chatPartnerUserId,
+            match_key: _chatMatchKey,
+            content: text,
+            created_at: new Date().toISOString(),
+            read_at: null
+        };
+        appendChatMessage(tempMsg);
+        logEvent('chat_send');
+    } catch(e) {
+        toast('메시지 전송에 실패했어요', 'error');
+        input.value = text; // 복원
+    }
+}
+
+async function markChatAsRead() {
+    if (!_chatMatchKey || !window._chatSession) return;
+    try {
+        await db.from('chat_messages')
+            .update({ read_at: new Date().toISOString() })
+            .eq('match_key', _chatMatchKey)
+            .eq('receiver_id', window._chatSession.user.id)
+            .is('read_at', null);
+        // 배지 초기화
+        const badge = document.getElementById('chat-badge');
+        if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+    } catch(e) {}
+}
+
+async function updateChatBadge() {
+    if (!_chatMatchKey || !window._chatSession) return;
+    try {
+        const { count } = await db.from('chat_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('match_key', _chatMatchKey)
+            .eq('receiver_id', window._chatSession.user.id)
+            .is('read_at', null);
+        const badge = document.getElementById('chat-badge');
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch(e) {}
+}
+
+window.addEventListener('beforeunload', () => {
+    if (_chatChannel) db.removeChannel(_chatChannel);
+});
 
 // ── Pull-to-refresh ──
 (function() {
