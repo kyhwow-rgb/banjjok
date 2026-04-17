@@ -367,6 +367,70 @@
         .admin-section { background:white; border-radius:var(--radius); padding:24px; margin-bottom:16px; border:1px solid var(--border); }
         .admin-section-title { font-size:.95em; font-weight:700; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
 
+        /* ── 관리자 대시보드 위젯 ── */
+        .todo-widget { background:linear-gradient(135deg,#fef3c7,#fde68a); border:1px solid #fcd34d; border-radius:14px; padding:20px; margin-bottom:16px; }
+        .todo-title { font-size:1em; font-weight:800; color:#92400e; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+        .todo-list { display:flex; flex-direction:column; gap:8px; }
+        .todo-item { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:rgba(255,255,255,.8); border-radius:10px; cursor:pointer; transition:all .15s; border:1px solid rgba(251,191,36,.3); }
+        .todo-item:hover { background:#fff; transform:translateX(2px); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+        .todo-item-left { display:flex; align-items:center; gap:10px; }
+        .todo-icon { width:32px; height:32px; border-radius:8px; background:rgba(146,64,14,.1); color:#92400e; display:flex; align-items:center; justify-content:center; font-size:.9em; flex-shrink:0; }
+        .todo-text { font-size:.88em; font-weight:700; color:#78350f; }
+        .todo-sub { font-size:.72em; color:#92400e; margin-top:2px; }
+        .todo-count { background:#dc2626; color:#fff; font-size:.72em; font-weight:800; padding:3px 10px; border-radius:99px; min-width:28px; text-align:center; }
+        .todo-empty { text-align:center; padding:16px; color:#92400e; font-size:.85em; font-weight:600; }
+
+        .health-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+        .health-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; }
+        .health-label { font-size:.72em; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+        .health-value { font-size:1.4em; font-weight:900; color:#111; line-height:1; }
+        .health-delta { font-size:.72em; margin-top:4px; font-weight:700; }
+        .health-delta.up { color:#059669; }
+        .health-delta.down { color:#dc2626; }
+        .health-warn { color:#d97706; }
+        .health-chart { height:32px; margin-top:8px; display:flex; align-items:flex-end; gap:2px; }
+        .health-bar { flex:1; background:#e5e7eb; border-radius:2px 2px 0 0; min-height:2px; transition:all .3s; }
+        .health-bar.active { background:#111; }
+
+        .ratio-bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; display:flex; margin-top:8px; }
+        .ratio-male { background:#3b82f6; }
+        .ratio-female { background:#ec4899; }
+
+        .activity-feed { max-height:320px; overflow-y:auto; }
+        .activity-item { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:.82em; }
+        .activity-item:last-child { border-bottom:none; }
+        .activity-time { font-size:.72em; color:var(--muted); white-space:nowrap; min-width:56px; font-family:monospace; }
+        .activity-icon { font-size:.9em; flex-shrink:0; }
+        .activity-text { flex:1; }
+
+        .feedback-widget { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        @media(max-width:640px) { .feedback-widget { grid-template-columns:1fr; } .health-grid { grid-template-columns:repeat(2,1fr); } }
+        .feedback-card { background:#fafafa; border-radius:10px; padding:14px; }
+        .feedback-card-title { font-size:.78em; font-weight:700; color:#111; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .feedback-row { display:flex; justify-content:space-between; font-size:.78em; padding:4px 0; color:#374151; }
+        .feedback-row .cnt { font-weight:700; color:#111; }
+
+        .applicant-badge-row { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+        .app-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:99px; font-size:.68em; font-weight:700; }
+        .app-badge-new { background:#ecfdf5; color:#059669; }
+        .app-badge-wait { background:#fef2f2; color:#dc2626; }
+        .app-badge-nolook { background:#fffbeb; color:#d97706; }
+        .app-badge-online { background:#ecfdf5; color:#059669; }
+        .app-badge-idle { background:#f3f4f6; color:#6b7280; }
+        .app-badge-pop { background:#fdf2f8; color:#db2777; }
+        .app-badge-complete { background:#eff6ff; color:#2563eb; }
+
+        .admin-quickfilter { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
+        .quickfilter-btn { padding:5px 12px; border:1px solid var(--border); border-radius:99px; background:#fff; font-size:.75em; font-weight:600; cursor:pointer; color:#6b7280; font-family:inherit; }
+        .quickfilter-btn.active { background:#111; color:#fff; border-color:#111; }
+        .quickfilter-btn:hover { background:#f3f4f6; }
+        .quickfilter-btn.active:hover { background:#111; }
+
+        .match-score-badge { display:inline-flex; align-items:center; gap:3px; padding:3px 10px; border-radius:99px; font-size:.72em; font-weight:700; }
+        .match-score-high { background:#ecfdf5; color:#059669; }
+        .match-score-mid { background:#fef3c7; color:#b45309; }
+        .match-score-low { background:#fef2f2; color:#dc2626; }
+
         .applicant-row {
             display:flex; align-items:flex-start; gap:14px;
             padding:16px; border:1px solid var(--border); border-radius:12px;
@@ -907,12 +971,45 @@
 <!-- ════ ADMIN ════ -->
 <div id="screen-admin" class="screen">
     <div class="navbar">
-        <div class="navbar-brand" onclick="logout()" style="cursor:pointer;">반쪽</div>
-        <div class="navbar-right">
+        <div class="navbar-brand" onclick="logout()" style="cursor:pointer;">반쪽 <span style="font-size:.6em;color:var(--muted);font-weight:500;">관리자</span></div>
+        <div class="navbar-right" style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-nav" onclick="renderAdmin()" title="새로고침 (R)"><i class="fa-solid fa-arrows-rotate"></i></button>
+            <button class="btn btn-nav" onclick="alert('관리자 단축키:\\n/ : 검색 포커스\\n1~6 : 통계 탭 전환\\nR : 새로고침\\nEsc : 모달 닫기\\n\\n상세 모달에서:\\nA : 승인\\nX : 거절\\n? : 도움말');" title="단축키 (?)"><i class="fa-solid fa-keyboard"></i></button>
             <button class="btn btn-nav" onclick="logout()">로그아웃</button>
         </div>
     </div>
     <div class="page-container" style="max-width:920px;">
+
+        <!-- 오늘 처리할 것 위젯 -->
+        <div class="todo-widget" id="todo-widget" style="display:none;">
+            <div class="todo-title"><i class="fa-solid fa-bolt"></i> 오늘 처리할 것 <span id="todo-total-count" style="font-size:.75em;color:#b45309;font-weight:700;"></span></div>
+            <div class="todo-list" id="todo-list"></div>
+        </div>
+
+        <!-- 건강 지표 -->
+        <div class="health-grid">
+            <div class="health-card">
+                <div class="health-label">오늘 활동 유저</div>
+                <div class="health-value" id="health-dau">-</div>
+                <div class="health-delta" id="health-dau-delta"></div>
+            </div>
+            <div class="health-card">
+                <div class="health-label">7일 신규 가입</div>
+                <div class="health-value" id="health-signups">-</div>
+                <div class="health-chart" id="health-signup-chart"></div>
+            </div>
+            <div class="health-card">
+                <div class="health-label">오늘 메시지</div>
+                <div class="health-value" id="health-messages">-</div>
+                <div class="health-delta" id="health-messages-delta"></div>
+            </div>
+            <div class="health-card">
+                <div class="health-label">성비 (승인 기준)</div>
+                <div class="health-value" id="health-ratio">-</div>
+                <div class="ratio-bar"><div class="ratio-male" id="ratio-male-bar" style="width:50%;"></div><div class="ratio-female" id="ratio-female-bar" style="width:50%;"></div></div>
+                <div class="health-delta" id="health-ratio-warn"></div>
+            </div>
+        </div>
 
         <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
             <div class="stat-card active" id="card-total"   onclick="filterAdmin('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
@@ -921,6 +1018,20 @@
             <div class="stat-card"        id="card-female"  onclick="filterAdmin('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
             <div class="stat-card"        id="card-mutual"  onclick="filterAdmin('mutual')"    ><div class="stat-num" id="stat-mutual">0</div><div class="stat-label">상호관심</div></div>
             <div class="stat-card"        id="card-matched" onclick="filterAdmin('matched')"  ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
+        </div>
+
+        <!-- 실시간 활동 + 피드백 집계 -->
+        <div class="admin-section">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div>
+                    <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i> 실시간 활동</div>
+                    <div class="activity-feed" id="activity-feed"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;">로딩 중...</div></div>
+                </div>
+                <div>
+                    <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-comments" style="color:var(--primary);"></i> 유저 목소리 (7일)</div>
+                    <div class="feedback-widget" id="feedback-widget"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;grid-column:1/-1;">로딩 중...</div></div>
+                </div>
+            </div>
         </div>
 
         <div class="admin-section" id="match-requests-section" style="display:none;">
@@ -942,7 +1053,15 @@
                     <button class="btn btn-sm btn-approve" onclick="batchApproveAll()">전체 승인</button>
                 </div>
             </div>
-            <input type="text" id="admin-search" placeholder="이름으로 검색..." oninput="filterAdminSearch()" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;margin:10px 0 6px;">
+            <input type="text" id="admin-search" placeholder="이름·지역·직업·MBTI로 검색..." oninput="filterAdminSearch()" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;margin:10px 0 6px;">
+            <div class="admin-quickfilter" id="admin-quickfilter">
+                <button class="quickfilter-btn active" data-qf="none" onclick="applyQuickFilter('none')">전체</button>
+                <button class="quickfilter-btn" data-qf="no-look" onclick="applyQuickFilter('no-look')">외모 미평가</button>
+                <button class="quickfilter-btn" data-qf="no-photo" onclick="applyQuickFilter('no-photo')">사진 없음</button>
+                <button class="quickfilter-btn" data-qf="long-wait" onclick="applyQuickFilter('long-wait')">대기 3일+</button>
+                <button class="quickfilter-btn" data-qf="online" onclick="applyQuickFilter('online')">최근 24h 접속</button>
+                <button class="quickfilter-btn" data-qf="inactive" onclick="applyQuickFilter('inactive')">7일+ 미접속</button>
+            </div>
             <div id="filtered-list"></div>
         </div>
 
@@ -1905,6 +2024,14 @@ async function renderAdmin() {
     const approved = adminCache.filter(a => a.status === 'approved');
     const matched  = adminCache.filter(a => a.status === 'matched');
 
+    // 찜 받은 수 미리 집계 (applicant_id별 카운트)
+    try {
+        const favs = await adminFetch('favorites', 'GET', null, '?select=applicant_id');
+        const counts = {};
+        (favs || []).forEach(f => { counts[f.applicant_id] = (counts[f.applicant_id] || 0) + 1; });
+        window._adminFavCounts = counts;
+    } catch(e) { window._adminFavCounts = {}; }
+
     document.getElementById('stat-total').textContent   = adminCache.length;
     document.getElementById('stat-pending').textContent = pending.length;
     document.getElementById('stat-male').textContent    = approved.filter(a => a.gender === 'male').length;
@@ -1925,6 +2052,360 @@ async function renderAdmin() {
     loadMatchRequests();
     loadMutualOverview();
     loadAdminInquiries();
+    // 신규 관리자 대시보드 위젯 로드
+    loadAdminTodoWidget();
+    loadAdminHealthMetrics();
+    loadAdminActivityFeed();
+    loadAdminFeedbackWidget();
+}
+
+// ── 오늘 처리할 것 위젯 ──
+async function loadAdminTodoWidget() {
+    try {
+        const now = Date.now();
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+        const pending = adminCache.filter(a => a.status === 'pending');
+        const pendingOld = pending.filter(a => now - new Date(a.created_at).getTime() > threeDaysMs);
+        const approvedNoLook = adminCache.filter(a => a.status === 'approved' && (a.look_score == null));
+
+        // 매칭 대기 (상호 찜 but not matched) - loadMutualOverview가 세팅
+        let mutualCount = 0;
+        try {
+            const favs = await adminFetch('favorites', 'GET', null, '?select=*');
+            const mutuals = new Set();
+            const favSet = new Set(favs.map(f => `${f.user_id}:${f.applicant_id}`));
+            const userToApp = {};
+            adminCache.forEach(a => { if (a.user_id) userToApp[a.user_id] = a.id; });
+            for (const f of favs) {
+                const myAppId = userToApp[f.user_id];
+                if (!myAppId) continue;
+                const targetApp = adminCache.find(a => a.id === f.applicant_id);
+                if (!targetApp || !targetApp.user_id) continue;
+                if (favSet.has(`${targetApp.user_id}:${myAppId}`)) {
+                    const pair = [myAppId, f.applicant_id].sort().join(':');
+                    mutuals.add(pair);
+                }
+            }
+            // 이미 매칭된 쌍 제외
+            for (const pair of Array.from(mutuals)) {
+                const [a, b] = pair.split(':');
+                const aApp = adminCache.find(x => x.id === a);
+                const bApp = adminCache.find(x => x.id === b);
+                if (aApp?.status === 'matched' || bApp?.status === 'matched') mutuals.delete(pair);
+            }
+            mutualCount = mutuals.size;
+            window._adminMutuals = Array.from(mutuals);
+        } catch(e) {}
+
+        // 연락처 공개 대기
+        const matched = adminCache.filter(a => a.status === 'matched' && a.contact_released !== true);
+        const contactWaitPairs = Math.floor(matched.length / 2);
+
+        // 미답변 문의
+        let unreadInquiries = 0;
+        try {
+            const inq = await adminFetch('inquiries', 'GET', null, '?reply=is.null&select=id');
+            unreadInquiries = (inq || []).length;
+        } catch(e) {}
+
+        // 신고 (처리 안된 것)
+        let unhandledReports = 0;
+        try {
+            const reports = await adminFetch('reports', 'GET', null, '?select=id&order=created_at.desc');
+            unhandledReports = (reports || []).length;
+        } catch(e) {}
+
+        const items = [];
+        if (pending.length > 0) items.push({
+            icon: 'fa-user-clock', text: `신규 신청 ${pending.length}건 대기`,
+            sub: pendingOld.length > 0 ? `${pendingOld.length}건은 3일 이상 경과 ⚠️` : null,
+            count: pending.length, action: "filterAdmin('pending')"
+        });
+        if (mutualCount > 0) items.push({
+            icon: 'fa-heart-circle-bolt', text: `매칭 대기 상호찜 ${mutualCount}쌍`,
+            sub: '매칭 승인 필요', count: mutualCount,
+            action: "filterAdmin('mutual');setTimeout(()=>document.getElementById('mutual-overview-section').scrollIntoView({behavior:'smooth'}),100)"
+        });
+        if (contactWaitPairs > 0) items.push({
+            icon: 'fa-paper-plane', text: `연락처 공개 대기 ${contactWaitPairs}쌍`,
+            sub: '카카오 ID 전달 필요', count: contactWaitPairs,
+            action: "filterAdmin('matched')"
+        });
+        if (unreadInquiries > 0) items.push({
+            icon: 'fa-envelope', text: `미답변 문의 ${unreadInquiries}건`,
+            sub: null, count: unreadInquiries,
+            action: "document.getElementById('admin-inquiries-section').scrollIntoView({behavior:'smooth'});filterInquiries('unread')"
+        });
+        if (unhandledReports > 0) items.push({
+            icon: 'fa-triangle-exclamation', text: `신고 ${unhandledReports}건`,
+            sub: '검토 필요', count: unhandledReports,
+            action: "showReportsModal()"
+        });
+        if (approvedNoLook.length > 0) items.push({
+            icon: 'fa-star', text: `외모 평가 안된 승인자 ${approvedNoLook.length}명`,
+            sub: '매칭 점수 품질에 영향', count: approvedNoLook.length,
+            action: "applyQuickFilter('no-look')"
+        });
+
+        const widget = document.getElementById('todo-widget');
+        const list = document.getElementById('todo-list');
+        if (items.length === 0) {
+            widget.style.display = '';
+            document.getElementById('todo-total-count').textContent = '(없음)';
+            list.innerHTML = `<div class="todo-empty">✨ 모든 할 일이 처리되었어요!</div>`;
+        } else {
+            widget.style.display = '';
+            const total = items.reduce((s, i) => s + i.count, 0);
+            document.getElementById('todo-total-count').textContent = `(${total}건)`;
+            list.innerHTML = items.map(item => `
+                <div class="todo-item" onclick="${item.action}">
+                    <div class="todo-item-left">
+                        <div class="todo-icon"><i class="fa-solid ${item.icon}"></i></div>
+                        <div>
+                            <div class="todo-text">${esc(item.text)}</div>
+                            ${item.sub ? `<div class="todo-sub">${esc(item.sub)}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="todo-count">${item.count}</div>
+                </div>
+            `).join('');
+        }
+    } catch(e) { console.log('todo widget error:', e.message); }
+}
+
+// ── 건강 지표 ──
+async function loadAdminHealthMetrics() {
+    try {
+        // DAU (오늘 dashboard_open 유니크 user_id)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const yestStart = new Date(todayStart.getTime() - 24*60*60*1000);
+        const weekStart = new Date(todayStart.getTime() - 7*24*60*60*1000);
+
+        const dauLogs = await adminFetch('event_logs', 'GET', null,
+            `?event_type=eq.dashboard_open&created_at=gte.${todayStart.toISOString()}&select=user_id`);
+        const yestLogs = await adminFetch('event_logs', 'GET', null,
+            `?event_type=eq.dashboard_open&created_at=gte.${yestStart.toISOString()}&created_at=lt.${todayStart.toISOString()}&select=user_id`);
+        const dauSet = new Set((dauLogs || []).map(l => l.user_id).filter(Boolean));
+        const yestSet = new Set((yestLogs || []).map(l => l.user_id).filter(Boolean));
+        document.getElementById('health-dau').textContent = dauSet.size;
+        const dauDelta = dauSet.size - yestSet.size;
+        const dauEl = document.getElementById('health-dau-delta');
+        if (dauDelta > 0) { dauEl.textContent = `↑ 어제 대비 +${dauDelta}`; dauEl.className = 'health-delta up'; }
+        else if (dauDelta < 0) { dauEl.textContent = `↓ 어제 대비 ${dauDelta}`; dauEl.className = 'health-delta down'; }
+        else { dauEl.textContent = `어제와 동일`; dauEl.className = 'health-delta'; }
+
+        // 7일 신규 가입 + 차트
+        const buckets = Array(7).fill(0);
+        adminCache.forEach(a => {
+            const t = new Date(a.created_at).getTime();
+            const daysAgo = Math.floor((todayStart.getTime() - t) / (24*60*60*1000));
+            if (daysAgo >= 0 && daysAgo < 7) buckets[6 - daysAgo]++;
+            else if (daysAgo === -1) buckets[6]++; // today
+        });
+        // 오늘 데이터
+        adminCache.forEach(a => {
+            const t = new Date(a.created_at).getTime();
+            if (t >= todayStart.getTime()) buckets[6]++;
+        });
+        // 실제 7일치만 집계 (중복 카운트 수정)
+        for (let i = 0; i < 7; i++) buckets[i] = 0;
+        adminCache.forEach(a => {
+            const t = new Date(a.created_at).getTime();
+            const daysAgo = Math.floor((Date.now() - t) / (24*60*60*1000));
+            if (daysAgo >= 0 && daysAgo < 7) buckets[6 - daysAgo]++;
+        });
+        const totalSignups = buckets.reduce((s, v) => s + v, 0);
+        document.getElementById('health-signups').textContent = totalSignups;
+        const maxBar = Math.max(...buckets, 1);
+        document.getElementById('health-signup-chart').innerHTML = buckets.map(v =>
+            `<div class="health-bar ${v>0?'active':''}" style="height:${Math.max(2, (v/maxBar)*100)}%;" title="${v}명"></div>`
+        ).join('');
+
+        // 오늘 메시지
+        const todayMsgs = await adminFetch('chat_messages', 'GET', null,
+            `?created_at=gte.${todayStart.toISOString()}&select=id`);
+        const yestMsgs = await adminFetch('chat_messages', 'GET', null,
+            `?created_at=gte.${yestStart.toISOString()}&created_at=lt.${todayStart.toISOString()}&select=id`);
+        document.getElementById('health-messages').textContent = (todayMsgs || []).length;
+        const msgDelta = (todayMsgs || []).length - (yestMsgs || []).length;
+        const msgEl = document.getElementById('health-messages-delta');
+        if (msgDelta > 0) { msgEl.textContent = `↑ 어제 대비 +${msgDelta}`; msgEl.className = 'health-delta up'; }
+        else if (msgDelta < 0) { msgEl.textContent = `↓ 어제 대비 ${msgDelta}`; msgEl.className = 'health-delta down'; }
+        else { msgEl.textContent = `어제와 동일`; msgEl.className = 'health-delta'; }
+
+        // 성비 (승인/매칭 기준)
+        const activeUsers = adminCache.filter(a => a.status === 'approved' || a.status === 'matched');
+        const mCount = activeUsers.filter(a => a.gender === 'male').length;
+        const fCount = activeUsers.filter(a => a.gender === 'female').length;
+        const total = mCount + fCount;
+        document.getElementById('health-ratio').textContent = `${mCount} : ${fCount}`;
+        if (total > 0) {
+            const mPct = (mCount / total) * 100;
+            document.getElementById('ratio-male-bar').style.width = mPct + '%';
+            document.getElementById('ratio-female-bar').style.width = (100 - mPct) + '%';
+        }
+        const warnEl = document.getElementById('health-ratio-warn');
+        if (total === 0) {
+            warnEl.textContent = '';
+        } else if (mCount === 0 || fCount === 0) {
+            warnEl.textContent = '⚠️ 한쪽 성별이 0명';
+            warnEl.className = 'health-delta health-warn';
+        } else {
+            const ratio = Math.max(mCount, fCount) / Math.min(mCount, fCount);
+            if (ratio >= 2) {
+                const lackSide = mCount < fCount ? '남성' : '여성';
+                warnEl.textContent = `⚠️ ${lackSide} 부족 (${ratio.toFixed(1)}:1)`;
+                warnEl.className = 'health-delta health-warn';
+            } else {
+                warnEl.textContent = `균형 양호 (${ratio.toFixed(1)}:1)`;
+                warnEl.className = 'health-delta';
+            }
+        }
+    } catch(e) { console.log('health metrics error:', e.message); }
+}
+
+// ── 실시간 활동 피드 ──
+async function loadAdminActivityFeed() {
+    const feed = document.getElementById('activity-feed');
+    try {
+        const events = await adminFetch('event_logs', 'GET', null,
+            '?order=created_at.desc&limit=25&select=*');
+        const msgs = await adminFetch('chat_messages', 'GET', null,
+            '?order=created_at.desc&limit=10&select=id,sender_id,receiver_id,created_at');
+
+        // applicants의 created_at도 "신규 가입" 이벤트로 취급
+        const allItems = [];
+        (events || []).forEach(e => allItems.push({ type: 'event', data: e, ts: new Date(e.created_at).getTime() }));
+        (msgs || []).forEach(m => allItems.push({ type: 'msg', data: m, ts: new Date(m.created_at).getTime() }));
+        adminCache.slice(0, 20).forEach(a => allItems.push({ type: 'signup', data: a, ts: new Date(a.created_at).getTime() }));
+        allItems.sort((a, b) => b.ts - a.ts);
+        const top = allItems.slice(0, 20);
+
+        if (top.length === 0) {
+            feed.innerHTML = '<div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;">아직 활동이 없어요</div>';
+            return;
+        }
+
+        const appByUserId = {};
+        adminCache.forEach(a => { if (a.user_id) appByUserId[a.user_id] = a; });
+        const nameOf = (uid) => appByUserId[uid]?.name || '유저';
+
+        feed.innerHTML = top.map(item => {
+            const d = new Date(item.ts);
+            const time = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+            let icon = '', text = '';
+            if (item.type === 'signup') {
+                const a = item.data;
+                icon = '<i class="fa-solid fa-user-plus" style="color:#059669;"></i>';
+                text = `<b>${esc(a.name)}</b> 가입 (${a.gender==='male'?'男':'女'}${calcAge(a.birth)?', '+calcAge(a.birth)+'세':''})`;
+            } else if (item.type === 'msg') {
+                icon = '<i class="fa-solid fa-comment" style="color:#3b82f6;"></i>';
+                text = `<b>${esc(nameOf(item.data.sender_id))}</b> → <b>${esc(nameOf(item.data.receiver_id))}</b> 메시지`;
+            } else {
+                const e = item.data;
+                const who = nameOf(e.user_id);
+                const meta = e.metadata || {};
+                switch(e.event_type) {
+                    case 'card_like':
+                        const likedName = adminCache.find(a => a.id === meta.liked)?.name;
+                        icon = '<i class="fa-solid fa-heart" style="color:#ec4899;"></i>';
+                        text = `<b>${esc(who)}</b>${likedName ? ` → <b>${esc(likedName)}</b>` : ''} 찜`;
+                        break;
+                    case 'chat_send':
+                        icon = '<i class="fa-solid fa-paper-plane" style="color:#3b82f6;"></i>';
+                        text = `<b>${esc(who)}</b> 메시지 전송`;
+                        break;
+                    case 'block':
+                        icon = '<i class="fa-solid fa-ban" style="color:#ef4444;"></i>';
+                        text = `<b>${esc(who)}</b> 차단 실행`;
+                        break;
+                    case 'report':
+                        icon = '<i class="fa-solid fa-flag" style="color:#dc2626;"></i>';
+                        text = `<b>${esc(who)}</b> 신고 (${esc(meta.reason || '')})`;
+                        break;
+                    case 'exit_feedback':
+                        icon = '<i class="fa-solid fa-door-open" style="color:#6b7280;"></i>';
+                        text = `<b>${esc(who)}</b> 이탈 피드백: ${esc(meta.reason || '(사유 없음)')}`;
+                        break;
+                    case 'suggestion':
+                        icon = '<i class="fa-regular fa-lightbulb" style="color:#f59e0b;"></i>';
+                        text = `<b>${esc(who)}</b> 건의: ${esc((meta.text||'').slice(0, 40))}${(meta.text||'').length > 40 ? '...' : ''}`;
+                        break;
+                    case 'dashboard_open':
+                        return '';
+                    default:
+                        icon = '<i class="fa-solid fa-circle-dot" style="color:#9ca3af;"></i>';
+                        text = `<b>${esc(who)}</b> ${esc(e.event_type)}`;
+                }
+            }
+            if (!text) return '';
+            return `<div class="activity-item">
+                <span class="activity-time">${time}</span>
+                <span class="activity-icon">${icon}</span>
+                <span class="activity-text">${text}</span>
+            </div>`;
+        }).filter(Boolean).join('') || '<div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;">활동 없음</div>';
+    } catch(e) { feed.innerHTML = '<div style="color:#ef4444;font-size:.82em;padding:12px;">활동 로드 실패</div>'; }
+}
+
+// ── 피드백/건의 집계 ──
+async function loadAdminFeedbackWidget() {
+    const widget = document.getElementById('feedback-widget');
+    try {
+        const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+        const events = await adminFetch('event_logs', 'GET', null,
+            `?event_type=in.(exit_feedback,suggestion)&created_at=gte.${weekAgo}&select=*&order=created_at.desc`);
+        const exits = (events || []).filter(e => e.event_type === 'exit_feedback');
+        const suggestions = (events || []).filter(e => e.event_type === 'suggestion');
+        const reasonCounts = {};
+        exits.forEach(e => {
+            const r = e.metadata?.reason || '(사유 없음)';
+            reasonCounts[r] = (reasonCounts[r] || 0) + 1;
+        });
+        const topReasons = Object.entries(reasonCounts).sort((a,b) => b[1]-a[1]).slice(0, 4);
+
+        widget.innerHTML = `
+            <div class="feedback-card">
+                <div class="feedback-card-title"><i class="fa-solid fa-door-open" style="color:#dc2626;"></i> 이탈 사유 TOP (${exits.length}건)</div>
+                ${topReasons.length === 0 ? '<div style="color:var(--muted);font-size:.78em;">아직 없음</div>' :
+                  topReasons.map(([r, c]) => `<div class="feedback-row"><span>${esc(r)}</span><span class="cnt">${c}</span></div>`).join('')}
+            </div>
+            <div class="feedback-card">
+                <div class="feedback-card-title"><i class="fa-regular fa-lightbulb" style="color:#f59e0b;"></i> 건의 최근 (${suggestions.length}건)</div>
+                ${suggestions.length === 0 ? '<div style="color:var(--muted);font-size:.78em;">아직 없음</div>' :
+                  suggestions.slice(0, 4).map(s => {
+                    const t = s.metadata?.text || '';
+                    return `<div class="feedback-row" style="align-items:flex-start;"><span style="flex:1;font-size:.76em;line-height:1.4;">${esc(t.slice(0, 60))}${t.length > 60 ? '...' : ''}</span></div>`;
+                  }).join('')}
+            </div>
+        `;
+    } catch(e) {
+        widget.innerHTML = '<div style="color:#ef4444;font-size:.82em;padding:12px;grid-column:1/-1;">피드백 로드 실패</div>';
+    }
+}
+
+// ── 신고 모달 ──
+async function showReportsModal() {
+    try {
+        const reports = await adminFetch('reports', 'GET', null, '?select=*&order=created_at.desc');
+        if (!reports || reports.length === 0) { toast('접수된 신고가 없어요.', 'info'); return; }
+        const html = reports.slice(0, 50).map(r => {
+            const reporter = adminCache.find(a => a.user_id === r.reporter_id);
+            const reported = adminCache.find(a => a.id === r.reported_applicant_id);
+            const d = new Date(r.created_at);
+            return `<div style="padding:12px;background:#fef2f2;border-radius:10px;margin-bottom:8px;">
+                <div style="font-size:.82em;font-weight:700;"><i class="fa-solid fa-flag" style="color:#dc2626;"></i> ${esc(r.reason || '사유 없음')}</div>
+                <div style="font-size:.78em;color:var(--muted);margin-top:4px;">
+                    신고자: ${esc(reporter?.name || '(알 수 없음)')} → 대상: ${esc(reported?.name || '(알 수 없음)')}
+                </div>
+                <div style="font-size:.72em;color:#9ca3af;margin-top:2px;">${d.toLocaleString('ko-KR')}</div>
+            </div>`;
+        }).join('');
+        alert('총 ' + reports.length + '건 신고 접수됨. 상세 내역은 콘솔에 출력됩니다.');
+        console.log('=== 신고 내역 ===', reports);
+        // TODO: 모달로 표시 개선
+    } catch(e) { toast('신고 로드 실패: ' + e.message); }
 }
 
 async function loadMatchRequests() {
@@ -1994,6 +2475,58 @@ async function rejectMatchRequest(reqId) {
 }
 
 // ── 상호 관심 현황 (관리자용) ──
+// MBTI 궁합표 (대시보드와 동일)
+const MBTI_COMPAT_ADMIN = {
+    'ENFP':{'INFJ':95,'INTJ':92,'ENFJ':85,'ENTJ':82,'INFP':80,'ENTP':78,'INTP':75},
+    'ENFJ':{'INFP':95,'ISFP':90,'ENFP':85,'ENTP':82,'INTJ':80,'INFJ':78},
+    'ENTP':{'INFJ':95,'INTJ':90,'ENFJ':82,'ENFP':78,'INTP':75,'ENTJ':72},
+    'ENTJ':{'INFP':92,'INTP':88,'ENFP':82,'ENTP':72,'INTJ':70,'ENFJ':68},
+    'INFP':{'ENFJ':95,'ENTJ':92,'INFJ':85,'ENFP':80,'INTP':75,'ISFP':72},
+    'INFJ':{'ENTP':95,'ENFP':92,'INTJ':85,'INFP':85,'ENFJ':78,'INTP':72},
+    'INTP':{'ENTJ':88,'ENFJ':82,'ENTP':75,'INTJ':72,'INFJ':72,'INFP':75},
+    'INTJ':{'ENFP':92,'ENTP':90,'INFJ':85,'ENTJ':70,'INFP':68,'INTP':72},
+    'ESFP':{'ISFJ':88,'ISTJ':85,'ESFJ':78,'ESTP':72,'ISFP':70},
+    'ESFJ':{'ISFP':88,'ISTP':85,'ESFP':78,'ESTJ':75,'ISFJ':72},
+    'ESTP':{'ISFJ':85,'ISTJ':82,'ESFP':72,'ESTJ':70,'ISTP':68},
+    'ESTJ':{'ISFP':85,'ISTP':82,'ESFJ':75,'ESTP':70,'ISTJ':68},
+    'ISFP':{'ENFJ':90,'ESFJ':88,'ESTJ':85,'ENTJ':78,'ISFJ':72},
+    'ISFJ':{'ESFP':88,'ESTP':85,'ENFP':78,'ISFP':72,'ISTJ':70},
+    'ISTP':{'ESFJ':85,'ESTJ':82,'ENTP':72,'ESTP':68,'INTP':65},
+    'ISTJ':{'ESFP':85,'ESTP':82,'ENFP':75,'ESTJ':68,'ISFJ':70},
+};
+function calcMbtiCompatAdmin(m1, m2) {
+    if (!m1 || !m2) return 50;
+    const a = m1.toUpperCase(), b = m2.toUpperCase();
+    if (a === b) return 65;
+    return MBTI_COMPAT_ADMIN[a]?.[b] || MBTI_COMPAT_ADMIN[b]?.[a] || 50;
+}
+
+// 두 사람 궁합 집계 (관리자용 빠른 의사결정)
+function calcPairCompat(a, b) {
+    const warnings = [];
+    const aAge = calcAge(a.birth) || 0;
+    const bAge = calcAge(b.birth) || 0;
+    const ageDiff = Math.abs(aAge - bAge);
+    if (ageDiff > 8) warnings.push(`나이차 ${ageDiff}세`);
+    const aH = parseInt(a.height) || 0, bH = parseInt(b.height) || 0;
+    if (aH && bH) {
+        const male = a.gender === 'male' ? a : b;
+        const female = a.gender === 'female' ? a : b;
+        const diff = (parseInt(male.height) || 0) - (parseInt(female.height) || 0);
+        if (diff < 5) warnings.push('키 차이 작음');
+    }
+    if (a.location && b.location && a.location !== b.location) warnings.push('지역 다름');
+
+    // 점수: MBTI(30%) + 외모평균(20%) + 나이적합(20%) + 지역(15%) + 직업평균(15%)
+    const mbtiS = calcMbtiCompatAdmin(a.mbti, b.mbti);
+    const lookS = ((a.look_score || 50) + (b.look_score || 50)) / 2;
+    const ageS = ageDiff <= 3 ? 95 : ageDiff <= 5 ? 80 : ageDiff <= 8 ? 60 : 30;
+    const locS = (a.location && b.location && a.location === b.location) ? 90 : 60;
+    const jobS = (calcJobScore(a.job_category) + calcJobScore(b.job_category)) / 2;
+    const score = Math.round(mbtiS * 0.3 + lookS * 0.2 + ageS * 0.2 + locS * 0.15 + jobS * 0.15);
+    return { score, mbti: mbtiS, warnings };
+}
+
 async function loadMutualOverview() {
     const sec = document.getElementById('mutual-overview-section');
     const list = document.getElementById('mutual-overview-list');
@@ -2050,13 +2583,18 @@ async function loadMutualOverview() {
             var m = pair[0], f = pair[1];
             var mAge = calcAge(m.birth);
             var fAge = calcAge(f.birth);
+            var compat = calcPairCompat(m, f);
+            var scoreCls = compat.score >= 80 ? 'match-score-high' : compat.score >= 60 ? 'match-score-mid' : 'match-score-low';
+            var warnText = compat.warnings.length > 0 ? ' · <span style="color:#d97706;">⚠ ' + esc(compat.warnings.join(', ')) + '</span>' : '';
             return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;">' +
-                '<div data-toggle="mutual-detail-' + idx + '" style="display:flex;align-items:center;gap:10px;padding:12px;background:#f9fafb;cursor:pointer;">' +
+                '<div data-toggle="mutual-detail-' + idx + '" style="display:flex;align-items:center;gap:10px;padding:12px;background:#f9fafb;cursor:pointer;flex-wrap:wrap;">' +
                     '<span style="font-weight:700;font-size:.9em;">' + esc(m.name) + '</span>' +
                     '<span style="font-size:.75em;color:var(--muted);">' + mAge + '세</span>' +
                     '<span style="color:#a3a3a3;">↔</span>' +
                     '<span style="font-weight:700;font-size:.9em;">' + esc(f.name) + '</span>' +
                     '<span style="font-size:.75em;color:var(--muted);">' + fAge + '세</span>' +
+                    '<span class="match-score-badge ' + scoreCls + '">🎯 ' + compat.score + '점</span>' +
+                    '<span style="font-size:.72em;color:var(--muted);">MBTI ' + compat.mbti + '%' + warnText + '</span>' +
                     '<span style="margin-left:auto;font-size:.75em;color:var(--muted);">▾</span>' +
                 '</div>' +
                 '<div id="mutual-detail-' + idx + '" style="display:none;padding:12px;">' +
@@ -2098,7 +2636,15 @@ function filterAdminSearch() {
 function _doAdminSearch() {
     const q = (document.getElementById('admin-search').value || '').trim().toLowerCase();
     if (!q) { filterAdmin(currentAdminFilter); return; }
-    const filtered = adminCache.filter(a => (a.name || '').toLowerCase().includes(q) || (a.job || '').toLowerCase().includes(q) || (a.kakao || '').toLowerCase().includes(q));
+    const filtered = adminCache.filter(a =>
+        (a.name || '').toLowerCase().includes(q)
+        || (a.job || '').toLowerCase().includes(q)
+        || (a.job_category || '').toLowerCase().includes(q)
+        || (a.kakao || '').toLowerCase().includes(q)
+        || (a.location || '').toLowerCase().includes(q)
+        || (a.mbti || '').toLowerCase().includes(q)
+        || (a.education || '').toLowerCase().includes(q)
+    );
     document.getElementById('filter-title').innerHTML = `<i class="fa-solid fa-magnifying-glass" style="color:var(--primary);"></i> "${esc(q)}" 검색 결과`;
     document.getElementById('filtered-list').innerHTML = filtered.length === 0
         ? '<p style="color:#9ca3af;text-align:center;padding:16px;">검색 결과가 없습니다.</p>'
@@ -2167,6 +2713,33 @@ function filterAdmin(type) {
     localStorage.setItem('kj_filter', type);
 }
 
+// 프로필 완성도 계산
+function calcProfileCompletion(a) {
+    const fields = ['name','birth','gender','job','job_category','kakao','height','location','mbti','intro','education','hobby'];
+    let filled = 0;
+    fields.forEach(f => { if (a[f]) filled++; });
+    if (a.photos && a.photos.length > 0) filled += 2;
+    if (a.ideal) filled += 1;
+    if (a.icebreaker) filled += 1;
+    const max = fields.length + 4;
+    return Math.round((filled / max) * 100);
+}
+
+// 경과 시간 문자열
+function relTime(iso) {
+    if (!iso) return '한번도 접속 안함';
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diffMs / 60000);
+    if (min < 1) return '방금';
+    if (min < 60) return min + '분 전';
+    const h = Math.floor(min / 60);
+    if (h < 24) return h + '시간 전';
+    const d = Math.floor(h / 24);
+    if (d < 30) return d + '일 전';
+    const mo = Math.floor(d / 30);
+    return mo + '개월 전';
+}
+
 function applicantRowHtml(a, idx=0) {
     const age   = calcAge(a.birth);
     const icon  = a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);font-size:22px;"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);font-size:22px;"></i>';
@@ -2183,19 +2756,78 @@ function applicantRowHtml(a, idx=0) {
     const avg = Math.round(scores.reduce((a,b)=>a+b,0) / scores.length);
     const avgColor = avg >= 80 ? '#10b981' : avg >= 60 ? '#f59e0b' : '#ef4444';
 
+    // 보조 배지 계산
+    const miniBadges = [];
+    const ageMs = Date.now() - new Date(a.created_at).getTime();
+    const days = ageMs / (24*60*60*1000);
+    if (days < 1) miniBadges.push('<span class="app-badge app-badge-new">NEW</span>');
+    if (a.status === 'pending' && days >= 3) miniBadges.push(`<span class="app-badge app-badge-wait">대기 ${Math.floor(days)}일</span>`);
+    if (!a.look_score && a.status !== 'pending') miniBadges.push('<span class="app-badge app-badge-nolook">외모 미평가</span>');
+    if (!a.photos || a.photos.length === 0) miniBadges.push('<span class="app-badge app-badge-nolook">사진 없음</span>');
+    if (a.last_seen_at) {
+        const lastMs = Date.now() - new Date(a.last_seen_at).getTime();
+        const lastH = lastMs / (60*60*1000);
+        if (lastH < 24) miniBadges.push(`<span class="app-badge app-badge-online">🟢 ${relTime(a.last_seen_at)}</span>`);
+        else if (lastH < 24*7) miniBadges.push(`<span class="app-badge app-badge-idle">${relTime(a.last_seen_at)}</span>`);
+    } else if (a.status !== 'pending') {
+        miniBadges.push('<span class="app-badge app-badge-idle">미접속</span>');
+    }
+    // 찜 받은 수 (인기도)
+    const popCount = (window._adminFavCounts || {})[a.id] || 0;
+    if (popCount >= 3) miniBadges.push(`<span class="app-badge app-badge-pop">💝 ${popCount}</span>`);
+
+    const completion = calcProfileCompletion(a);
+    if (completion >= 90) miniBadges.push(`<span class="app-badge app-badge-complete">완성 ${completion}%</span>`);
+    else if (completion < 60) miniBadges.push(`<span class="app-badge app-badge-nolook">미완성 ${completion}%</span>`);
+
     return `
-        <div class="applicant-row" onclick="openAdminDetail('${a.id}')" style="animation-delay:${idx * 50}ms;">
+        <div class="applicant-row" onclick="openAdminDetail('${a.id}')" style="animation-delay:${idx * 30}ms;">
             <div class="applicant-row-icon">${icon}</div>
             <div class="applicant-info">
                 <div class="applicant-name">${esc(a.name)} ${gBadge} ${sBadge} ${photoBadge}</div>
-                <div class="applicant-detail">${age}세 · ${esc(a.job)}${a.height ? ' · '+a.height+'cm' : ''}${a.location ? ' · '+esc(a.location) : ''}</div>
-                <div class="applicant-date">신청일: ${formatDate(a.created_at)}</div>
+                <div class="applicant-detail">${age}세 · ${esc(a.job)}${a.height ? ' · '+a.height+'cm' : ''}${a.location ? ' · '+esc(a.location) : ''}${a.mbti ? ' · '+esc(a.mbti) : ''}</div>
+                <div class="applicant-date">신청: ${formatDate(a.created_at)}${a.last_seen_at ? ' · 최근 접속: '+relTime(a.last_seen_at) : ''}</div>
+                ${miniBadges.length > 0 ? `<div class="applicant-badge-row">${miniBadges.join('')}</div>` : ''}
             </div>
             <div style="text-align:center;flex-shrink:0;padding-top:2px;">
                 <div style="font-size:1.1em;font-weight:800;color:${avgColor};">${avg}</div>
                 <div style="font-size:.65em;color:#9ca3af;">종합</div>
+                ${lS === 0 ? '<div style="font-size:.62em;color:#d97706;margin-top:2px;">★ 없음</div>' : `<div style="font-size:.62em;color:#9ca3af;margin-top:2px;">★${lS}</div>`}
             </div>
         </div>`;
+}
+
+// ── 퀵 필터 ──
+let _currentQuickFilter = 'none';
+function applyQuickFilter(qf) {
+    _currentQuickFilter = qf;
+    document.querySelectorAll('.quickfilter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.qf === qf);
+    });
+    if (qf === 'none') { filterAdmin(currentAdminFilter); return; }
+
+    let filtered = adminCache;
+    if (qf === 'no-look') filtered = filtered.filter(a => a.status === 'approved' && (a.look_score == null));
+    else if (qf === 'no-photo') filtered = filtered.filter(a => !a.photos || a.photos.length === 0);
+    else if (qf === 'long-wait') {
+        const threeDaysAgo = Date.now() - 3*24*60*60*1000;
+        filtered = filtered.filter(a => a.status === 'pending' && new Date(a.created_at).getTime() < threeDaysAgo);
+    }
+    else if (qf === 'online') {
+        const dayAgo = Date.now() - 24*60*60*1000;
+        filtered = filtered.filter(a => a.last_seen_at && new Date(a.last_seen_at).getTime() >= dayAgo);
+    }
+    else if (qf === 'inactive') {
+        const weekAgo = Date.now() - 7*24*60*60*1000;
+        filtered = filtered.filter(a => !a.last_seen_at || new Date(a.last_seen_at).getTime() < weekAgo);
+    }
+
+    document.getElementById('filter-title').innerHTML = `<i class="fa-solid fa-filter" style="color:var(--primary);"></i> 필터: ${
+        {'no-look':'외모 미평가','no-photo':'사진 없음','long-wait':'대기 3일+','online':'최근 24h 접속','inactive':'7일+ 미접속'}[qf] || ''
+    } (${filtered.length}명)`;
+    document.getElementById('filtered-list').innerHTML = filtered.length === 0
+        ? '<p style="color:#9ca3af;text-align:center;padding:16px;">해당하는 사람이 없습니다.</p>'
+        : filtered.map((a, i) => applicantRowHtml(a, i)).join('');
 }
 
 // ── 관리자 상세 모달 ──
@@ -2960,13 +3592,40 @@ function toast(msg, type) {
 
 document.getElementById('admin-login-overlay').addEventListener('click', function(e) { if(e.target===this) closeAdminModal(); });
 document.getElementById('admin-detail-overlay').addEventListener('click', function(e) { if(e.target===this) closeAdminDetail(); });
-// ESC로 모달 닫기
+// ESC로 모달 닫기 + 관리자 단축키
 document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Escape') return;
-    if (document.getElementById('admin-detail-overlay').classList.contains('open')) closeAdminDetail();
-    else if (document.getElementById('admin-login-overlay').classList.contains('open')) closeAdminModal();
-    else if (document.getElementById('matching-overlay').classList.contains('open')) closeMatchingView();
-    else if (document.getElementById('lightbox-overlay').classList.contains('open')) closeLightbox();
+    if (e.key === 'Escape') {
+        if (document.getElementById('admin-detail-overlay').classList.contains('open')) closeAdminDetail();
+        else if (document.getElementById('admin-login-overlay').classList.contains('open')) closeAdminModal();
+        else if (document.getElementById('matching-overlay').classList.contains('open')) closeMatchingView();
+        else if (document.getElementById('lightbox-overlay').classList.contains('open')) closeLightbox();
+        else if (document.getElementById('chat-viewer-overlay')?.style.display === 'flex') closeChatViewer();
+        return;
+    }
+    // 입력 필드에선 단축키 비활성
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    // 관리자 화면에서만 단축키
+    const adminScreen = document.getElementById('screen-admin');
+    if (!adminScreen || !adminScreen.classList.contains('active')) return;
+    const detailOpen = document.getElementById('admin-detail-overlay').classList.contains('open');
+
+    if (e.key === '/') { e.preventDefault(); document.getElementById('admin-search').focus(); return; }
+    if (e.key === '?') { alert('관리자 단축키:\n/ : 검색\n1~6 : 통계 탭 전환 (전체/대기/남/여/상호/매칭)\nR : 새로고침\nEsc : 모달 닫기\n상세 모달 열린 상태:\nA : 승인, X : 거절'); return; }
+    if (e.key === 'r' || e.key === 'R') { if (!detailOpen) renderAdmin(); return; }
+    const tabMap = {'1':'all','2':'pending','3':'male','4':'female','5':'mutual','6':'matched'};
+    if (tabMap[e.key] && !detailOpen) { filterAdmin(tabMap[e.key]); return; }
+
+    // 상세 모달에서 A(승인), X(거절)
+    if (detailOpen) {
+        if (e.key === 'a' || e.key === 'A') {
+            const btn = document.querySelector('#admin-detail-overlay .btn-approve, #admin-detail-overlay [onclick*="approved"]');
+            if (btn) btn.click();
+        } else if (e.key === 'x' || e.key === 'X') {
+            const btn = document.querySelector('#admin-detail-overlay .btn-reject, #admin-detail-overlay [onclick*="rejected"]');
+            if (btn) btn.click();
+        }
+    }
 });
 
 // ── 기존 신청서 데이터 prefill ──
