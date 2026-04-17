@@ -1,4 +1,4 @@
-const CACHE = 'banjjok-v3';
+const CACHE = 'banjjok-v4';
 const ASSETS = ['/banjjok/', '/banjjok/index.html', '/banjjok/dashboard.html', '/banjjok/icons/icon-192.png', '/banjjok/icons/icon-512.png', '/banjjok/manifest.json'];
 
 self.addEventListener('install', e => {
