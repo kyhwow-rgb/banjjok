@@ -2648,6 +2648,10 @@ async function approveMatchRequest(reqId, fromId, toId) {
         // 이 둘과 관련된 다른 pending 요청들 자동 거절
         await adminFetch('match_requests', 'PATCH', { status: 'rejected' },
             '?status=eq.pending&or=(from_applicant.eq.' + fromId + ',to_applicant.eq.' + fromId + ',from_applicant.eq.' + toId + ',to_applicant.eq.' + toId + ')');
+        // 양쪽에 매칭 푸시
+        const MATCH_URL = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
+        if (fromUser?.user_id) sendAdminPush(fromUser.user_id, '🎉 매칭 성사!', `${toUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
+        if (toUser?.user_id) sendAdminPush(toUser.user_id, '🎉 매칭 성사!', `${fromUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('매칭이 승인되었습니다!', 'success');
@@ -3400,8 +3404,9 @@ async function confirmMatch(maleId, femaleId) {
         // 양쪽에 매칭 푸시 알림
         const male = adminCache.find(a => a.id === maleId);
         const female = adminCache.find(a => a.id === femaleId);
-        if (male?.user_id) sendAdminPush(male.user_id, '🎉 매칭 성사!', `${female?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`);
-        if (female?.user_id) sendAdminPush(female.user_id, '🎉 매칭 성사!', `${male?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`);
+        const MATCH_URL = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
+        if (male?.user_id) sendAdminPush(male.user_id, '🎉 매칭 성사!', `${female?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
+        if (female?.user_id) sendAdminPush(female.user_id, '🎉 매칭 성사!', `${male?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL);
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('매칭이 완료되었습니다!', 'success');
@@ -3470,6 +3475,12 @@ async function releaseContact(maleId, femaleId) {
     try {
         await adminFetch('applicants', 'PATCH', { contact_released: true }, `?id=eq.${maleId}`);
         await adminFetch('applicants', 'PATCH', { contact_released: true }, `?id=eq.${femaleId}`);
+        // 양쪽에 연락처 공개 푸시
+        const male = adminCache.find(a => a.id === maleId);
+        const female = adminCache.find(a => a.id === femaleId);
+        const URL_MY = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
+        if (male?.user_id) sendAdminPush(male.user_id, '📬 연락처가 공개되었어요', `${female?.name || '반쪽'}님의 카카오 ID를 확인하세요`, URL_MY);
+        if (female?.user_id) sendAdminPush(female.user_id, '📬 연락처가 공개되었어요', `${male?.name || '반쪽'}님의 카카오 ID를 확인하세요`, URL_MY);
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('연락처가 공개되었습니다. 양쪽에 카카오 ID가 전달됩니다.', 'success');
@@ -3545,8 +3556,26 @@ function closeChatViewer() { document.getElementById('chat-viewer-overlay').styl
 
 async function updateStatusFromDetail(id, status) {
     setLoading(true);
+    const target = adminCache.find(a => a.id === id);
     try { await adminFetch('applicants', 'PATCH', { status }, `?id=eq.${id}`); }
     catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
+    // 승인/거절 푸시
+    if (target?.user_id) {
+        if (status === 'approved') {
+            sendAdminPush(target.user_id, '✅ 신청서가 승인되었어요!', '이제 매칭을 시작할 수 있어요. 추천 반쪽을 확인해보세요.',
+                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-discover');
+        } else if (status === 'rejected') {
+            // rejected 알림도 DB에 수동 insert (trigger가 처리 안 함)
+            try {
+                await adminFetch('notifications', 'POST', {
+                    user_id: target.user_id, type: 'rejected',
+                    title: '신청서 검토 결과', body: '안타깝게도 이번 신청은 승인되지 않았어요. 프로필을 보완해서 다시 신청해보세요.'
+                });
+            } catch(e) {}
+            sendAdminPush(target.user_id, '신청서 검토 결과', '프로필을 보완해서 다시 신청해주세요',
+                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my');
+        }
+    }
     setLoading(false);
     toast(status === 'approved' ? '✅ 승인되었습니다.' : '❌ 거절되었습니다.');
     closeAdminDetail();
@@ -3564,6 +3593,10 @@ async function batchApproveAll() {
         try {
             await adminFetch('applicants', 'PATCH', { status: 'approved' }, `?id=eq.${a.id}`);
             success++;
+            if (a.user_id) {
+                sendAdminPush(a.user_id, '✅ 신청서가 승인되었어요!', '이제 매칭을 시작할 수 있어요. 추천 반쪽을 확인해보세요.',
+                    'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-discover');
+            }
         } catch { fail++; }
     }
     setLoading(false);
@@ -3694,8 +3727,15 @@ async function replyInquiry(id) {
     if (!input) return;
     const reply = input.value.trim();
     if (!reply) { toast('답변을 입력해주세요.', 'warning'); return; }
+    const q = _inquiryCache.find(x => x.id === id);
     try {
         await adminFetch('inquiries', 'PATCH', { reply: reply, is_read: true, replied_at: new Date().toISOString(), user_read: false }, '?id=eq.' + id);
+        // 푸시 알림 (in-app notification은 DB trigger가 처리)
+        if (q?.user_id) {
+            sendAdminPush(q.user_id, '💬 문의에 답변이 달렸어요',
+                reply.length > 60 ? reply.slice(0, 60) + '...' : reply,
+                'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my');
+        }
         toast('답변 완료', 'success');
         loadAdminInquiries();
     } catch(e) { toast('오류: ' + e.message, 'error'); }
