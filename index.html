@@ -1300,6 +1300,7 @@ let selectedGender     = null;
 let cachedPw           = null;
 let adminCache         = [];
 let photoFiles         = [null, null, null];
+let _skipRegisterReset = false; // prefill 직후 showScreen 시 resetForm 건너뛰기용
 let _adminRendered     = false;
 let currentAdminFilter = 'all';
 let _historyNav        = false;
@@ -1350,7 +1351,8 @@ function showScreen(name) {
     }
     if (name === 'home')     renderHome();
     if (name === 'admin')    renderAdmin();
-    if (name === 'register') resetForm();
+    if (name === 'register' && !_skipRegisterReset) resetForm();
+    _skipRegisterReset = false;
 
     if (!_historyNav) history.pushState({ screen: name }, '', location.pathname);
 
@@ -4053,7 +4055,7 @@ document.addEventListener('keydown', function(e) {
 // ── 기존 신청서 데이터 prefill ──
 async function prefillRegisterForm(userId) {
     const { data } = await db.from('applicants').select('*').eq('user_id', userId).limit(1);
-    if (!data || !data.length) return;
+    if (!data || !data.length) return false;
     const p = data[0];
     if (p.gender) selectGender(p.gender);
     const fields = [
@@ -4106,12 +4108,15 @@ async function prefillRegisterForm(userId) {
                 preview.style.display = 'block';
                 document.getElementById(`photo-ph-${i}`).style.display = 'none';
                 document.getElementById(`photo-slot-${i}`).classList.add('has-photo');
+                const rmBtn = document.getElementById(`photo-rm-${i}`);
+                if (rmBtn) rmBtn.style.display = 'block';
             }
         });
         // 사진 변경 안 하면 기존 사진 유지하도록 마커 설정
         window._existingPhotos = p.photos;
     }
     updateScoreBar();
+    return true; // 데이터 prefill 완료
 }
 
 // ── 세션 복원 (새로고침) ──
@@ -4133,7 +4138,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (session) {
         if (location.hash === '#register') {
             saveSession('viewer', 'register');
-            await prefillRegisterForm(session.user.id);
+            // 기존 데이터 먼저 가져오기 → 있으면 reset 건너뛰고 screen 전환 (prefill 값 보존)
+            const prefilled = await prefillRegisterForm(session.user.id);
+            _skipRegisterReset = !!prefilled;
             showScreen('register');
             return;
         }
