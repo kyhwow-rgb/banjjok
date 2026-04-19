@@ -1433,10 +1433,9 @@ function renderCardView(sec, favSet) {
                     ${popHtml}
                     <div class="card-tags">${tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>
                     <div class="card-compat">
-                        <span style="font-size:.78em;font-weight:700;color:var(--primary);white-space:nowrap;">${c._score}점</span>
-                        <div class="card-compat-bar"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
+                        <div class="card-compat-bar" style="flex:1;"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
+                        <span style="font-size:.72em;color:var(--muted);white-space:nowrap;">${mbtiLabel} ${mbtiCompat}%</span>
                     </div>
-                    <div style="font-size:.78em;color:var(--muted);margin-bottom:12px;">${mbtiLabel} (${mbtiCompat}%)</div>
                     ${ibHtml}
                 </div>
                 <div class="card-actions">
@@ -1445,7 +1444,7 @@ function renderCardView(sec, favSet) {
                 </div>
             </div>
             <div class="card-counter"></div>
-            <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 → · 사진 좌우 탭</div>
+            <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →${photos.length > 1 ? ' · 사진 좌우 탭' : ''}</div>
             <div style="text-align:center;margin-top:12px;display:flex;justify-content:center;gap:16px;">
                 <button onclick="reportUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-flag"></i> 신고</button>
                 <button onclick="blockUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-ban"></i> 차단</button>
@@ -2650,6 +2649,7 @@ async function init() {
         }
 
         // 매칭 성사 확인 → 상대방 정보 표시 + 채팅 초기화
+        let chatInitialized = false;
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
@@ -2660,10 +2660,12 @@ async function init() {
                     // 채팅 초기화
                     if (partners[0].user_id) {
                         await initChat(profile, partners[0].user_id, partners[0].name);
+                        chatInitialized = true;
                     }
                 }
             } catch(e) { console.log('match partner load error:', e.message); }
         }
+        window._chatInitialized = chatInitialized;
     }
 
     if (!isMatched) {
@@ -2675,6 +2677,20 @@ async function init() {
         // 매칭된 후에는 찜 목록/추천 숨김
         document.getElementById('match-ranking-card').style.display = 'none';
         document.getElementById('mutual-card').style.display = 'none';
+        // 매칭이지만 채팅 초기화 실패 (상대 user_id 없음 등) → fallback 안내
+        if (!window._chatInitialized) {
+            const notMatched = document.getElementById('chat-not-matched');
+            if (notMatched) {
+                notMatched.innerHTML = `<div class="chat-empty">
+                    <i class="fa-regular fa-circle-question"></i>
+                    <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">대화를 시작할 수 없어요</div>
+                    <div style="font-size:.82em;color:var(--muted);line-height:1.5;">상대방 계정 정보를 찾을 수 없어요.<br>MY 탭 &gt; 문의사항으로 관리자에게 알려주세요.</div>
+                </div>`;
+                notMatched.style.display = '';
+            }
+            const chatCard = document.getElementById('chat-card');
+            if (chatCard) chatCard.style.display = 'none';
+        }
     }
     // 웹 푸시 — 이미 허용했으면 자동 구독 갱신
     if ('Notification' in window && Notification.permission === 'granted') {
