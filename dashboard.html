@@ -1120,7 +1120,7 @@ async function deleteReputation() {
 function copyMyReferralCode() {
     const code = window._myProfile?.referral_code;
     if (!code) return;
-    const txt = `반쪽(Banjjok) 초대 코드: ${code}\n링크: https://kyhwow-rgb.github.io/banjjok/`;
+    const txt = `반쪽(Banjjok)에 초대할게!\n내 추천 코드: ${code}\n이 링크로 들어오면 자동 입력돼:\nhttps://kyhwow-rgb.github.io/banjjok/?ref=${code}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(txt).then(() => toast('추천 코드 복사 완료! 지인에게 보내주세요', 'success'));
     } else {
@@ -2528,6 +2528,10 @@ function navigateByNotifType(type, relatedId) {
             switchTab('my');
             setTimeout(() => document.getElementById('my-reputation-box')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
+        case 'reputation_complete':
+            // 평판 2개 모여 심사 시작 — MY 탭으로
+            switchTab('my');
+            break;
     }
 }
 
@@ -2810,9 +2814,19 @@ async function deleteAccount() {
             try {
                 const { data: { user } } = await db.auth.getUser();
                 if (user && window._myProfile) {
-                    await db.from('favorites').delete().eq('user_id', user.id);
-                    await db.from('favorites').delete().eq('applicant_id', window._myProfile.id);
-                    await db.from('notifications').delete().eq('user_id', user.id);
+                    const myId = window._myProfile.id;
+                    // 연관 데이터 모두 정리 (FK cascade 없으므로 수동)
+                    await Promise.allSettled([
+                        db.from('favorites').delete().eq('user_id', user.id),
+                        db.from('favorites').delete().eq('applicant_id', myId),
+                        db.from('notifications').delete().eq('user_id', user.id),
+                        db.from('reputations').delete().eq('writer_user_id', user.id),
+                        db.from('reputations').delete().eq('target_applicant_id', myId),
+                        db.from('push_subscriptions').delete().eq('user_id', user.id),
+                        db.from('blocks').delete().eq('blocker_id', user.id),
+                    ]);
+                    // 채팅/보고서는 본인 기록이므로 보존. 신고된 내역만 삭제.
+                    await db.from('reports').delete().eq('reporter_id', user.id).then(() => {}, () => {});
                     await db.from('applicants').delete().eq('user_id', user.id);
                 }
                 await db.auth.signOut();
