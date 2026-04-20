@@ -1335,6 +1335,15 @@ function showScreen(name) {
     if (name === 'admin')    renderAdmin();
     if (name === 'register' && !_skipRegisterReset) resetForm();
     _skipRegisterReset = false;
+    // register 화면 진입 시 ?ref= 파라미터로 저장된 코드 자동 입력 (reset 이후 실행)
+    if (name === 'register') {
+        const pendingRef = localStorage.getItem('bj_pending_ref_code');
+        if (pendingRef) {
+            const el = document.getElementById('reg-referral-code');
+            if (el && !el.value) el.value = pendingRef;
+            localStorage.removeItem('bj_pending_ref_code');
+        }
+    }
 
     if (!_historyNav) history.pushState({ screen: name }, '', location.pathname);
 
@@ -1932,7 +1941,9 @@ async function submitApplication() {
 
     if (error) { toast('제출 실패: ' + error.message); return; }
     btn.textContent = '제출 완료!';
-    toast(existingId ? '신청서가 수정되었습니다!' : '신청서가 제출되었습니다! 관리자 승인 후 등록됩니다.');
+    toast(existingId
+        ? '신청서가 수정되었습니다!'
+        : '신청서가 제출되었습니다! 추천인과 지인 1명의 평판이 모이면 관리자 심사가 시작됩니다.', 'success');
     setTimeout(() => window.location.href = 'dashboard.html', 2200);
 
     } catch(e) {
@@ -4251,6 +4262,18 @@ async function prefillRegisterForm(userId) {
 
 // ── 세션 복원 (새로고침) ──
 window.addEventListener('DOMContentLoaded', async () => {
+    // ?ref=CODE URL 파라미터 → 로컬스토리지에 임시 저장 → 신청서에 자동 prefill
+    try {
+        const urlParams = new URLSearchParams(location.search);
+        const refParam = urlParams.get('ref');
+        if (refParam) {
+            localStorage.setItem('bj_pending_ref_code', refParam.toUpperCase());
+            // URL cleanup
+            const cleanUrl = location.pathname + location.hash;
+            history.replaceState({}, '', cleanUrl);
+        }
+    } catch(e) {}
+
     const role   = localStorage.getItem('kj_role');
     const screen = localStorage.getItem('kj_screen') || (role === 'admin' ? 'admin' : 'home');
     const filter = localStorage.getItem('kj_filter') || 'all';
