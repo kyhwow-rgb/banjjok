@@ -694,6 +694,33 @@
     </div>
 </div>
 
+<!-- 평판 작성 모달 -->
+<div id="reputation-modal-overlay" class="filter-modal-overlay" onclick="if(event.target===this)closeReputationModal()">
+    <div class="filter-modal" style="max-width:480px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:1.05em;font-weight:800;"><i class="fa-solid fa-handshake" style="color:var(--primary);"></i> 평판 작성</div>
+            <button class="btn btn-nav" onclick="closeReputationModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="reputation-target-info" style="padding:12px;background:#f5f3ff;border-radius:10px;margin-bottom:14px;font-size:.85em;"></div>
+        <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+            이 사람을 얼마나 잘 아는지, 어떤 사람인지 솔직하게 남겨주세요.<br>
+            평판은 이 사람 프로필에 공개됩니다.
+        </div>
+        <textarea id="reputation-content" rows="5" maxlength="500" placeholder="예: 대학 동아리에서 만난 친구로, 항상 성실하고 배려가 깊은 사람이에요. 책임감 있고 유머러스한 면도 있어요. 최소 20자 이상 작성해주세요." style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:.88em;background:#fafafa;resize:vertical;" oninput="document.getElementById('reputation-counter').textContent=this.value.length+'/500'"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.72em;">
+            <span id="reputation-hint" style="color:var(--muted);">최소 20자 이상</span>
+            <span id="reputation-counter" style="color:var(--muted);">0/500</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:18px;">
+            <button class="btn btn-outline" onclick="closeReputationModal()" style="flex:1;">취소</button>
+            <button class="btn btn-primary" onclick="saveReputation()" style="flex:2;"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+        <div id="reputation-delete-wrap" style="text-align:center;margin-top:10px;display:none;">
+            <button onclick="deleteReputation()" style="background:none;border:none;cursor:pointer;font-size:.78em;color:#ef4444;">내 평판 삭제하기</button>
+        </div>
+    </div>
+</div>
+
 <!-- 필터 모달 -->
 <div class="filter-modal-overlay" id="filter-modal-overlay" onclick="if(event.target===this)closeFiltersModal()">
     <div class="filter-modal">
@@ -938,9 +965,214 @@ function gemIcon(pct) {
     return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#d1d5db' };
 }
 
+// 내 프로필에 받은 평판 표시
+async function loadMyReputations(myId) {
+    const box = document.getElementById('my-reputation-box');
+    if (!box || !myId) return;
+    try {
+        const { data: reps } = await db.from('reputations').select('*').eq('target_applicant_id', myId).order('created_at', { ascending: false });
+        if (!reps || reps.length === 0) {
+            box.innerHTML = '<div style="padding:14px;background:#fafafa;border-radius:10px;font-size:.82em;color:var(--muted);text-align:center;"><i class="fa-solid fa-handshake" style="color:#d1d5db;"></i> 아직 받은 평판이 없어요</div>';
+            return;
+        }
+        const writerIds = [...new Set(reps.map(r => r.writer_applicant_id))];
+        const { data: writers } = await db.from('applicants').select('id,name,gender,photos').in('id', writerIds);
+        const writerMap = {};
+        (writers || []).forEach(w => { writerMap[w.id] = w; });
+        box.innerHTML = `
+            <div style="font-size:.82em;font-weight:700;margin-bottom:10px;"><i class="fa-solid fa-handshake" style="color:var(--primary);"></i> 나를 보증한 사람들 (${reps.length})</div>
+            ${reps.map(r => {
+                const w = writerMap[r.writer_applicant_id] || {};
+                const wPhoto = (w.photos && w.photos[0])
+                    ? `<img src="${w.photos[0]}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
+                    : `<div style="width:32px;height:32px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.8em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+                return `<div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:10px;margin-bottom:6px;align-items:flex-start;">
+                    ${wPhoto}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:.78em;font-weight:700;display:flex;align-items:center;gap:4px;">
+                            ${esc(w.name || '익명')}
+                            ${r.is_referrer ? '<span style="font-size:.66em;padding:1px 6px;border-radius:4px;background:#fef3c7;color:#b45309;">추천인</span>' : ''}
+                        </div>
+                        <div style="font-size:.78em;color:#374151;margin-top:3px;line-height:1.5;">"${esc(r.content)}"</div>
+                    </div>
+                </div>`;
+            }).join('')}`;
+    } catch(e) { console.log('load reputations error:', e.message); }
+}
+
+// ── 평판 (보증) 시스템 ──
+let _currentRepTargetId = null;
+let _currentRepTargetName = '';
+let _currentMyRepId = null;
+
+async function openReputationModal(targetId, targetName) {
+    _currentRepTargetId = targetId;
+    _currentRepTargetName = targetName;
+    _currentMyRepId = null;
+    document.getElementById('reputation-target-info').innerHTML = `<i class="fa-solid fa-user" style="color:var(--primary);"></i> <b>${esc(targetName)}</b>님에 대한 평판`;
+    // 기존 내 평판 조회
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        const { data } = await db.from('reputations').select('id,content').eq('target_applicant_id', targetId).eq('writer_user_id', user.id).limit(1);
+        if (data && data[0]) {
+            _currentMyRepId = data[0].id;
+            document.getElementById('reputation-content').value = data[0].content || '';
+            document.getElementById('reputation-counter').textContent = (data[0].content || '').length + '/500';
+            document.getElementById('reputation-delete-wrap').style.display = '';
+        } else {
+            document.getElementById('reputation-content').value = '';
+            document.getElementById('reputation-counter').textContent = '0/500';
+            document.getElementById('reputation-delete-wrap').style.display = 'none';
+        }
+    } catch(e) {
+        document.getElementById('reputation-content').value = '';
+    }
+    document.getElementById('reputation-modal-overlay').classList.add('open');
+}
+
+function closeReputationModal() {
+    document.getElementById('reputation-modal-overlay').classList.remove('open');
+    _currentRepTargetId = null;
+    _currentMyRepId = null;
+}
+
+async function saveReputation() {
+    if (!_currentRepTargetId || !window._myProfile) return;
+    const content = document.getElementById('reputation-content').value.trim();
+    if (content.length < 20) {
+        toast('최소 20자 이상 작성해주세요', 'warning');
+        return;
+    }
+    const myApplicantId = window._myProfile.id;
+    if (myApplicantId === _currentRepTargetId) {
+        toast('본인 평판은 작성할 수 없어요', 'error');
+        return;
+    }
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        if (_currentMyRepId) {
+            // 수정
+            const { error } = await db.from('reputations').update({ content }).eq('id', _currentMyRepId);
+            if (error) throw error;
+            toast('평판이 수정되었어요', 'success');
+        } else {
+            // 신규
+            const { error } = await db.from('reputations').insert({
+                target_applicant_id: _currentRepTargetId,
+                writer_applicant_id: myApplicantId,
+                writer_user_id: user.id,
+                content
+            });
+            if (error) {
+                if (error.message.includes('duplicate') || error.code === '23505') {
+                    toast('이미 이 사람에 대한 평판을 작성했어요', 'warning');
+                } else throw error;
+                return;
+            }
+            toast(`${_currentRepTargetName}님에게 평판을 남겼어요 💐`, 'success');
+            // 대상자에게 알림
+            try {
+                const { data: target } = await db.from('applicants').select('user_id').eq('id', _currentRepTargetId).limit(1);
+                if (target?.[0]?.user_id) {
+                    await db.from('notifications').insert({
+                        user_id: target[0].user_id,
+                        type: 'reputation_received',
+                        title: '평판이 도착했어요 🤝',
+                        body: `${window._myProfile.name}님이 당신에 대한 평판을 남겼어요`,
+                    });
+                    sendPushNotif(target[0].user_id, '🤝 평판이 도착했어요', `${window._myProfile.name}님이 평판을 남겼어요`, dashUrl('my'), 'approved');
+                }
+            } catch(e) {}
+        }
+        closeReputationModal();
+        closeProfileModal();
+    } catch(e) {
+        toast('평판 저장 실패: ' + e.message, 'error');
+    }
+}
+
+async function deleteReputation() {
+    if (!_currentMyRepId) return;
+    if (!confirm('평판을 삭제하시겠어요?')) return;
+    try {
+        const { error } = await db.from('reputations').delete().eq('id', _currentMyRepId);
+        if (error) throw error;
+        toast('평판이 삭제되었어요');
+        closeReputationModal();
+        closeProfileModal();
+    } catch(e) { toast('삭제 실패: ' + e.message, 'error'); }
+}
+
+// ── 추천 코드 복사 ──
+function copyMyReferralCode() {
+    const code = window._myProfile?.referral_code;
+    if (!code) return;
+    const txt = `반쪽(Banjjok) 초대 코드: ${code}\n링크: https://kyhwow-rgb.github.io/banjjok/`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(() => toast('추천 코드 복사 완료! 지인에게 보내주세요', 'success'));
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); toast('추천 코드 복사 완료!', 'success'); } catch { toast('복사 실패', 'error'); }
+        document.body.removeChild(ta);
+    }
+}
+
 // ── 상태별 온보딩 화면 ──
-function showOnboarding(status, candidateCount) {
+async function showOnboarding(status, candidateCount) {
     const overlay = document.getElementById('onboard-overlay');
+    // 평판 대기: 추천인 + 지인 1명 총 2개 평판 필요
+    if (status === 'pending_reputation') {
+        const profile = window._myProfile;
+        let reps = [];
+        let referrerName = '(알 수 없음)';
+        try {
+            const { data } = await db.from('reputations').select('id,is_referrer,content,writer_applicant_id,created_at').eq('target_applicant_id', profile.id);
+            reps = data || [];
+        } catch(e) {}
+        // 추천인 이름 조회
+        if (profile.referred_by) {
+            try {
+                const { data: ref } = await db.from('applicants').select('name').eq('referral_code', profile.referred_by).limit(1);
+                if (ref && ref[0]) referrerName = ref[0].name;
+            } catch(e) {}
+        }
+        const hasReferrerRep = reps.some(r => r.is_referrer);
+        const totalCount = reps.length;
+        const progress = Math.min(100, (totalCount / 2) * 100);
+
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `<div class="onboard-content">
+            <div class="onboard-icon">🤝</div>
+            <div class="onboard-title">평판 수집 중</div>
+            <div class="onboard-sub">반쪽은 지인 추천제예요.<br><b>${esc(referrerName)}</b>님의 추천으로 가입하셨어요!</div>
+            <div style="background:var(--bg);border-radius:16px;padding:18px;margin:20px 0;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                    <span style="font-size:.88em;font-weight:800;">평판 진행</span>
+                    <span style="font-size:.88em;font-weight:800;color:var(--primary);">${totalCount} / 2</span>
+                </div>
+                <div style="height:10px;background:#ede9fe;border-radius:10px;overflow:hidden;">
+                    <div style="height:100%;width:${progress}%;background:linear-gradient(135deg,#7c3aed,#ec4899);transition:width .4s;"></div>
+                </div>
+                <div style="margin-top:14px;font-size:.82em;line-height:1.7;text-align:left;">
+                    <div>${hasReferrerRep ? '✅' : '⏳'} 추천인 <b>${esc(referrerName)}</b>님의 평판</div>
+                    <div>${totalCount - (hasReferrerRep ? 1 : 0) >= 1 ? '✅' : '⏳'} 또 다른 지인의 평판</div>
+                </div>
+            </div>
+            <div style="background:linear-gradient(135deg,#f5f3ff,#fdf2f8);padding:14px;border-radius:12px;margin-bottom:20px;">
+                <div style="font-size:.82em;font-weight:700;margin-bottom:6px;">💡 평판 받는 방법</div>
+                <div style="font-size:.76em;color:var(--muted);line-height:1.6;text-align:left;">
+                    1. 내 추천 코드 <b style="color:var(--primary);">${esc(profile.referral_code || '')}</b>를 지인에게 공유<br>
+                    2. 지인이 가입 후 내 프로필 열어 "보증하기" 작성<br>
+                    3. 총 2개 모이면 자동으로 관리자 심사로 넘어가요
+                </div>
+            </div>
+            <button class="btn btn-outline" onclick="copyMyReferralCode()" style="margin-bottom:8px;"><i class="fa-solid fa-copy"></i> 내 추천 코드 복사하기</button>
+            <br>
+            <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none';" style="margin-top:8px;font-size:.82em;color:var(--muted);">둘러보기로 이동</button>
+        </div>`;
+        return;
+    }
     if (status === 'pending') {
         // 첫 방문만 전체 화면 안내, 이후엔 상단 배너만
         if (!localStorage.getItem('bj_pending_seen')) {
@@ -1070,10 +1302,13 @@ function renderProfile(p) {
             ${p.drinking ? `<div class="profile-item"><div class="profile-label">음주</div><div class="profile-value">${esc(p.drinking)}</div></div>` : ''}
             ${p.religion ? `<div class="profile-item"><div class="profile-label">종교</div><div class="profile-value">${esc(p.religion)}</div></div>` : ''}
             ${p.hobby    ? `<div class="profile-item"><div class="profile-label">취미</div><div class="profile-value">${esc(p.hobby)}</div></div>` : ''}
-            ${p.status   ? `<div class="profile-item"><div class="profile-label">상태</div><div class="profile-value">${{pending:'심사중 ⏳',approved:'승인 ✅',rejected:'거절',matched:'매칭됨 💑'}[p.status]||p.status}</div></div>` : ''}
+            ${p.status   ? `<div class="profile-item"><div class="profile-label">상태</div><div class="profile-value">${{pending_reputation:'평판 대기 🤝',pending:'승인 대기 ⏳',approved:'활동 중 ✅',rejected:'거절',matched:'매칭됨 💑'}[p.status]||p.status}</div></div>` : ''}
         </div>
+        ${p.status === 'pending_reputation' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">🤝 평판 수집 중이에요. 추천인과 지인 1명의 평판이 모이면 승인 심사로 넘어갑니다. <button onclick="copyMyReferralCode()" style="background:none;border:none;color:#92400e;font-weight:700;text-decoration:underline;cursor:pointer;">내 추천 코드 공유</button></div>` : ''}
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
-        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="index.html#register" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}`;
+        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="index.html#register" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
+        <div id="my-reputation-box" style="margin-top:16px;"></div>`;
+    loadMyReputations(p.id);
     if (mySec) {
         mySec.innerHTML = sec.innerHTML;
         // 추천인 코드 & 찜 슬롯 표시
@@ -1632,7 +1867,7 @@ function cardPass() {
 function cardLike(id) {
     if (_isCardAnimating) return;
     // pending 상태 안내
-    if (window._myProfile && window._myProfile.status === 'pending') {
+    if (window._myProfile && (window._myProfile.status === 'pending' || window._myProfile.status === 'pending_reputation')) {
         toast('심사 통과 후 찜할 수 있어요. 먼저 둘러보세요!', 'info');
         return;
     }
@@ -1660,7 +1895,7 @@ async function toggleFav(applicantId, opts) {
     opts = opts || {};
     if (window._favToggling) return;
     // pending 상태 차단
-    if (window._myProfile && window._myProfile.status === 'pending') {
+    if (window._myProfile && (window._myProfile.status === 'pending' || window._myProfile.status === 'pending_reputation')) {
         toast('심사 통과 후 찜할 수 있어요', 'info');
         return;
     }
@@ -1932,10 +2167,17 @@ async function sendMatchMsg() {
 }
 
 // ── 프로필 상세 모달 ──
-function openProfileModal(applicantId) {
-    const c = (_scoredCandidates || []).find(x => x.id === applicantId)
-           || (window._allCandidates || []).find(x => x.id === applicantId)
-           || (window._likedMeData || []).find(x => x.id === applicantId);
+async function openProfileModal(applicantId) {
+    let c = (_scoredCandidates || []).find(x => x.id === applicantId)
+         || (window._allCandidates || []).find(x => x.id === applicantId)
+         || (window._likedMeData || []).find(x => x.id === applicantId);
+    if (!c) {
+        // fallback: DB에서 직접 조회 (평판 대기 중 유저 등)
+        try {
+            const { data } = await db.from('applicants').select('*').eq('id', applicantId).limit(1);
+            if (data && data[0]) c = data[0];
+        } catch(e) {}
+    }
     if (!c) return;
     const age = calcAge(c.birth);
     const photo = c.photos && c.photos[0];
@@ -1974,6 +2216,54 @@ function openProfileModal(applicantId) {
     const tags = [age ? `${age}세` : null, c.job, c.height ? c.height + 'cm' : null, c.location, c.mbti, c.education, c.religion, c.smoking, c.drinking, c.hobby].filter(Boolean);
     const popCount = c._favCount || 0;
 
+    // 평판 조회
+    let reputations = [];
+    try {
+        const { data: repData } = await db.from('reputations').select('*').eq('target_applicant_id', c.id).order('created_at', { ascending: false });
+        reputations = repData || [];
+    } catch(e) {}
+    // 작성자 이름 매핑
+    const writerIds = [...new Set(reputations.map(r => r.writer_applicant_id))];
+    const writerMap = {};
+    if (writerIds.length > 0) {
+        try {
+            const { data: writers } = await db.from('applicants').select('id,name,gender,photos').in('id', writerIds);
+            (writers || []).forEach(w => { writerMap[w.id] = w; });
+        } catch(e) {}
+    }
+    const myApplicantId = window._myProfile?.id;
+    const isSelf = myApplicantId === c.id;
+    const myRep = reputations.find(r => r.writer_applicant_id === myApplicantId);
+    const canWriteReputation = !isSelf && myApplicantId && (window._myProfile?.status === 'approved' || window._myProfile?.status === 'matched');
+
+    const repsSection = reputations.length > 0
+        ? `<div class="pm-section">
+            <div class="pm-section-title"><i class="fa-solid fa-handshake" style="color:var(--primary);"></i> 나를 보증한 사람들 (${reputations.length})</div>
+            ${reputations.map(r => {
+                const w = writerMap[r.writer_applicant_id] || {};
+                const wPhoto = (w.photos && w.photos[0])
+                    ? `<img src="${w.photos[0]}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
+                    : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.9em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+                return `<div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:10px;margin-bottom:6px;align-items:flex-start;">
+                    ${wPhoto}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:.82em;font-weight:700;display:flex;align-items:center;gap:4px;">
+                            ${esc(w.name || '익명')}
+                            ${r.is_referrer ? '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#b45309;font-weight:700;">추천인</span>' : ''}
+                        </div>
+                        <div style="font-size:.82em;color:#374151;margin-top:3px;line-height:1.5;">"${esc(r.content)}"</div>
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`
+        : (isSelf ? '' : '<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-handshake" style="color:var(--muted);"></i> 아직 평판이 없어요</div></div>');
+
+    const repWriteBtn = canWriteReputation
+        ? `<button class="btn btn-outline" onclick="openReputationModal('${c.id}','${esc(c.name || '').replace(/'/g,"\\'")}')" style="width:100%;margin-bottom:8px;">
+            <i class="fa-solid fa-pen"></i> ${myRep ? '내 평판 수정' : '보증하기 (평판 남기기)'}
+          </button>`
+        : '';
+
     document.getElementById('profile-modal-content').innerHTML = `
         <div class="pm-photo">${photoHtml}
             <div class="pm-photo-overlay">
@@ -2000,9 +2290,11 @@ function openProfileModal(applicantId) {
             ${c.intro ? `<div class="pm-section"><div class="pm-section-title">자기소개</div><div class="pm-intro">${esc(c.intro)}</div></div>` : ''}
             ${ibHtml}
             ${idealHtml}
+            ${repsSection}
+            ${repWriteBtn ? `<div style="padding:0 4px 12px;">${repWriteBtn}</div>` : ''}
         </div>
         <div class="pm-actions">
-            <button class="btn ${isFav ? 'btn-outline' : 'btn-primary'}" onclick="toggleFav('${c.id}');closeProfileModal();">${isFav ? '💜 찜 해제' : '🤍 찜하기'}</button>
+            ${isSelf ? '' : `<button class="btn ${isFav ? 'btn-outline' : 'btn-primary'}" onclick="toggleFav('${c.id}');closeProfileModal();">${isFav ? '💜 찜 해제' : '🤍 찜하기'}</button>`}
             <button class="btn btn-outline" onclick="closeProfileModal()">닫기</button>
         </div>
         <div style="text-align:center;padding:8px 20px 16px;border-top:1px solid #f3f4f6;">
@@ -2187,6 +2479,19 @@ function navigateByNotifType(type, relatedId) {
         case 'inquiry_reply':
             switchTab('my');
             setTimeout(() => document.getElementById('inquiry-history')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
+            break;
+        case 'reputation_request':
+            // 지인이 내 코드로 가입 — 그 사람 프로필 열어 "보증하기" 유도
+            if (relatedId) {
+                openProfileModal(relatedId);
+            } else {
+                switchTab('my');
+            }
+            break;
+        case 'reputation_received':
+            // 내가 평판 받음 — MY 탭 내 평판 섹션
+            switchTab('my');
+            setTimeout(() => document.getElementById('my-reputation-box')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
     }
 }
@@ -2615,16 +2920,20 @@ async function init() {
 
         // 승인/대기 상태에서 추천 표시 (대기는 찜 불가 모드)
         const isPending = profile.status === 'pending';
-        const showRecommendations = isApproved || isPending;
+        const isPendingRep = profile.status === 'pending_reputation';
+        const isNotActive = isPending || isPendingRep;
+        const showRecommendations = isApproved || isNotActive;
         document.getElementById('weights-card').style.display = isApproved ? '' : 'none';
         if (isApproved) loadWeights(profile.ideal_weights);
 
-        // pending 상단 배너
-        if (isPending) {
+        // pending/pending_reputation 상단 배너
+        if (isNotActive) {
             const banner = document.createElement('div');
             banner.id = 'pending-banner';
             banner.style.cssText = 'background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;padding:10px 16px;font-size:.82em;font-weight:700;text-align:center;border-bottom:1px solid #fcd34d;';
-            banner.innerHTML = '<i class="fa-solid fa-hourglass-half"></i>&nbsp; 심사 중 — 둘러보기만 가능해요. 찜은 승인 후 이용 가능합니다.';
+            banner.innerHTML = isPendingRep
+                ? '<i class="fa-solid fa-handshake"></i>&nbsp; 평판 수집 중 — 둘러보기만 가능해요. 추천인과 지인 1명의 평판이 모이면 심사가 시작됩니다.'
+                : '<i class="fa-solid fa-hourglass-half"></i>&nbsp; 관리자 심사 중 — 둘러보기만 가능해요. 승인 후 찜과 매칭이 이용 가능합니다.';
             const navbar = document.querySelector('.navbar');
             if (navbar && !document.getElementById('pending-banner')) navbar.insertAdjacentElement('afterend', banner);
         }
