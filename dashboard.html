@@ -914,30 +914,32 @@ function calcMatchScore(viewer, candidate) {
         }
     }
 
-    // 5. 나이 점수 (연상/연하 허용 범위 반영)
+    // 5. 나이 점수 (선호 생년 범위 기반)
     let ageScore = 50;
-    if (candidate.birth && viewer.birth) {
-        const cAge = calcAge(candidate.birth);
-        const vAge = calcAge(viewer.birth);
-        const diff = cAge - vAge; // 양수 = 상대가 연상
-        const maxUpper = (ideal['나이_연상'] != null) ? ideal['나이_연상'] : 99;
-        const maxLower = (ideal['나이_연하'] != null) ? ideal['나이_연하'] : 99;
-        if (maxUpper >= 99 && maxLower >= 99) {
-            // 범위 미설정 → 가까울수록 높은 점수
-            ageScore = Math.abs(diff) <= 3 ? 85 : Math.abs(diff) <= 5 ? 70 : Math.abs(diff) <= 8 ? 50 : 30;
-        } else if (diff > 0 && diff <= maxUpper) {
-            // 허용 연상 범위 내
-            ageScore = 95 - (diff * 3);
-        } else if (diff < 0 && Math.abs(diff) <= maxLower) {
-            // 허용 연하 범위 내
-            ageScore = 95 - (Math.abs(diff) * 3);
-        } else if (diff === 0) {
-            ageScore = 95;
-        } else {
-            // 범위 밖
-            ageScore = 15;
+    if (candidate.birth) {
+        const candYear = new Date(candidate.birth).getFullYear();
+        let yStart = ideal['생년_시작'];
+        let yEnd = ideal['생년_끝'];
+        // 하위호환: 이전에 저장된 연상/연하만 있는 프로필
+        if ((yStart == null || yEnd == null) && viewer.birth) {
+            const vYear = new Date(viewer.birth).getFullYear();
+            if (yStart == null && ideal['나이_연상'] != null) yStart = vYear - parseInt(ideal['나이_연상']);
+            if (yEnd == null && ideal['나이_연하'] != null) yEnd = vYear + parseInt(ideal['나이_연하']);
         }
-        ageScore = Math.max(10, Math.min(95, ageScore));
+        if (yStart != null && yEnd != null) {
+            const minY = Math.min(yStart, yEnd);
+            const maxY = Math.max(yStart, yEnd);
+            if (candYear >= minY && candYear <= maxY) {
+                ageScore = 95;
+            } else {
+                const distance = candYear < minY ? (minY - candYear) : (candYear - maxY);
+                ageScore = Math.max(15, 85 - distance * 12);
+            }
+        } else if (viewer.birth) {
+            // 선호 미설정 → 본인 나이 기준 가까울수록 높은 점수
+            const diff = Math.abs(calcAge(candidate.birth) - calcAge(viewer.birth));
+            ageScore = diff <= 3 ? 85 : diff <= 5 ? 70 : diff <= 8 ? 50 : 30;
+        }
     }
 
     // 6. MBTI 궁합 점수 (이상형 성향 칩 + 궁합표 결합)
@@ -2241,9 +2243,18 @@ async function openProfileModal(applicantId) {
     if (c.ideal) {
         try {
             const d = JSON.parse(c.ideal);
-            const chips = Object.entries(d).filter(([k]) => k !== 'memo' && k !== 'notes').flatMap(([k, v]) => Array.isArray(v) ? v : [v]);
-            if (chips.length > 0) {
-                idealHtml = `<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 이런 사람을 찾고 있어요</div><div>${chips.map(c => `<span class="pm-ideal-chip">${esc(c)}</span>`).join('')}</div>${d.memo ? `<div style="margin-top:8px;font-size:.82em;color:var(--muted);font-style:italic;">"${esc(d.memo)}"</div>` : ''}</div>`;
+            // 카테고리 칩 (배열형 값만)
+            const chips = Object.entries(d)
+                .filter(([k, v]) => k !== 'memo' && k !== 'notes' && Array.isArray(v))
+                .flatMap(([k, v]) => v);
+            // 생년 범위 칩
+            const yearChips = [];
+            if (d['생년_시작'] != null || d['생년_끝'] != null) {
+                yearChips.push(`${d['생년_시작'] ?? '?'} ~ ${d['생년_끝'] ?? '?'}년생`);
+            }
+            const allChips = [...yearChips, ...chips];
+            if (allChips.length > 0 || d.memo) {
+                idealHtml = `<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 이런 사람을 찾고 있어요</div><div>${allChips.map(c => `<span class="pm-ideal-chip">${esc(c)}</span>`).join('')}</div>${d.memo ? `<div style="margin-top:8px;font-size:.82em;color:var(--muted);font-style:italic;">"${esc(d.memo)}"</div>` : ''}</div>`;
             }
         } catch {}
     }
