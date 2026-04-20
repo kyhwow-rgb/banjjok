@@ -325,12 +325,10 @@
         .form-sub { color:var(--muted); font-size:.88em; margin-bottom:28px; line-height:1.5; }
 
         .gender-select { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-        .gender-option { border:2px solid var(--border); border-radius:12px; padding:18px; text-align:center; cursor:pointer; transition:all .2s; }
-        .gender-option:hover { border-color:#c4b5fd; }
-        .gender-option.selected.male { border-color:var(--male); background:var(--male-light); }
-        .gender-option.selected.female { border-color:var(--female); background:var(--female-light); }
-        .gender-option-icon { font-size:36px; margin-bottom:6px; }
-        .gender-option-label { font-weight:700; font-size:.9em; }
+        .gender-option { transition:all .15s; }
+        .gender-option:hover { background:#f9fafb !important; }
+        .gender-option.selected.male { border-color:#111 !important; background:#111 !important; color:#fff !important; }
+        .gender-option.selected.female { border-color:#111 !important; background:#111 !important; color:#fff !important; }
 
         /* PHOTO UPLOAD */
         .photo-upload-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
@@ -769,8 +767,8 @@
     </div>
     <div class="page-container">
         <div class="form-card">
-            <!-- 보석 순도 게이지 -->
-            <div class="score-wrap" id="score-wrap">
+            <!-- 보석 순도 게이지 (신청 중엔 숨김 — MY 탭에서만 보임) -->
+            <div class="score-wrap" id="score-wrap" style="display:none;">
                 <div class="score-top">
                     <div class="score-gem" id="score-gem"><i class="fa-solid fa-gem"></i></div>
                     <div class="score-info">
@@ -783,25 +781,29 @@
             <div class="form-title">소개팅 신청서</div>
             <div class="form-sub">신청 후 관리자 승인을 거쳐 등록됩니다. 카카오 ID와 연락처는 관리자에게만 공개됩니다.</div>
 
-            <!-- 성별 -->
+            <!-- 추천인 코드 (필수 · 최상단) -->
+            <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:14px 16px;border-radius:12px;margin-bottom:20px;">
+                <label style="color:#92400e;font-weight:800;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
+                <input type="text" id="reg-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;">
+                <div style="font-size:.72em;color:#92400e;margin-top:6px;line-height:1.5;">
+                    <i class="fa-solid fa-circle-info"></i> 반쪽은 지인 추천제예요. 지인에게 받은 코드가 있어야 가입 가능해요.<br>
+                    가입 후 추천인과 다른 지인 1명의 <b>평판 (20자 이상)</b>이 쌓여야 승인 심사가 시작됩니다.
+                </div>
+            </div>
+
+            <!-- 성별 (단순 버튼) -->
             <div class="input-group">
                 <label>성별 <span style="color:#e11d48;">*</span></label>
-                <div class="gender-select">
-                    <div class="gender-option" id="gender-male" onclick="selectGender('male')">
-                        <div class="gender-option-icon"><i class="fa-solid fa-mars" style="color:var(--male);"></i></div>
-                        <div class="gender-option-label">남성</div>
-                    </div>
-                    <div class="gender-option" id="gender-female" onclick="selectGender('female')">
-                        <div class="gender-option-icon"><i class="fa-solid fa-venus" style="color:var(--female);"></i></div>
-                        <div class="gender-option-label">여성</div>
-                    </div>
+                <div class="gender-select" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <button type="button" class="gender-option" id="gender-male" onclick="selectGender('male')" style="padding:12px;border:2px solid var(--border);background:#fff;border-radius:12px;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;">남성</button>
+                    <button type="button" class="gender-option" id="gender-female" onclick="selectGender('female')" style="padding:12px;border:2px solid var(--border);background:#fff;border-radius:12px;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;">여성</button>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="input-group">
                     <label>이름 <span style="color:#e11d48;">*</span></label>
-                    <input type="text" id="reg-name" placeholder="홍길동">
+                    <input type="text" id="reg-name">
                 </div>
                 <div class="input-group">
                     <label>생년월일 <span style="color:#e11d48;">*</span></label>
@@ -826,7 +828,7 @@
                 </div>
                 <div class="input-group">
                     <label>키 (cm) <span style="color:#e11d48;">*</span></label>
-                    <input type="number" id="reg-height" placeholder="170" min="140" max="220">
+                    <input type="number" id="reg-height" min="140" max="220">
                 </div>
             </div>
 
@@ -843,7 +845,7 @@
                 </div>
                 <div class="input-group">
                     <label>거주지 <span style="color:#e11d48;">*</span></label>
-                    <input type="text" id="reg-location" placeholder="서울 강남구">
+                    <input type="text" id="reg-location">
                 </div>
             </div>
 
@@ -872,7 +874,7 @@
                 </div>
                 <div class="input-group">
                     <label>카카오 ID <span style="color:#e11d48;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
-                    <input type="text" id="reg-kakao" placeholder="kakao_id">
+                    <input type="text" id="reg-kakao">
                 </div>
             </div>
             <div class="form-row">
@@ -917,35 +919,8 @@
                 <input type="text" id="reg-hobby" placeholder="예: 등산, 영화감상, 요리, 러닝">
             </div>
 
-            <!-- 접속 경로 (필수) -->
-            <div class="input-group">
-                <label>접속 경로 <span style="color:#e11d48;">*</span></label>
-                <select id="reg-referral" onchange="onReferralChange(this)">
-                    <option value="">선택해주세요</option>
-                    <option value="지인 소개">지인 소개</option>
-                    <option value="인스타그램">인스타그램</option>
-                    <option value="카카오톡">카카오톡</option>
-                    <option value="에브리타임">에브리타임</option>
-                    <option value="블라인드">블라인드</option>
-                    <option value="direct">직접 입력</option>
-                </select>
-                <div id="reg-referral-friend-wrap" style="display:none;margin-top:8px;">
-                    <input type="text" id="reg-referral-friend" placeholder="소개해준 지인 이름" style="width:100%;">
-                </div>
-                <div id="reg-referral-text-wrap" style="display:none;margin-top:8px;position:relative;">
-                    <input type="text" id="reg-referral-text" placeholder="직접 입력해주세요" oninput="document.getElementById('reg-referral').value=this.value" style="padding-right:40px;">
-                    <button type="button" onclick="document.getElementById('reg-referral-text-wrap').style.display='none';document.getElementById('reg-referral-friend-wrap').style.display='none';document.getElementById('reg-referral').style.display='';document.getElementById('reg-referral').value='';" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:.85em;">← 목록</button>
-                </div>
-            </div>
-
-            <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:14px 16px;border-radius:12px;">
-                <label style="color:#92400e;font-weight:800;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
-                <input type="text" id="reg-referral-code" placeholder="반쪽은 지인 추천제 · 추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;">
-                <div style="font-size:.72em;color:#92400e;margin-top:6px;line-height:1.5;">
-                    <i class="fa-solid fa-circle-info"></i> 지인에게 초대받은 분만 가입 가능해요.<br>
-                    가입 후 추천인과 다른 지인 1명의 <b>평판 (20자 이상)</b>이 쌓여야 승인 심사가 시작됩니다.
-                </div>
-            </div>
+            <!-- 접속경로 → 추천인 코드로 대체되므로 hidden input으로 자리만 유지 (하위호환) -->
+            <input type="hidden" id="reg-referral" value="">
 
             <div class="input-group">
                 <label>자기소개 <span id="intro-counter" style="color:#9ca3af;font-weight:400;font-size:.9em;float:right;">0/200</span></label>
@@ -1575,7 +1550,7 @@ async function renderHome() {
 }
 
 // ── 보석 순도 점수 ──
-const SCORE_BASIC = ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-mbti','reg-kakao','reg-intro','reg-education','reg-contact','reg-referral','reg-smoking','reg-drinking'];
+const SCORE_BASIC = ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-mbti','reg-kakao','reg-intro','reg-education','reg-contact','reg-smoking','reg-drinking'];
 
 function calcProfileScore() {
     let score = 0;
@@ -1700,10 +1675,24 @@ async function compressToBase64(file, maxKB = 350) {
 
 // ── 신청서 제출 ──
 function selectGender(gender) {
+    const prevGender = selectedGender;
     selectedGender = gender;
     document.getElementById('gender-male').className  = 'gender-option' + (gender === 'male'   ? ' selected male'   : '');
     document.getElementById('gender-female').className = 'gender-option' + (gender === 'female' ? ' selected female' : '');
     updateScoreBar();
+    // 성별 바뀌면 이상형 키 옵션을 이성 기준으로 재빌드
+    if (gender !== prevGender) {
+        const container = document.getElementById('ideal-chips');
+        if (container) {
+            // 기존 선택값 보존 (키 제외 — 기준이 바뀜)
+            const prevSelected = collectIdealData('ideal-chips', 'reg-ideal-memo');
+            let prev = null;
+            if (prevSelected) {
+                try { prev = JSON.parse(prevSelected); delete prev['키']; } catch {}
+            }
+            container.innerHTML = buildIdealChipsHtml('reg', prev ? JSON.stringify(prev) : null);
+        }
+    }
 }
 
 function resetForm() {
@@ -1711,21 +1700,14 @@ function resetForm() {
     photoFiles = [null, null, null];
     ['gender-male','gender-female'].forEach(id => document.getElementById(id).className = 'gender-option');
     ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-contact','reg-kakao',
-     'reg-intro','reg-mbti','reg-referral','reg-education','reg-smoking','reg-drinking','reg-religion','reg-hobby','reg-referral-code'].forEach(id => {
-        document.getElementById(id).value = '';
+     'reg-intro','reg-mbti','reg-education','reg-smoking','reg-drinking','reg-religion','reg-hobby','reg-referral-code'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
     });
-    // 접속경로 드롭다운 초기화
-    const refSelect = document.getElementById('reg-referral');
-    const refWrap = document.getElementById('reg-referral-text-wrap');
-    const refTextInput = document.getElementById('reg-referral-text');
-    if (refSelect) { refSelect.style.display = ''; refSelect.value = ''; }
-    if (refWrap) refWrap.style.display = 'none';
-    if (refTextInput) refTextInput.value = '';
-    const refFriendWrap = document.getElementById('reg-referral-friend-wrap');
-    const refFriendInput = document.getElementById('reg-referral-friend');
-    if (refFriendWrap) refFriendWrap.style.display = 'none';
-    if (refFriendInput) refFriendInput.value = '';
-    document.querySelectorAll('#ideal-chips .chip').forEach(c => c.classList.remove('on'));
+    // hidden referral field 리셋
+    const refHidden = document.getElementById('reg-referral'); if (refHidden) refHidden.value = '';
+    // 이상형 칩 초기화 (성별 선택 전이니 키 옵션은 비어 있음)
+    const chips = document.getElementById('ideal-chips');
+    if (chips) chips.innerHTML = buildIdealChipsHtml('reg', null);
     document.getElementById('reg-ideal-memo').value = '';
     for (let i = 0; i < 3; i++) {
         document.getElementById(`photo-preview-${i}`).style.display = 'none';
@@ -1744,16 +1726,6 @@ async function submitApplication() {
     const job      = document.getElementById('reg-job').value.trim();
     const kakao    = document.getElementById('reg-kakao').value.trim();
     const contact  = document.getElementById('reg-contact').value.trim();
-    let referral = document.getElementById('reg-referral').value.trim();
-    const refWrap = document.getElementById('reg-referral-text-wrap');
-    const refTextInput = document.getElementById('reg-referral-text');
-    const refFriendInput = document.getElementById('reg-referral-friend');
-    if (refWrap && refWrap.style.display !== 'none' && refTextInput) referral = refTextInput.value.trim();
-    if (referral === 'direct') referral = '';
-    // 지인 소개 시 지인 이름 포함
-    if (referral === '지인 소개' && refFriendInput && refFriendInput.value.trim()) {
-        referral = '지인 소개 (' + refFriendInput.value.trim() + ')';
-    }
     const height   = document.getElementById('reg-height').value.trim();
     const location_ = document.getElementById('reg-location').value.trim();
     const mbti     = document.getElementById('reg-mbti').value.trim();
@@ -1770,7 +1742,6 @@ async function submitApplication() {
     if (!kakao)    missing.push('카카오 ID');
     if (!document.getElementById('reg-smoking').value) missing.push('흡연');
     if (!document.getElementById('reg-drinking').value) missing.push('음주');
-    if (!referral) missing.push('접속 경로');
     if (!photoFiles.some(f => f !== null) && !(window._existingPhotos && window._existingPhotos.length > 0)) missing.push('사진');
     if (missing.length > 0) {
         toast('미입력: ' + missing.join(', '), 'warning');
@@ -1836,6 +1807,9 @@ async function submitApplication() {
     const ibA = document.getElementById('reg-icebreaker-a').value.trim();
     const icebreaker = (ibQ && ibA) ? JSON.stringify({ q: ibQ, a: ibA }) : null;
 
+    // 접속경로는 추천인 코드가 대신. 추천 받은 경우 "지인 추천" 자동 표시
+    const referralCodeInputCheck = document.getElementById('reg-referral-code').value.trim().toUpperCase();
+    const referral = referralCodeInputCheck ? `지인 추천 (${referralCodeInputCheck})` : null;
     const rowData = {
         gender:    selectedGender,
         name, birth, job, kakao, referral,
@@ -2051,8 +2025,18 @@ function calcMbtiCompat(mbti1, mbti2) {
     return MBTI_COMPAT[a]?.[b] || MBTI_COMPAT[b]?.[a] || 50;
 }
 
+// 이상형 키 범위 옵션 (선택자의 성별에 따라 상대의 키 범위)
+const HEIGHT_OPTIONS_FOR_FEMALE_TARGET = ['155미만','155~160','160~165','165~170','170이상']; // 선택자가 남자 → 여자 키
+const HEIGHT_OPTIONS_FOR_MALE_TARGET   = ['170미만','170~175','175~180','180~185','185이상']; // 선택자가 여자 → 남자 키
+
+function getHeightOptions(myGender) {
+    if (myGender === 'male') return HEIGHT_OPTIONS_FOR_FEMALE_TARGET;
+    if (myGender === 'female') return HEIGHT_OPTIONS_FOR_MALE_TARGET;
+    return []; // 미선택 시 빈 배열
+}
+
 const IDEAL_CATEGORIES = [
-    { key:'키',     label:'선호하는 키',                   options:['작은 편','보통','큰 편','상관없음'] },
+    { key:'키',     label:'선호하는 키 (복수 선택)',        getOptions:(g) => getHeightOptions(g) },
     { key:'성향',   label:'선호하는 MBTI',                options:['E','I','N','S','F','T','P','J','상관없음'] },
     { key:'지역',   label:'선호하는 지역',                 options:['서울','경기','인천','충청','강원','전라','경상','제주','상관없음'] },
     { key:'흡연',   label:'흡연 여부',                    options:['비흡연자 선호','흡연 OK','전자담배 OK'] },
@@ -2060,7 +2044,7 @@ const IDEAL_CATEGORIES = [
     { key:'종교',   label:'선호하는 종교',                 options:['무교','기독교','천주교','불교','상관없음'] },
 ];
 
-function buildIdealChipsHtml(prefix, idealJson) {
+function buildIdealChipsHtml(prefix, idealJson, forcedGender) {
     let selected = {};
     let notes = {};
     if (idealJson) {
@@ -2071,6 +2055,8 @@ function buildIdealChipsHtml(prefix, idealJson) {
         } catch {}
     }
     const cid = prefix === 'reg' ? 'ideal-chips' : 'edit-ideal-chips';
+    // 성별: 명시적 지정 > 현재 선택된 성별 > 기존 프로필의 gender
+    const myGender = forcedGender || (prefix === 'reg' ? selectedGender : null);
     // 나이 허용 범위 (숫자)
     const ageUpper = (selected['나이_연상'] != null) ? selected['나이_연상'] : 5;
     const ageLower = (selected['나이_연하'] != null) ? selected['나이_연하'] : 5;
@@ -2087,16 +2073,28 @@ function buildIdealChipsHtml(prefix, idealJson) {
             </div>
         </div>`;
 
-    return ageHtml + IDEAL_CATEGORIES.map(cat => `
-        <div class="chip-group">
+    return ageHtml + IDEAL_CATEGORIES.map(cat => {
+        const opts = cat.getOptions ? cat.getOptions(myGender) : (cat.options || []);
+        if (!opts.length) {
+            // 키 옵션: 성별이 아직 안 정해졌을 때 안내
+            if (cat.key === '키') {
+                return `<div class="chip-group">
+                    <span class="chip-group-label">${cat.label}</span>
+                    <div style="font-size:.78em;color:#9ca3af;padding:8px 0;">← 먼저 위에서 <b>본인 성별</b>을 선택해주세요</div>
+                </div>`;
+            }
+            return '';
+        }
+        return `<div class="chip-group">
             <span class="chip-group-label">${cat.label}</span>
             <div class="chip-list">
-                ${cat.options.map(opt => {
+                ${opts.map(opt => {
                     const isOn = selected[cat.key] && Array.isArray(selected[cat.key]) && selected[cat.key].includes(opt);
                     return `<button type="button" class="chip${isOn?' on':''}" data-cat="${cat.key}" data-val="${opt}" onclick="this.classList.toggle('on');updateScoreBar()">${opt}</button>`;
                 }).join('')}
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 function getIdealMemo(idealJson) {
@@ -4218,10 +4216,14 @@ async function prefillRegisterForm(userId) {
         } catch {}
     }
     if (p.ideal) {
-        document.getElementById('ideal-chips').innerHTML = buildIdealChipsHtml('reg', p.ideal);
+        // 본인 성별에 맞는 키 옵션으로 빌드
+        document.getElementById('ideal-chips').innerHTML = buildIdealChipsHtml('reg', p.ideal, p.gender);
         document.getElementById('reg-ideal-memo').value = getIdealMemo(p.ideal);
         // 점수 이벤트 재연결 (중복 방지: 기존 리스너 제거 후 등록)
         SCORE_BASIC.forEach(id => { const el = document.getElementById(id); if (el) { el.removeEventListener('input', updateScoreBar); el.addEventListener('input', updateScoreBar); } });
+    } else if (p.gender) {
+        // ideal 없지만 성별 있음 → 키 옵션이라도 성별 기반으로
+        document.getElementById('ideal-chips').innerHTML = buildIdealChipsHtml('reg', null, p.gender);
     }
     // 기존 사진 프리필
     if (p.photos && p.photos.length > 0) {
