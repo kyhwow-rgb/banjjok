@@ -1264,6 +1264,7 @@ function renderMatchRanking(candidates) {
     const f = _discoverFilters;
     const filtered = candidates.filter(c => {
         if (blockedSet.has(c.id)) return false;
+        if (favSet.has(c.id)) return false; // 이미 찜한 사람은 추천에서 제외
         if (f.ageMin || f.ageMax) {
             const age = calcAge(c.birth);
             if (age == null) return false;
@@ -1635,12 +1636,19 @@ function cardLike(id) {
         toast('심사 통과 후 찜할 수 있어요. 먼저 둘러보세요!', 'info');
         return;
     }
+    // 이미 찜한 사람이면 해제 대신 패스 (잘못된 toggle 방지)
+    const favSet = window._favSet || new Set();
+    if (favSet.has(id)) {
+        toast('이미 찜한 사람이에요. 관심 탭에서 확인하세요!', 'info');
+        cardPass();
+        return;
+    }
     _isCardAnimating = true;
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-right'); }
     _swipedCount++;
     saveDailySwipeCount();
-    toggleFav(id);
+    toggleFav(id, { skipRerender: true });
     setTimeout(() => {
         _cardIndex++;
         _isCardAnimating = false;
@@ -1648,7 +1656,8 @@ function cardLike(id) {
     }, 280);
 }
 
-async function toggleFav(applicantId) {
+async function toggleFav(applicantId, opts) {
+    opts = opts || {};
     if (window._favToggling) return;
     // pending 상태 차단
     if (window._myProfile && window._myProfile.status === 'pending') {
@@ -1694,7 +1703,10 @@ async function toggleFav(applicantId) {
         })();
     }
     window._favSet = favSet;
-    renderMatchRanking(window._allCandidates || []);
+    // cardLike에서 호출된 경우 카드 순서 재배치 방지 (진행 중인 스와이프 흐름 유지)
+    if (!opts.skipRerender) {
+        renderMatchRanking(window._allCandidates || []);
+    }
     await loadFavorites(user.id);
     await loadMutualInterests(user.id);
     } finally { window._favToggling = false; }
@@ -1760,8 +1772,10 @@ async function loadMutualInterests(userId) {
         }
 
         renderMutualSection();
-        // 추천 목록에 상호 관심 배지 업데이트
-        renderMatchRanking(window._allCandidates || []);
+        // 추천 목록에 상호 관심 배지 업데이트 — 카드 스와이프 중에는 스킵 (순서 꼬임 방지)
+        if (!_isCardAnimating) {
+            renderMatchRanking(window._allCandidates || []);
+        }
     } catch(e) {
         console.log('mutual interest load error:', e.message);
         window._mutualSet = new Set();
