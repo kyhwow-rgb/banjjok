@@ -938,9 +938,13 @@
                 </div>
             </div>
 
-            <div class="input-group">
-                <label>추천인 코드 <span style="color:#9ca3af;font-weight:400;">(선택 · 있으면 입력)</span></label>
-                <input type="text" id="reg-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;">
+            <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:14px 16px;border-radius:12px;">
+                <label style="color:#92400e;font-weight:800;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
+                <input type="text" id="reg-referral-code" placeholder="반쪽은 지인 추천제 · 추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;">
+                <div style="font-size:.72em;color:#92400e;margin-top:6px;line-height:1.5;">
+                    <i class="fa-solid fa-circle-info"></i> 지인에게 초대받은 분만 가입 가능해요.<br>
+                    가입 후 추천인과 다른 지인 1명의 <b>평판 (20자 이상)</b>이 쌓여야 승인 심사가 시작됩니다.
+                </div>
             </div>
 
             <div class="input-group">
@@ -1097,7 +1101,8 @@
         <div class="admin-tab-panel" id="adminPanel-applicants">
             <div class="admin-subnav">
                 <button class="admin-subnav-btn active" data-sub="all" onclick="filterAdmin('all')">전체 <span class="cnt" id="sub-cnt-all">0</span></button>
-                <button class="admin-subnav-btn" data-sub="pending" onclick="filterAdmin('pending')">대기 <span class="cnt" id="sub-cnt-pending">0</span></button>
+                <button class="admin-subnav-btn" data-sub="pending_reputation" onclick="filterAdmin('pending_reputation')">평판 대기 <span class="cnt" id="sub-cnt-pending-rep">0</span></button>
+                <button class="admin-subnav-btn" data-sub="pending" onclick="filterAdmin('pending')">승인 대기 <span class="cnt" id="sub-cnt-pending">0</span></button>
                 <button class="admin-subnav-btn" data-sub="male" onclick="filterAdmin('male')">남성 <span class="cnt" id="sub-cnt-male">0</span></button>
                 <button class="admin-subnav-btn" data-sub="female" onclick="filterAdmin('female')">여성 <span class="cnt" id="sub-cnt-female">0</span></button>
             </div>
@@ -1854,6 +1859,39 @@ async function submitApplication() {
     // 추천인 코드 처리
     const referralCodeInput = document.getElementById('reg-referral-code').value.trim().toUpperCase();
 
+    // 신규 가입자는 추천인 코드 필수 (지인 추천제)
+    let referrerApplicant = null;
+    if (!existingId) {
+        if (!referralCodeInput) {
+            setLoading(false);
+            btn.disabled = false;
+            btn.textContent = origText;
+            toast('반쪽은 지인 추천제입니다. 추천인 코드를 입력해주세요.', 'error');
+            return;
+        }
+        // 추천인 코드 유효성 검증
+        const { data: refData } = await db.from('applicants')
+            .select('id,name,referral_code,status,user_id')
+            .eq('referral_code', referralCodeInput)
+            .limit(1);
+        if (!refData || !refData.length) {
+            setLoading(false);
+            btn.disabled = false;
+            btn.textContent = origText;
+            toast('유효하지 않은 추천인 코드입니다.', 'error');
+            return;
+        }
+        const ACTIVE = ['approved', 'matched'];
+        if (!ACTIVE.includes(refData[0].status)) {
+            setLoading(false);
+            btn.disabled = false;
+            btn.textContent = origText;
+            toast('추천인이 아직 활동 중이 아니에요. 다른 추천 코드가 필요합니다.', 'error');
+            return;
+        }
+        referrerApplicant = refData[0];
+    }
+
     let error;
     if (existingId) {
         const { error: updateError } = await db.from('applicants').update(rowData).eq('id', existingId);
@@ -1863,7 +1901,7 @@ async function submitApplication() {
         const myCode = (name.charAt(0) || 'B') + Math.random().toString(36).slice(2, 7).toUpperCase();
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
-            status:  'pending',
+            status:  'pending_reputation', // 평판 대기 상태로 시작
             user_id: userId,
             referral_code: myCode,
             referred_by: referralCodeInput || null,
@@ -1871,6 +1909,25 @@ async function submitApplication() {
         };
         const { error: insertError } = await db.from('applicants').insert([row]);
         error = insertError;
+
+        // 추천인에게 평판 요청 푸시/알림
+        if (!insertError && referrerApplicant?.user_id) {
+            try {
+                const dashBase = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html';
+                // notifications 테이블 (인앱)
+                await db.from('notifications').insert({
+                    user_id: referrerApplicant.user_id,
+                    type: 'reputation_request',
+                    title: '지인이 당신 코드로 가입했어요!',
+                    body: `${name}님에게 평판을 남겨주세요. 최소 2개의 평판이 모여야 승인 심사로 넘어갑니다.`,
+                    related_id: row.id
+                }).then(() => {}, () => {});
+                // 푸시
+                if (typeof sendPushNotifIfPossible === 'function') {
+                    sendPushNotifIfPossible(referrerApplicant.user_id, '✨ 지인 추천 도착', `${name}님이 당신의 코드로 가입했어요. 평판을 남겨주세요!`, dashBase + '#tab-my');
+                }
+            } catch(e) { console.log('notify referrer error:', e.message); }
+        }
 
         // 추천인 인센티브 적용 (추천인 찜 슬롯 +1, 24시간 상위 노출)
         if (!insertError && referralCodeInput) {
@@ -2102,6 +2159,22 @@ async function adminFetch(table, method='GET', body=null, query='') {
 }
 
 // ── 관리자: 푸시 알림 전송 ──
+// 일반 유저 세션에서 푸시 발송 (가입/평판 등) - 본인이 로그인 중일 때 쓰임
+async function sendPushNotifIfPossible(userId, title, body, url) {
+    try {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) return;
+        await fetch(SUPABASE_URL + '/functions/v1/send-push', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + session.access_token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_id: userId, title, body: body || '', url: url || 'https://kyhwow-rgb.github.io/banjjok/dashboard.html' })
+        });
+    } catch(e) { console.log('push error:', e.message); }
+}
+
 async function sendAdminPush(userId, title, body, url, type) {
     try {
         // 수신자 알림 환경설정 확인
@@ -2245,6 +2318,7 @@ function renderMatchedCouples() {
 // 탭 배지 업데이트
 function updateAdminTabBadges() {
     const pending = adminCache.filter(a => a.status === 'pending').length;
+    const pendingRep = adminCache.filter(a => a.status === 'pending_reputation').length;
     const mutualBadge = (window._adminMutuals || []).length;
     const inquiriesUnread = window._adminUnreadInq || 0;
 
@@ -2254,7 +2328,7 @@ function updateAdminTabBadges() {
         if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.style.display = ''; }
         else el.style.display = 'none';
     };
-    setBadge('tab-badge-applicants', pending);
+    setBadge('tab-badge-applicants', pending + pendingRep);
     setBadge('tab-badge-matching', mutualBadge);
     setBadge('tab-badge-inquiries', inquiriesUnread);
 
@@ -2263,6 +2337,7 @@ function updateAdminTabBadges() {
     const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
     set('sub-cnt-all', adminCache.length);
     set('sub-cnt-pending', pending);
+    set('sub-cnt-pending-rep', pendingRep);
     set('sub-cnt-male', byG('male'));
     set('sub-cnt-female', byG('female'));
 }
@@ -2449,10 +2524,16 @@ async function loadAdminTodoWidget() {
         } catch(e) {}
 
         const items = [];
+        const pendingRep = adminCache.filter(a => a.status === 'pending_reputation');
         if (pending.length > 0) items.push({
-            icon: 'fa-user-clock', text: `신규 신청 ${pending.length}건 대기`,
-            sub: pendingOld.length > 0 ? `${pendingOld.length}건은 3일 이상 경과 ⚠️` : null,
+            icon: 'fa-user-clock', text: `관리자 승인 대기 ${pending.length}건`,
+            sub: pendingOld.length > 0 ? `${pendingOld.length}건은 3일 이상 경과 ⚠️` : '평판 2개 통과 · 승인 검토 필요',
             count: pending.length, action: "filterAdmin('pending')"
+        });
+        if (pendingRep.length > 0) items.push({
+            icon: 'fa-handshake', text: `평판 수집 중 ${pendingRep.length}명`,
+            sub: '추천인+지인 평판 모여야 승인 심사 시작 (관리자 액션 불필요)',
+            count: pendingRep.length, action: "filterAdmin('pending_reputation')"
         });
         if (mutualCount > 0) items.push({
             icon: 'fa-heart-circle-bolt', text: `매칭 대기 상호찜 ${mutualCount}쌍`,
@@ -3048,8 +3129,8 @@ function filterAdmin(type, opts) {
         }
     }
 
-    const titles = { all:'전체 신청', pending:'승인 대기', male:'승인된 남성', female:'승인된 여성' };
-    const empty  = { all:'지원자가 없습니다.', pending:'대기 중인 신청이 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.' };
+    const titles = { all:'전체 신청', pending_reputation:'평판 대기', pending:'관리자 승인 대기', male:'승인된 남성', female:'승인된 여성' };
+    const empty  = { all:'지원자가 없습니다.', pending_reputation:'평판 대기 중인 사람이 없어요.', pending:'승인 대기가 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.' };
 
     // 신청자 탭 sub-nav 활성화
     document.querySelectorAll('.admin-subnav-btn').forEach(b => b.classList.toggle('active', b.dataset.sub === type));
@@ -3066,6 +3147,7 @@ function filterAdmin(type, opts) {
 
     const filtered = adminCache.filter(a => {
         if (type === 'all')     return true;
+        if (type === 'pending_reputation') return a.status === 'pending_reputation';
         if (type === 'pending') return a.status === 'pending';
         if (type === 'male')    return a.status === 'approved' && a.gender === 'male';
         if (type === 'female')  return a.status === 'approved' && a.gender === 'female';
@@ -3114,7 +3196,13 @@ function applicantRowHtml(a, idx=0) {
     const age   = calcAge(a.birth);
     const icon  = a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);font-size:22px;"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);font-size:22px;"></i>';
     const gBadge = a.gender === 'male' ? '<span class="badge badge-male"><i class="fa-solid fa-mars"></i> 남성</span>' : '<span class="badge badge-female"><i class="fa-solid fa-venus"></i> 여성</span>';
-    const sBadge = { pending:'<span class="badge badge-pending"><i class="fa-solid fa-clock"></i> 대기</span>', approved:'<span class="badge badge-approved"><i class="fa-solid fa-check"></i> 승인</span>', rejected:'<span class="badge badge-rejected"><i class="fa-solid fa-xmark"></i> 거절</span>', matched:'<span class="badge badge-matched"><i class="fa-solid fa-heart"></i> 매칭</span>' }[a.status] || '';
+    const sBadge = {
+        pending_reputation:'<span class="badge" style="background:#fef3c7;color:#b45309;"><i class="fa-solid fa-handshake"></i> 평판</span>',
+        pending:'<span class="badge badge-pending"><i class="fa-solid fa-clock"></i> 승인대기</span>',
+        approved:'<span class="badge badge-approved"><i class="fa-solid fa-check"></i> 승인</span>',
+        rejected:'<span class="badge badge-rejected"><i class="fa-solid fa-xmark"></i> 거절</span>',
+        matched:'<span class="badge badge-matched"><i class="fa-solid fa-heart"></i> 매칭</span>'
+    }[a.status] || '';
     const photoBadge = a.photos && a.photos.length > 0 ? `<span class="badge" style="background:#f3f4f6;color:#6b7280;"><i class="fa-solid fa-image"></i> ${a.photos.length}</span>` : '';
 
     const hS = calcHeightScore(a.height, a.gender);
@@ -3131,8 +3219,8 @@ function applicantRowHtml(a, idx=0) {
     const ageMs = Date.now() - new Date(a.created_at).getTime();
     const days = ageMs / (24*60*60*1000);
     if (days < 1) miniBadges.push('<span class="app-badge app-badge-new">NEW</span>');
-    if (a.status === 'pending' && days >= 3) miniBadges.push(`<span class="app-badge app-badge-wait">대기 ${Math.floor(days)}일</span>`);
-    if (!a.look_score && a.status !== 'pending') miniBadges.push('<span class="app-badge app-badge-nolook">외모 미평가</span>');
+    if ((a.status === 'pending' || a.status === 'pending_reputation') && days >= 3) miniBadges.push(`<span class="app-badge app-badge-wait">대기 ${Math.floor(days)}일</span>`);
+    if (!a.look_score && a.status !== 'pending' && a.status !== 'pending_reputation') miniBadges.push('<span class="app-badge app-badge-nolook">외모 미평가</span>');
     if (!a.photos || a.photos.length === 0) miniBadges.push('<span class="app-badge app-badge-nolook">사진 없음</span>');
     if (a.last_seen_at) {
         const lastMs = Date.now() - new Date(a.last_seen_at).getTime();
@@ -3206,7 +3294,7 @@ function applyQuickFilter(qf) {
 }
 
 // ── 관리자 상세 모달 ──
-function openAdminDetail(id) {
+async function openAdminDetail(id) {
     const a = adminCache.find(x => x.id === id);
     if (!a) return;
 
@@ -3215,7 +3303,22 @@ function openAdminDetail(id) {
     const icon    = gc === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);font-size:28px;"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);font-size:28px;"></i>';
     const bgColor = gc === 'male' ? 'var(--male-light)' : 'var(--female-light)';
     const photos  = a.photos && a.photos.length > 0 ? a.photos : [];
-    const sBadge  = { pending:'<span class="badge badge-pending"><i class="fa-solid fa-clock"></i> 대기</span>', approved:'<span class="badge badge-approved"><i class="fa-solid fa-check"></i> 승인</span>', rejected:'<span class="badge badge-rejected"><i class="fa-solid fa-xmark"></i> 거절</span>', matched:'<span class="badge badge-matched"><i class="fa-solid fa-heart"></i> 매칭</span>' }[a.status] || '';
+    const sBadge  = {
+        pending_reputation:'<span class="badge" style="background:#fef3c7;color:#b45309;"><i class="fa-solid fa-handshake"></i> 평판 대기</span>',
+        pending:'<span class="badge badge-pending"><i class="fa-solid fa-clock"></i> 승인 대기</span>',
+        approved:'<span class="badge badge-approved"><i class="fa-solid fa-check"></i> 승인</span>',
+        rejected:'<span class="badge badge-rejected"><i class="fa-solid fa-xmark"></i> 거절</span>',
+        matched:'<span class="badge badge-matched"><i class="fa-solid fa-heart"></i> 매칭</span>'
+    }[a.status] || '';
+
+    // 평판 조회
+    let reputations = [];
+    let referrer = null;
+    try {
+        const reps = await adminFetch('reputations', 'GET', null, `?target_applicant_id=eq.${a.id}&select=*&order=created_at.desc`);
+        reputations = reps || [];
+    } catch(e) {}
+    if (a.referred_by) referrer = adminCache.find(x => x.referral_code === a.referred_by);
 
     const heightScore = calcHeightScore(a.height, a.gender);
     const jobScore    = calcJobScore(a.job_category);
@@ -3303,6 +3406,28 @@ function openAdminDetail(id) {
                 <div class="detail-label">이상형</div>
                 <div class="detail-value">${renderIdealDisplay(a.ideal)}</div>
             </div>` : ''}
+        <div style="margin-top:16px;padding:14px;background:#faf5ff;border-radius:10px;">
+            <div style="font-size:.82em;font-weight:800;color:#7c3aed;margin-bottom:8px;">
+                <i class="fa-solid fa-handshake"></i> 평판 & 추천인
+            </div>
+            <div style="font-size:.82em;color:#374151;margin-bottom:10px;">
+                추천인: ${referrer ? `<b>${esc(referrer.name)}</b> (${esc(a.referred_by)})` : (a.referred_by ? `<code>${esc(a.referred_by)}</code> (탈퇴한 회원)` : '<span style="color:#9ca3af;">없음 (구 시스템 가입자)</span>')}
+            </div>
+            ${reputations.length === 0 ? '<div style="font-size:.78em;color:#9ca3af;">아직 평판 없음</div>' :
+                reputations.map(r => {
+                    const writer = adminCache.find(x => x.id === r.writer_applicant_id);
+                    return `<div style="padding:10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #ede9fe;">
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                            <span style="font-size:.82em;font-weight:700;">${esc(writer?.name || '(알 수 없음)')}</span>
+                            ${r.is_referrer ? '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#b45309;font-weight:700;">추천인</span>' : '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:#e0e7ff;color:#3730a3;font-weight:700;">지인</span>'}
+                            <span style="font-size:.7em;color:#9ca3af;margin-left:auto;">${formatDate(r.created_at)}</span>
+                        </div>
+                        <div style="font-size:.82em;color:#374151;line-height:1.5;">${esc(r.content)}</div>
+                    </div>`;
+                }).join('')
+            }
+            ${a.status === 'pending_reputation' ? `<div style="margin-top:8px;padding:8px;background:#fffbeb;border-radius:6px;font-size:.72em;color:#92400e;">⚠ 평판 대기 중 (${reputations.length}/2). 추천인 평판 ${reputations.filter(r => r.is_referrer).length > 0 ? '있음' : '필요'}</div>` : ''}
+        </div>
     `;
 
     const actions = [];
