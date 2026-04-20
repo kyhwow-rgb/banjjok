@@ -851,6 +851,26 @@ function getTierBadge(pct) {
 const JOB_SCORES = { '전문직':95, '연구·기술직':85, '공공·금융·교육직':80, '대기업·중견기업직':75, '사업·전문자유직':70, '일반사무·기술직':60, '학생':40, '기타':30 };
 function calcJobScore(jc) { return JOB_SCORES[jc] || 50; }
 
+// 이상형 키 범위 매칭 (candidate.gender 기준)
+function heightInRange(h, range, candidateGender) {
+    if (!h || !range) return false;
+    // candidate가 female이면 여자 범위 (155미만~170이상)
+    if (candidateGender === 'female') {
+        if (range === '155미만') return h < 155;
+        if (range === '155~160') return h >= 155 && h < 160;
+        if (range === '160~165') return h >= 160 && h < 165;
+        if (range === '165~170') return h >= 165 && h < 170;
+        if (range === '170이상') return h >= 170;
+    } else {
+        if (range === '170미만') return h < 170;
+        if (range === '170~175') return h >= 170 && h < 175;
+        if (range === '175~180') return h >= 175 && h < 180;
+        if (range === '180~185') return h >= 180 && h < 185;
+        if (range === '185이상') return h >= 185;
+    }
+    return false;
+}
+
 function calcMatchScore(viewer, candidate) {
     let w = { height:20, looks:20, job:15, location:15, age:15, mbti:15 };
     if (viewer.ideal_weights) { try { const saved = JSON.parse(viewer.ideal_weights); Object.assign(w, saved); } catch {} }
@@ -861,23 +881,16 @@ function calcMatchScore(viewer, candidate) {
     let ideal = {};
     if (viewer.ideal) { try { ideal = JSON.parse(viewer.ideal); } catch {} }
 
-    // 1. 키 점수 (이상형 선호 반영)
+    // 1. 키 점수 (이상형 선호 반영 — 범위 기반 매칭)
     let heightScore = 50;
     if (candidate.height) {
         const h = parseInt(candidate.height);
         const pref = ideal['키'] || [];
-        if (pref.includes('상관없음') || pref.length === 0) {
-            // 상관없으면 평균 기준 보통 점수
-            heightScore = 70;
-        } else if (pref.includes('큰 편')) {
-            if (candidate.gender === 'male') heightScore = h >= 183 ? 95 : h >= 178 ? 85 : h >= 175 ? 70 : h >= 170 ? 55 : 35;
-            else heightScore = h >= 168 ? 95 : h >= 165 ? 85 : h >= 162 ? 70 : h >= 158 ? 55 : 35;
-        } else if (pref.includes('작은 편')) {
-            if (candidate.gender === 'male') heightScore = h <= 170 ? 90 : h <= 175 ? 75 : h <= 178 ? 55 : 35;
-            else heightScore = h <= 158 ? 90 : h <= 162 ? 75 : h <= 165 ? 55 : 35;
-        } else { // 보통
-            if (candidate.gender === 'male') heightScore = (h >= 173 && h <= 180) ? 90 : (h >= 170 && h <= 183) ? 75 : 50;
-            else heightScore = (h >= 158 && h <= 165) ? 90 : (h >= 155 && h <= 168) ? 75 : 50;
+        if (pref.length === 0) {
+            heightScore = 70; // 미설정 시 기본 점수
+        } else {
+            const matched = pref.some(range => heightInRange(h, range, candidate.gender));
+            heightScore = matched ? 95 : 30;
         }
     }
 
