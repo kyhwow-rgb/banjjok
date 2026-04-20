@@ -2116,20 +2116,34 @@ function buildIdealChipsHtml(prefix, idealJson, forcedGender) {
     const cid = prefix === 'reg' ? 'ideal-chips' : 'edit-ideal-chips';
     // 성별: 명시적 지정 > 현재 선택된 성별 > 기존 프로필의 gender
     const myGender = forcedGender || (prefix === 'reg' ? selectedGender : null);
-    // 나이 허용 범위 (숫자)
-    const ageUpper = (selected['나이_연상'] != null) ? selected['나이_연상'] : 5;
-    const ageLower = (selected['나이_연하'] != null) ? selected['나이_연하'] : 5;
+    // 선호 생년 범위 (기본: 본인 나이 ±5년, 기존 데이터 있으면 그대로)
+    const currentYear = new Date().getFullYear();
+    const myBirthEl = document.getElementById(prefix === 'reg' ? 'reg-birth' : 'edit-birth');
+    const myBirthYear = (myBirthEl && myBirthEl.value) ? new Date(myBirthEl.value).getFullYear() : null;
+    const defaultStart = myBirthYear ? myBirthYear - 5 : currentYear - 35;
+    const defaultEnd = myBirthYear ? myBirthYear + 5 : currentYear - 20;
+    // 하위호환: 기존 나이_연상/연하가 있으면 본인 나이로 환산
+    let yearStart = selected['생년_시작'];
+    let yearEnd = selected['생년_끝'];
+    if (yearStart == null && myBirthYear && selected['나이_연상'] != null) {
+        yearStart = myBirthYear - (parseInt(selected['나이_연상']) || 5);
+    }
+    if (yearEnd == null && myBirthYear && selected['나이_연하'] != null) {
+        yearEnd = myBirthYear + (parseInt(selected['나이_연하']) || 5);
+    }
+    if (yearStart == null) yearStart = defaultStart;
+    if (yearEnd == null) yearEnd = defaultEnd;
+
     const ageHtml = `
         <div class="chip-group">
-            <span class="chip-group-label">선호 나이 범위</span>
+            <span class="chip-group-label">선호 생년 범위</span>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.88em;">
-                <span style="color:#737373;">연상</span>
-                <input type="number" id="${prefix}-age-upper" value="${ageUpper}" min="0" max="20" style="width:52px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;font-size:.95em;" oninput="updateScoreBar()">
-                <span style="color:#737373;">살까지 ·</span>
-                <span style="color:#737373;">연하</span>
-                <input type="number" id="${prefix}-age-lower" value="${ageLower}" min="0" max="20" style="width:52px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;font-size:.95em;" oninput="updateScoreBar()">
-                <span style="color:#737373;">살까지</span>
+                <input type="number" id="${prefix}-year-start" value="${yearStart}" min="1950" max="${currentYear-17}" style="width:76px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;font-size:.95em;" oninput="updateScoreBar()">
+                <span style="color:#737373;">년생 ~</span>
+                <input type="number" id="${prefix}-year-end" value="${yearEnd}" min="1950" max="${currentYear-17}" style="width:76px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;font-size:.95em;" oninput="updateScoreBar()">
+                <span style="color:#737373;">년생</span>
             </div>
+            <div style="font-size:.72em;color:#9ca3af;margin-top:4px;">상대방의 출생년도 범위를 지정해주세요.</div>
         </div>`;
 
     return ageHtml + IDEAL_CATEGORIES.map(cat => {
@@ -2169,12 +2183,23 @@ function collectIdealData(chipsId, memoId) {
         if (!data[cat]) data[cat] = [];
         data[cat].push(c.dataset.val);
     });
-    // 나이 범위 수집 (0도 유효값으로 허용)
+    // 선호 생년 범위 수집 (1950~현재년-17)
     const prefix = chipsId === 'ideal-chips' ? 'reg' : 'edit';
-    const ageUpper = document.getElementById(prefix + '-age-upper');
-    const ageLower = document.getElementById(prefix + '-age-lower');
-    if (ageUpper) { const v = parseInt(ageUpper.value); data['나이_연상'] = isNaN(v) ? 5 : Math.max(0, Math.min(20, v)); }
-    if (ageLower) { const v = parseInt(ageLower.value); data['나이_연하'] = isNaN(v) ? 5 : Math.max(0, Math.min(20, v)); }
+    const yearStartEl = document.getElementById(prefix + '-year-start');
+    const yearEndEl = document.getElementById(prefix + '-year-end');
+    const currentYear = new Date().getFullYear();
+    if (yearStartEl) {
+        const v = parseInt(yearStartEl.value);
+        if (!isNaN(v)) data['생년_시작'] = Math.max(1950, Math.min(currentYear - 17, v));
+    }
+    if (yearEndEl) {
+        const v = parseInt(yearEndEl.value);
+        if (!isNaN(v)) data['생년_끝'] = Math.max(1950, Math.min(currentYear - 17, v));
+    }
+    // 시작 > 끝이면 swap
+    if (data['생년_시작'] != null && data['생년_끝'] != null && data['생년_시작'] > data['생년_끝']) {
+        [data['생년_시작'], data['생년_끝']] = [data['생년_끝'], data['생년_시작']];
+    }
     const memo = document.getElementById(memoId)?.value.trim();
     if (memo) data.memo = memo;
     return Object.keys(data).length ? JSON.stringify(data) : null;
@@ -2184,11 +2209,18 @@ function renderIdealDisplay(idealJson) {
     if (!idealJson) return '';
     let data;
     try { data = JSON.parse(idealJson); } catch { return `<span>${esc(idealJson)}</span>`; }
-    const lines = IDEAL_CATEGORIES
+    const lines = [];
+    // 생년 범위 표시
+    if (data['생년_시작'] != null || data['생년_끝'] != null) {
+        const s = data['생년_시작'] ?? '?';
+        const e = data['생년_끝'] ?? '?';
+        lines.push(`<div style="margin-bottom:6px;"><span style="font-size:.74em;font-weight:700;color:var(--muted);margin-right:6px;">선호 생년</span><span class="ideal-display-chip">${s} ~ ${e}년생</span></div>`);
+    }
+    IDEAL_CATEGORIES
         .filter(cat => data[cat.key] && data[cat.key].length)
-        .map(cat => {
+        .forEach(cat => {
             const chips = (data[cat.key] || []).map(v => `<span class="ideal-display-chip">${esc(v)}</span>`).join('');
-            return `<div style="margin-bottom:6px;"><span style="font-size:.74em;font-weight:700;color:var(--muted);margin-right:6px;">${cat.key}</span>${chips}</div>`;
+            lines.push(`<div style="margin-bottom:6px;"><span style="font-size:.74em;font-weight:700;color:var(--muted);margin-right:6px;">${cat.key}</span>${chips}</div>`);
         });
     if (data.memo) lines.push(`<div style="margin-top:6px;font-size:.82em;color:#6b7280;font-style:italic;padding:8px 10px;background:#f9fafb;border-radius:8px;">"${esc(data.memo)}"</div>`);
     return lines.join('') || '';
@@ -3597,7 +3629,7 @@ function openEditForm(id) {
             </div>
         </div>
         <div class="input-group"><label>자기소개</label><textarea id="edit-intro" rows="3">${esc(a.intro||'')}</textarea></div>
-        <div class="input-group"><label>이상형</label><div id="edit-ideal-chips">${buildIdealChipsHtml('edit', a.ideal)}</div><textarea id="edit-ideal-memo" class="ideal-memo" placeholder="추가로 하고 싶은 말이 있다면 자유롭게 적어주세요...">${getIdealMemo(a.ideal)}</textarea></div>
+        <div class="input-group"><label>이상형</label><div id="edit-ideal-chips">${buildIdealChipsHtml('edit', a.ideal, a.gender)}</div><textarea id="edit-ideal-memo" class="ideal-memo" placeholder="추가로 하고 싶은 말이 있다면 자유롭게 적어주세요...">${getIdealMemo(a.ideal)}</textarea></div>
     `;
     // Ice Breaker 값 로드
     if (a.icebreaker) {
