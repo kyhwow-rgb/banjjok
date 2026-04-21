@@ -1928,6 +1928,8 @@ async function submitApplication() {
 
     // 추천인 코드 처리
     const referralCodeInput = document.getElementById('reg-referral-code').value.trim().toUpperCase();
+    const SUPER_CODE = 'KANGYONGHWAN';
+    const isSuperCode = referralCodeInput === SUPER_CODE;
 
     // 신규 가입자는 추천인 코드 필수 (지인 추천제)
     let referrerApplicant = null;
@@ -1939,27 +1941,29 @@ async function submitApplication() {
             toast('반쪽은 지인 추천제입니다. 추천인 코드를 입력해주세요.', 'error');
             return;
         }
-        // 추천인 코드 유효성 검증
-        const { data: refData } = await db.from('applicants')
-            .select('id,name,referral_code,status,user_id')
-            .eq('referral_code', referralCodeInput)
-            .limit(1);
-        if (!refData || !refData.length) {
-            setLoading(false);
-            btn.disabled = false;
-            btn.textContent = origText;
-            toast('유효하지 않은 추천인 코드입니다.', 'error');
-            return;
+        if (!isSuperCode) {
+            // 일반 추천인 코드 유효성 검증
+            const { data: refData } = await db.from('applicants')
+                .select('id,name,referral_code,status,user_id')
+                .eq('referral_code', referralCodeInput)
+                .limit(1);
+            if (!refData || !refData.length) {
+                setLoading(false);
+                btn.disabled = false;
+                btn.textContent = origText;
+                toast('유효하지 않은 추천인 코드입니다.', 'error');
+                return;
+            }
+            const ACTIVE = ['approved', 'matched'];
+            if (!ACTIVE.includes(refData[0].status)) {
+                setLoading(false);
+                btn.disabled = false;
+                btn.textContent = origText;
+                toast('추천인이 아직 활동 중이 아니에요. 다른 추천 코드가 필요합니다.', 'error');
+                return;
+            }
+            referrerApplicant = refData[0];
         }
-        const ACTIVE = ['approved', 'matched'];
-        if (!ACTIVE.includes(refData[0].status)) {
-            setLoading(false);
-            btn.disabled = false;
-            btn.textContent = origText;
-            toast('추천인이 아직 활동 중이 아니에요. 다른 추천 코드가 필요합니다.', 'error');
-            return;
-        }
-        referrerApplicant = refData[0];
     }
 
     let error;
@@ -1972,7 +1976,7 @@ async function submitApplication() {
         const myCode = (name.charAt(0) || 'B') + Math.random().toString(36).slice(2, 7).toUpperCase();
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
-            status:  'pending_reputation', // 평판 대기 상태로 시작
+            status:  isSuperCode ? 'pending' : 'pending_reputation', // 슈퍼코드 → 바로 심사, 일반 → 평판 대기
             user_id: userId,
             referral_code: myCode,
             referred_by: referralCodeInput || null,
@@ -2001,8 +2005,8 @@ async function submitApplication() {
             } catch(e) { console.log('notify referrer error:', e.message); }
         }
 
-        // 추천인 인센티브 적용 (추천인 찜 슬롯 +1, 24시간 상위 노출)
-        if (!insertError && referralCodeInput) {
+        // 추천인 인센티브 적용 (추천인 찜 슬롯 +1, 24시간 상위 노출) — 슈퍼코드 제외
+        if (!insertError && referralCodeInput && !isSuperCode) {
             try {
                 const { data: referrer } = await db.from('applicants').select('id,referral_count,fav_slots').eq('referral_code', referralCodeInput).limit(1);
                 if (referrer && referrer.length > 0) {
@@ -2029,7 +2033,9 @@ async function submitApplication() {
     btn.textContent = '제출 완료!';
     toast(existingId
         ? '신청서가 수정되었습니다!'
-        : '신청서가 제출되었습니다! 추천인과 지인 1명의 평판이 모이면 관리자 심사가 시작됩니다.', 'success');
+        : isSuperCode
+            ? '신청서가 제출되었습니다! 관리자 승인을 기다려주세요.'
+            : '신청서가 제출되었습니다! 추천인과 지인 1명의 평판이 모이면 관리자 심사가 시작됩니다.', 'success');
     setTimeout(() => window.location.href = 'dashboard.html', 2200);
 
     } catch(e) {
