@@ -1265,7 +1265,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/common.js"></script>
+<script src="js/common.js" onerror="document.body.innerHTML='<div style=\'text-align:center;padding:80px 20px;font-family:sans-serif;\'><h2>네트워크 오류</h2><p style=\'color:#666;\'>페이지를 새로고침 해주세요.</p><button onclick=location.reload() style=\'margin-top:16px;padding:12px 28px;border:none;border-radius:10px;background:#111;color:#fff;font-size:1em;cursor:pointer;\'>새로고침</button></div>'"></script>
 <script>
 'use strict';
 
@@ -2042,26 +2042,7 @@ async function submitApplication() {
     }
 }
 
-// ── 매칭 점수 계산 ──
-function calcHeightScore(height, gender) {
-    if (!height) return 50;
-    height = parseInt(height);
-    if (gender === 'male') {
-        if (height >= 185) return 95;
-        if (height >= 180) return 85;
-        if (height >= 175) return 75;
-        if (height >= 170) return 60;
-        if (height >= 165) return 45;
-        return 30;
-    } else {
-        if (height >= 168) return 90;
-        if (height >= 163) return 80;
-        if (height >= 158) return 70;
-        if (height >= 153) return 55;
-        return 40;
-    }
-}
-// (JOB_SCORES, calcJobScore → js/common.js)
+// (calcHeightScore, calcMatchScore → js/common.js)
 
 // ── 직업명 → 직업군 자동 분류 ──
 const JOB_KEYWORDS = {
@@ -2080,22 +2061,10 @@ function autoDetectJobCategory(jobText) {
     }
     return '일반사무·기술직';
 }
+// (calcMatchScore → js/common.js — 6가중치 개인화 버전으로 통일)
+// calcEduScore: 관리자 전용 (상세보기 점수바)
 const EDU_SCORES = { '박사':95, '석사':80, '학사':65, '기타':45, '대학원 졸업':95, '대학원':95, '4년제대학교 졸업':65, '4년제 졸업':65, '전문대학교 졸업':55, '전문대':55, '고등학교 졸업':45, '고졸':45, '명문대':90 };
 function calcEduScore(education) { return EDU_SCORES[education] || 50; }
-function calcMatchScore(viewer, candidate) {
-    let w = { height:34, looks:33, job:33 };
-    if (viewer.ideal_weights) { try { w = JSON.parse(viewer.ideal_weights); } catch {} }
-    const total = (w.height||0) + (w.looks||0) + (w.job||0);
-    if (total === 0) { w = { height:34, looks:33, job:33 }; }
-    const h = calcHeightScore(candidate.height, candidate.gender);
-    const l = candidate.look_score || 50;
-    const j = calcJobScore(candidate.job_category);
-    const baseScore = (h * (w.height||0) + l * (w.looks||0) + j * (w.job||0)) / (total || 100);
-    // MBTI 궁합 보너스 (글램 스타일): 최대 ±10점
-    const mbtiCompat = calcMbtiCompat(viewer.mbti, candidate.mbti);
-    const mbtiBonus = Math.round((mbtiCompat - 50) / 5);
-    return Math.min(100, Math.max(0, Math.round(baseScore + mbtiBonus)));
-}
 
 // ── 이상형 칩 시스템 ──
 // (MBTI_COMPAT, calcMbtiCompat → js/common.js)
@@ -3285,13 +3254,8 @@ function applicantRowHtml(a, idx=0) {
     }[a.status] || '';
     const photoBadge = a.photos && a.photos.length > 0 ? `<span class="badge" style="background:#f3f4f6;color:#6b7280;"><i class="fa-solid fa-image"></i> ${a.photos.length}</span>` : '';
 
-    const hS = calcHeightScore(a.height, a.gender);
-    const jS = calcJobScore(a.job_category);
-    const eS = calcEduScore(a.education);
+    const avg = calcProfileQuality(a);
     const lS = a.look_score || 0;
-    const scores = [hS, jS, eS];
-    if (lS > 0) scores.push(lS);
-    const avg = Math.round(scores.reduce((a,b)=>a+b,0) / scores.length);
     const avgColor = avg >= 80 ? '#10b981' : avg >= 60 ? '#f59e0b' : '#ef4444';
 
     // 보조 배지 계산
@@ -3400,7 +3364,8 @@ async function openAdminDetail(id) {
     } catch(e) {}
     if (a.referred_by) referrer = adminCache.find(x => x.referral_code === a.referred_by);
 
-    const heightScore = calcHeightScore(a.height, a.gender);
+    const _h = parseInt(a.height) || 0;
+    const heightScore = !_h ? 50 : (a.gender === 'male' ? (_h>=185?95:_h>=180?85:_h>=175?75:_h>=170?60:40) : (_h>=168?90:_h>=163?80:_h>=158?70:_h>=153?55:40));
     const jobScore    = calcJobScore(a.job_category);
     const eduScore    = calcEduScore(a.education);
     const lookScore   = a.look_score || 0;

@@ -755,7 +755,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/common.js"></script>
+<script src="js/common.js" onerror="document.body.innerHTML='<div style=\'text-align:center;padding:80px 20px;font-family:sans-serif;\'><h2>네트워크 오류</h2><p style=\'color:#666;\'>페이지를 새로고침 해주세요.</p><button onclick=location.reload() style=\'margin-top:16px;padding:12px 28px;border:none;border-radius:10px;background:#111;color:#fff;font-size:1em;cursor:pointer;\'>새로고침</button></div>'"></script>
 <script>
 'use strict';
 
@@ -789,126 +789,7 @@ function getTierBadge(pct) {
 // ── 매칭 점수 계산 (이상형 선호 반영) ──
 // (JOB_SCORES, calcJobScore → js/common.js)
 
-// 이상형 키 범위 매칭 (candidate.gender 기준)
-function heightInRange(h, range, candidateGender) {
-    if (!h || !range) return false;
-    // candidate가 female이면 여자 범위 (155미만~170이상)
-    if (candidateGender === 'female') {
-        if (range === '155미만') return h < 155;
-        if (range === '155~160') return h >= 155 && h < 160;
-        if (range === '160~165') return h >= 160 && h < 165;
-        if (range === '165~170') return h >= 165 && h < 170;
-        if (range === '170이상') return h >= 170;
-    } else {
-        if (range === '170미만') return h < 170;
-        if (range === '170~175') return h >= 170 && h < 175;
-        if (range === '175~180') return h >= 175 && h < 180;
-        if (range === '180~185') return h >= 180 && h < 185;
-        if (range === '185이상') return h >= 185;
-    }
-    return false;
-}
-
-function calcMatchScore(viewer, candidate) {
-    let w = { height:20, looks:20, job:15, location:15, age:15, mbti:15 };
-    if (viewer.ideal_weights) { try { const saved = JSON.parse(viewer.ideal_weights); Object.assign(w, saved); } catch {} }
-    const total = (w.height||0) + (w.looks||0) + (w.job||0) + (w.location||0) + (w.age||0) + (w.mbti||0);
-    if (total === 0) return 50;
-
-    // 이상형 칩 데이터 파싱
-    let ideal = {};
-    if (viewer.ideal) { try { ideal = JSON.parse(viewer.ideal); } catch {} }
-
-    // 1. 키 점수 (이상형 선호 반영 — 범위 기반 매칭)
-    let heightScore = 50;
-    if (candidate.height) {
-        const h = parseInt(candidate.height);
-        const pref = ideal['키'] || [];
-        if (pref.length === 0) {
-            heightScore = 70; // 미설정 시 기본 점수
-        } else {
-            const matched = pref.some(range => heightInRange(h, range, candidate.gender));
-            heightScore = matched ? 95 : 30;
-        }
-    }
-
-    // 2. 외모 점수
-    const looksScore = candidate.look_score || 50;
-
-    // 3. 직업 점수
-    const jobScore = calcJobScore(candidate.job_category);
-
-    // 4. 지역 점수 (이상형 선호 반영)
-    let locationScore = 50;
-    if (candidate.location && viewer.location) {
-        const prefLoc = ideal['지역'] || [];
-        if (prefLoc.includes('상관없음') || prefLoc.length === 0) {
-            locationScore = candidate.location === viewer.location ? 80 : 60;
-        } else {
-            // 선호 지역과 일치하면 높은 점수
-            const cLoc = candidate.location;
-            const locMatch = prefLoc.some(p => cLoc.includes(p) || p.includes(cLoc));
-            locationScore = locMatch ? 95 : (cLoc === viewer.location ? 70 : 30);
-        }
-    }
-
-    // 5. 나이 점수 (선호 생년 범위 기반)
-    let ageScore = 50;
-    if (candidate.birth) {
-        const candYear = new Date(candidate.birth).getFullYear();
-        let yStart = ideal['생년_시작'];
-        let yEnd = ideal['생년_끝'];
-        // 하위호환: 이전에 저장된 연상/연하만 있는 프로필
-        if ((yStart == null || yEnd == null) && viewer.birth) {
-            const vYear = new Date(viewer.birth).getFullYear();
-            if (yStart == null && ideal['나이_연상'] != null) yStart = vYear - parseInt(ideal['나이_연상']);
-            if (yEnd == null && ideal['나이_연하'] != null) yEnd = vYear + parseInt(ideal['나이_연하']);
-        }
-        if (yStart != null && yEnd != null) {
-            const minY = Math.min(yStart, yEnd);
-            const maxY = Math.max(yStart, yEnd);
-            if (candYear >= minY && candYear <= maxY) {
-                ageScore = 95;
-            } else {
-                const distance = candYear < minY ? (minY - candYear) : (candYear - maxY);
-                ageScore = Math.max(15, 85 - distance * 12);
-            }
-        } else if (viewer.birth) {
-            // 선호 미설정 → 본인 나이 기준 가까울수록 높은 점수
-            const diff = Math.abs(calcAge(candidate.birth) - calcAge(viewer.birth));
-            ageScore = diff <= 3 ? 85 : diff <= 5 ? 70 : diff <= 8 ? 50 : 30;
-        }
-    }
-
-    // 6. MBTI 궁합 점수 (이상형 성향 칩 + 궁합표 결합)
-    let mbtiScore = calcMbtiCompat(viewer.mbti, candidate.mbti);
-    const prefMbti = ideal['성향'] || [];
-    if (prefMbti.length > 0 && !prefMbti.includes('상관없음') && candidate.mbti) {
-        const cMbti = candidate.mbti.toUpperCase();
-        const matchCount = prefMbti.filter(p => cMbti.includes(p)).length;
-        const prefBonus = matchCount * 8; // 선호 성향과 일치할 때마다 보너스
-        mbtiScore = Math.min(100, mbtiScore + prefBonus);
-    }
-
-    // 7. 종교 보너스/패널티 (칩에서 선호 종교 선택한 경우)
-    let religionBonus = 0;
-    const prefReligion = ideal['종교'] || [];
-    if (prefReligion.length > 0 && !prefReligion.includes('상관없음') && candidate.religion) {
-        religionBonus = prefReligion.includes(candidate.religion) ? 5 : -5;
-    }
-
-    // 가중 평균
-    const weighted = (
-        heightScore * (w.height||0) +
-        looksScore * (w.looks||0) +
-        jobScore * (w.job||0) +
-        locationScore * (w.location||0) +
-        ageScore * (w.age||0) +
-        mbtiScore * (w.mbti||0)
-    ) / total;
-
-    return Math.min(100, Math.max(0, Math.round(weighted + religionBonus)));
-}
+// (heightInRange, calcMatchScore → js/common.js)
 
 function gemIcon(pct) {
     if (pct >= 96) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'max', color:'#7c3aed' };
@@ -2813,7 +2694,7 @@ async function goHome() {
 async function doLogout(silent) {
     if (!silent && !confirm('로그아웃 하시겠습니까?')) return;
     openFeedbackModal('exit', {
-        required: true,
+        required: false,
         callback: async () => {
             await db.auth.signOut();
             localStorage.removeItem('kj_role');
@@ -3088,7 +2969,7 @@ function openFeedbackModal(type, options = {}) {
     if (type === 'exit') {
         title.textContent = '떠나시기 전에...';
         sub.textContent = '더 좋은 반쪽이 되기 위해 의견을 남겨주세요.';
-        skipBtn.style.display = 'none';
+        skipBtn.style.display = options.required ? 'none' : '';
         const exitReasons = ['매칭이 안 돼서', '마음에 드는 사람이 없어서', '사용하기 불편해서', '개인정보가 걱정돼서', '다른 앱을 사용 중', '기타'];
         reasons.innerHTML = exitReasons.map(r =>
             `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:10px;font-size:.88em;cursor:pointer;border:1px solid #e5e7eb;transition:all .15s;">

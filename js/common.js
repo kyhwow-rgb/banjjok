@@ -87,3 +87,122 @@ function calcMbtiCompat(m1, m2) {
 // ── 직업 점수 ──
 const JOB_SCORES = { '전문직':95, '연구·기술직':85, '공공·금융·교육직':80, '대기업·중견기업직':75, '사업·전문자유직':70, '일반사무·기술직':60, '학생':40, '기타':30 };
 function calcJobScore(jc) { return JOB_SCORES[jc] || 50; }
+
+// ── 이상형 키 범위 매칭 ──
+function heightInRange(h, range, candidateGender) {
+    if (!h || !range) return false;
+    if (candidateGender === 'female') {
+        if (range === '155미만') return h < 155;
+        if (range === '155~160') return h >= 155 && h < 160;
+        if (range === '160~165') return h >= 160 && h < 165;
+        if (range === '165~170') return h >= 165 && h < 170;
+        if (range === '170이상') return h >= 170;
+    } else {
+        if (range === '170미만') return h < 170;
+        if (range === '170~175') return h >= 170 && h < 175;
+        if (range === '175~180') return h >= 175 && h < 180;
+        if (range === '180~185') return h >= 180 && h < 185;
+        if (range === '185이상') return h >= 185;
+    }
+    return false;
+}
+
+// ── 매칭 점수 (개인화: viewer의 이상형 기준) ──
+function calcMatchScore(viewer, candidate) {
+    let w = { height:20, looks:20, job:15, location:15, age:15, mbti:15 };
+    if (viewer.ideal_weights) { try { const saved = JSON.parse(viewer.ideal_weights); Object.assign(w, saved); } catch {} }
+    const total = (w.height||0) + (w.looks||0) + (w.job||0) + (w.location||0) + (w.age||0) + (w.mbti||0);
+    if (total === 0) return 50;
+
+    let ideal = {};
+    if (viewer.ideal) { try { ideal = JSON.parse(viewer.ideal); } catch {} }
+
+    // 1. 키 (이상형 범위 매칭)
+    let heightScore = 50;
+    if (candidate.height) {
+        const h = parseInt(candidate.height);
+        const pref = ideal['키'] || [];
+        if (pref.length === 0) { heightScore = 70; }
+        else { heightScore = pref.some(range => heightInRange(h, range, candidate.gender)) ? 95 : 30; }
+    }
+
+    // 2. 외모
+    const looksScore = candidate.look_score || 50;
+
+    // 3. 직업
+    const jobScore = calcJobScore(candidate.job_category);
+
+    // 4. 지역 (이상형 선호 반영)
+    let locationScore = 50;
+    if (candidate.location && viewer.location) {
+        const prefLoc = ideal['지역'] || [];
+        if (prefLoc.includes('상관없음') || prefLoc.length === 0) {
+            locationScore = candidate.location === viewer.location ? 80 : 60;
+        } else {
+            const cLoc = candidate.location;
+            const locMatch = prefLoc.some(p => cLoc.includes(p) || p.includes(cLoc));
+            locationScore = locMatch ? 95 : (cLoc === viewer.location ? 70 : 30);
+        }
+    }
+
+    // 5. 나이 (선호 생년 범위)
+    let ageScore = 50;
+    if (candidate.birth) {
+        const candYear = new Date(candidate.birth).getFullYear();
+        let yStart = ideal['생년_시작'], yEnd = ideal['생년_끝'];
+        if ((yStart == null || yEnd == null) && viewer.birth) {
+            const vYear = new Date(viewer.birth).getFullYear();
+            if (yStart == null && ideal['나이_연상'] != null) yStart = vYear - parseInt(ideal['나이_연상']);
+            if (yEnd == null && ideal['나이_연하'] != null) yEnd = vYear + parseInt(ideal['나이_연하']);
+        }
+        if (yStart != null && yEnd != null) {
+            const minY = Math.min(yStart, yEnd), maxY = Math.max(yStart, yEnd);
+            if (candYear >= minY && candYear <= maxY) { ageScore = 95; }
+            else { const dist = candYear < minY ? (minY - candYear) : (candYear - maxY); ageScore = Math.max(15, 85 - dist * 12); }
+        } else if (viewer.birth) {
+            const diff = Math.abs(calcAge(candidate.birth) - calcAge(viewer.birth));
+            ageScore = diff <= 3 ? 85 : diff <= 5 ? 70 : diff <= 8 ? 50 : 30;
+        }
+    }
+
+    // 6. MBTI (궁합 + 이상형 성향)
+    let mbtiScore = calcMbtiCompat(viewer.mbti, candidate.mbti);
+    const prefMbti = ideal['성향'] || [];
+    if (prefMbti.length > 0 && !prefMbti.includes('상관없음') && candidate.mbti) {
+        const matchCount = prefMbti.filter(p => candidate.mbti.toUpperCase().includes(p)).length;
+        mbtiScore = Math.min(100, mbtiScore + matchCount * 8);
+    }
+
+    // 7. 종교 보너스
+    let religionBonus = 0;
+    const prefReligion = ideal['종교'] || [];
+    if (prefReligion.length > 0 && !prefReligion.includes('상관없음') && candidate.religion) {
+        religionBonus = prefReligion.includes(candidate.religion) ? 5 : -5;
+    }
+
+    const weighted = (heightScore*(w.height||0) + looksScore*(w.looks||0) + jobScore*(w.job||0) + locationScore*(w.location||0) + ageScore*(w.age||0) + mbtiScore*(w.mbti||0)) / total;
+    return Math.min(100, Math.max(0, Math.round(weighted + religionBonus)));
+}
+
+// ── 프로필 품질 점수 (객관적, 관리자용) ──
+function calcProfileQuality(person) {
+    const scores = [];
+    // 외모
+    scores.push(person.look_score || 50);
+    // 직업
+    scores.push(calcJobScore(person.job_category));
+    // 키 백분위
+    if (person.height) {
+        const h = parseInt(person.height);
+        if (person.gender === 'male') {
+            scores.push(h >= 185 ? 95 : h >= 180 ? 85 : h >= 175 ? 75 : h >= 170 ? 60 : 40);
+        } else {
+            scores.push(h >= 168 ? 90 : h >= 163 ? 80 : h >= 158 ? 70 : h >= 153 ? 55 : 40);
+        }
+    }
+    // 프로필 완성도
+    const fields = ['name','birth','job','height','location','mbti','kakao','intro','education','hobby'];
+    const filled = fields.filter(f => person[f]).length + (person.photos?.length > 0 ? 2 : 0);
+    scores.push(Math.round((filled / (fields.length + 2)) * 100));
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
