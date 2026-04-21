@@ -395,6 +395,11 @@
     .visitor-blurred img { filter:blur(14px) brightness(.9); transform:scale(1.05); }
     .visitor-blurred { filter:blur(14px); }
 
+    /* WATERMARK (스크린샷 방지) */
+    .watermark { position:fixed; inset:0; z-index:9997; pointer-events:none; overflow:hidden; opacity:.035; user-select:none; -webkit-user-select:none; }
+    .watermark-inner { position:absolute; inset:-50%; display:flex; flex-direction:column; gap:48px; transform:rotate(-25deg); }
+    .watermark-line { white-space:nowrap; font-size:15px; font-weight:900; color:#000; letter-spacing:6px; }
+
     /* PROFILE DETAIL MODAL */
     .profile-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:none; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
     .profile-modal-overlay.open { display:flex; }
@@ -1753,12 +1758,46 @@ function cardLike(id) {
         cardPass();
         return;
     }
+    // 찜 슬롯 확인
+    const maxFav = (window._myProfile?.fav_slots) || 3;
+    if (favSet.size >= maxFav) {
+        toast(`최대 ${maxFav}명까지만 찜할 수 있어요. 기존 찜을 해제해주세요.`, 'warning');
+        return;
+    }
     _isCardAnimating = true;
     const el = document.getElementById('current-card');
     if (el) { el.classList.add('swiping-right'); }
     _swipedCount++;
     saveDailySwipeCount();
-    toggleFav(id, { skipRerender: true });
+
+    // 즉시 optimistic update (toggleFav의 _favToggling 락 우회)
+    favSet.add(id);
+    window._favSet = favSet;
+    toast(`찜 목록에 담았어요 (${favSet.size}/${maxFav})`, 'success');
+    logEvent('card_like', { liked: id });
+    // DB insert + 후속 로드 (비동기, non-blocking)
+    (async () => {
+        try {
+            const { data: { user } } = await db.auth.getUser();
+            await db.from('favorites').insert([{ user_id: user.id, applicant_id: id }]);
+            await loadFavorites(user.id);
+            loadMutualInterests(user.id);
+            // 상대방 알림 (fire-and-forget)
+            const { data: tgt } = await db.from('applicants').select('user_id,name').eq('id', id).limit(1);
+            if (tgt?.[0]?.user_id) {
+                const { data: rev } = await db.from('favorites').select('id').eq('user_id', tgt[0].user_id).eq('applicant_id', window._myProfile.id).limit(1);
+                if (rev?.length > 0) {
+                    sendPushNotif(tgt[0].user_id, '💘 상호 관심 매칭!', `${window._myProfile.name}님과 서로 찜했어요`, dashUrl('interest'), 'mutual');
+                } else {
+                    sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', dashUrl('interest'), 'interest');
+                }
+            }
+        } catch(e) {
+            favSet.delete(id); // 실패 시 롤백
+            console.log('cardLike fav error:', e.message);
+        }
+    })();
+
     setTimeout(() => {
         _cardIndex++;
         _isCardAnimating = false;
@@ -2885,6 +2924,15 @@ async function init() {
     window._favCounts = {};
     renderProfile(profile);
     window._myProfile = profile;
+
+    // 워터마크 (스크린샷 방지)
+    if (profile?.name) {
+        const wm = document.createElement('div');
+        wm.className = 'watermark';
+        const text = (profile.name + ' · ').repeat(15);
+        wm.innerHTML = `<div class="watermark-inner">${Array(25).fill(`<div class="watermark-line">${esc(text)}</div>`).join('')}</div>`;
+        document.body.appendChild(wm);
+    }
 
     const isMatched = profile && profile.status === 'matched';
     const isApproved = profile && profile.status === 'approved';
