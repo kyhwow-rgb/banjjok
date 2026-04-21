@@ -2068,33 +2068,7 @@ async function loadFavorites(userId) {
     renderFavorites(visibleFavs);
 }
 
-// ── 신고/차단 ──
-async function reportUser(targetId) {
-    const reasons = ['부적절한 사진','허위 프로필','불쾌한 행동','스팸/광고','기타'];
-    const reason = prompt('신고 사유를 선택해주세요:\n' + reasons.map((r,i) => (i+1)+'. '+r).join('\n') + '\n\n번호를 입력하세요:');
-    if (!reason) return;
-    const idx = parseInt(reason) - 1;
-    const reasonText = reasons[idx] || reason;
-    if (!window._myProfile) return;
-    try {
-        await db.from('reports').insert([{ reporter_id: window._myProfile.id, target_id: targetId, reason: reasonText }]);
-        toast('신고가 접수되었어요. 관리자가 확인할게요.');
-        closeProfileModal();
-    } catch(e) { toast('신고 실패', 'error'); }
-}
-
-async function blockUser(targetId) {
-    if (!confirm('이 사용자를 차단하시겠어요?\n차단하면 서로 추천 목록에서 보이지 않아요.')) return;
-    if (!window._myProfile) return;
-    try {
-        await db.from('blocks').insert([{ blocker_id: window._myProfile.id, blocked_id: targetId }]);
-        if (!window._blockedSet) window._blockedSet = new Set();
-        window._blockedSet.add(targetId);
-        toast('차단되었어요');
-        closeProfileModal();
-        renderMatchRanking(window._allCandidates || []);
-    } catch(e) { toast('차단 실패', 'error'); }
-}
+// (reportUser, blockUser → 하단에 올바른 컬럼명으로 정의됨)
 
 // ── 매칭 메시지 ──
 async function loadMatchMessages(myAppId, partnerAppId) {
@@ -2155,10 +2129,17 @@ async function openProfileModal(applicantId) {
     }
     if (!c) return;
     const age = calcAge(c.birth);
-    const photo = c.photos && c.photos[0];
+    const photos = c.photos || [];
+    const photo = photos[0];
     const photoHtml = photo
-        ? `<img src="${photo}" alt="">`
+        ? `<img src="${photo}" alt="" id="pm-main-photo">`
         : `<div class="pm-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+    // 다중 사진 네비 (2장 이상)
+    const pmDotsHtml = photos.length > 1
+        ? `<div class="photo-dots" style="position:absolute;top:8px;left:10px;right:10px;display:flex;gap:3px;z-index:5;">${photos.map((_, i) => `<div class="photo-dot ${i===0?'active':''}" style="flex:1;height:3px;background:rgba(255,255,255,${i===0?'.95':'.35'});border-radius:2px;"></div>`).join('')}</div>
+            <div style="position:absolute;top:0;bottom:0;left:0;width:38%;z-index:4;cursor:pointer;" onclick="pmPrevPhoto()"></div>
+            <div style="position:absolute;top:0;bottom:0;right:0;width:38%;z-index:4;cursor:pointer;" onclick="pmNextPhoto()"></div>`
+        : '';
     const isFav = (window._favSet || new Set()).has(c.id);
     const isMutual = (window._mutualSet || new Set()).has(c.id);
 
@@ -2248,8 +2229,10 @@ async function openProfileModal(applicantId) {
           </button>`
         : '';
 
+    window._pmPhotos = photos;
+    window._pmPhotoIdx = 0;
     document.getElementById('profile-modal-content').innerHTML = `
-        <div class="pm-photo">${photoHtml}
+        <div class="pm-photo" style="position:relative;">${photoHtml}${pmDotsHtml}
             <div class="pm-photo-overlay">
                 <div style="font-size:1.3em;font-weight:900;">${age ? age + '세' : ''}</div>
                 ${c.mbti ? `<div style="font-size:.85em;font-weight:700;opacity:.9;">${c.mbti}</div>` : ''}
@@ -2291,6 +2274,29 @@ async function openProfileModal(applicantId) {
 
 function closeProfileModal() {
     document.getElementById('profile-modal').classList.remove('open');
+}
+
+// 프로필 모달 사진 네비
+function pmNextPhoto() {
+    const photos = window._pmPhotos || [];
+    if (window._pmPhotoIdx < photos.length - 1) {
+        window._pmPhotoIdx++;
+        const img = document.getElementById('pm-main-photo');
+        if (img) img.src = photos[window._pmPhotoIdx];
+        document.querySelectorAll('#profile-modal-content .pm-photo .photo-dot').forEach((d, i) => {
+            d.style.background = i === window._pmPhotoIdx ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.35)';
+        });
+    }
+}
+function pmPrevPhoto() {
+    if (window._pmPhotoIdx > 0) {
+        window._pmPhotoIdx--;
+        const img = document.getElementById('pm-main-photo');
+        if (img) img.src = window._pmPhotos[window._pmPhotoIdx];
+        document.querySelectorAll('#profile-modal-content .pm-photo .photo-dot').forEach((d, i) => {
+            d.style.background = i === window._pmPhotoIdx ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.35)';
+        });
+    }
 }
 
 // ESC로 모달 닫기
@@ -2821,9 +2827,14 @@ async function doLogout(silent) {
 let _inactiveTimer;
 function resetInactiveTimer() {
     clearTimeout(_inactiveTimer);
-    _inactiveTimer = setTimeout(() => {
+    _inactiveTimer = setTimeout(async () => {
         toast('장시간 활동이 없어 자동 로그아웃됩니다.', 'info');
-        setTimeout(() => doLogout(true), 2000);
+        setTimeout(async () => {
+            await db.auth.signOut();
+            localStorage.removeItem('kj_role');
+            localStorage.removeItem('kj_screen');
+            window.location.href = 'index.html';
+        }, 2000);
     }, 30 * 60 * 1000); // 30분
 }
 ['click','touchstart','keydown','scroll'].forEach(ev =>
@@ -3132,7 +3143,7 @@ async function submitFeedback() {
 (function() {
     const key = 'bj_suggestion_shown_' + new Date().toISOString().slice(0, 10);
     if (sessionStorage.getItem(key)) return;
-    const delay = 60000 + Math.random() * 60000; // 1~2분
+    const delay = 180000 + Math.random() * 120000; // 3~5분
     setTimeout(() => {
         if (document.getElementById('feedback-modal').style.display === 'flex') return;
         sessionStorage.setItem(key, '1');
