@@ -1,5 +1,5 @@
-const CACHE = 'banjjok-v5';
-const ASSETS = ['/banjjok/', '/banjjok/index.html', '/banjjok/dashboard.html', '/banjjok/icons/icon-192.png', '/banjjok/icons/icon-512.png', '/banjjok/manifest.json'];
+const CACHE = 'banjjok-v6';
+const ASSETS = ['/banjjok/', '/banjjok/index.html', '/banjjok/dashboard.html', '/banjjok/js/common.js', '/banjjok/icons/icon-192.png', '/banjjok/icons/icon-512.png', '/banjjok/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

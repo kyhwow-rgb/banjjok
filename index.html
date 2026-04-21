@@ -1265,17 +1265,9 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/common.js"></script>
 <script>
 'use strict';
-
-const SUPABASE_URL = 'https://gwthsweeocjovfcbcvpa.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dGhzd2Vlb2Nqb3ZmY2JjdnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTM4OTgsImV4cCI6MjA5MTE4OTg5OH0.omd5yf67wbTLveOkQpWzFFqBgpntvx1NEhPUaFUwP_w';
-const INVITE_CODE  = 'banjjok2026';   // 입장 코드
-const ADMIN_EMAIL  = 'a@a.com';
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
-});
 
 let prevScreen         = 'login';
 let selectedGender     = null;
@@ -1399,17 +1391,7 @@ function showAuthView(view) {
     });
 }
 
-// ── 입장 코드 확인 ──
-function checkInviteCode() {
-    const code = document.getElementById('invite-code-input').value.trim();
-    const err  = document.getElementById('invite-error');
-    if (code === INVITE_CODE) {
-        err.style.display = 'none';
-        showAuthView('signup');
-    } else {
-        err.style.display = 'block';
-    }
-}
+// (입장 코드 → 추천인 코드로 대체됨, checkInviteCode 제거)
 
 // Supabase Auth 에러 메시지 한글화
 function translateAuthError(msg) {
@@ -1516,8 +1498,11 @@ async function adminLogin() {
     const err   = document.getElementById('admin-login-error');
     setLoading(true, '로그인 중...');
     const { data, error } = await db.auth.signInWithPassword({ email, password: pw });
+    if (error) { setLoading(false); err.style.display = 'block'; return; }
+    // 서버사이드 관리자 확인 (admin_users 테이블)
+    const isAdmin = await checkIsAdmin();
     setLoading(false);
-    if (error || data?.user?.email !== ADMIN_EMAIL) {
+    if (!isAdmin) {
         await db.auth.signOut();
         err.style.display = 'block';
         return;
@@ -2076,8 +2061,7 @@ function calcHeightScore(height, gender) {
         return 40;
     }
 }
-const JOB_SCORES = { '전문직':95, '연구·기술직':85, '공공·금융·교육직':80, '대기업·중견기업직':75, '사업·전문자유직':70, '일반사무·기술직':60, '학생':40, '기타':30 };
-function calcJobScore(jobCategory) { return JOB_SCORES[jobCategory] || 50; }
+// (JOB_SCORES, calcJobScore → js/common.js)
 
 // ── 직업명 → 직업군 자동 분류 ──
 const JOB_KEYWORDS = {
@@ -2114,31 +2098,7 @@ function calcMatchScore(viewer, candidate) {
 }
 
 // ── 이상형 칩 시스템 ──
-// ── MBTI 궁합 점수 (글램 스타일) ──
-const MBTI_COMPAT = {
-    'ENFP':{'INFJ':95,'INTJ':92,'ENFJ':85,'ENTJ':82,'INFP':80,'ENTP':78,'INTP':75},
-    'ENFJ':{'INFP':95,'ISFP':90,'ENFP':85,'ENTP':82,'INTJ':80,'INFJ':78},
-    'ENTP':{'INFJ':95,'INTJ':90,'ENFJ':82,'ENFP':78,'INTP':75,'ENTJ':72},
-    'ENTJ':{'INFP':92,'INTP':88,'ENFP':82,'ENTP':72,'INTJ':70,'ENFJ':68},
-    'INFP':{'ENFJ':95,'ENTJ':92,'INFJ':85,'ENFP':80,'INTP':75,'ISFP':72},
-    'INFJ':{'ENTP':95,'ENFP':92,'INTJ':85,'INFP':85,'ENFJ':78,'INTP':72},
-    'INTP':{'ENTJ':88,'ENFJ':82,'ENTP':75,'INTJ':72,'INFJ':72,'INFP':75},
-    'INTJ':{'ENFP':92,'ENTP':90,'INFJ':85,'ENTJ':70,'INFP':68,'INTP':72},
-    'ESFP':{'ISFJ':88,'ISTJ':85,'ESFJ':78,'ESTP':72,'ISFP':70},
-    'ESFJ':{'ISFP':88,'ISTP':85,'ESFP':78,'ESTJ':75,'ISFJ':72},
-    'ESTP':{'ISFJ':85,'ISTJ':82,'ESFP':72,'ESTJ':70,'ISTP':68},
-    'ESTJ':{'ISFP':85,'ISTP':82,'ESFJ':75,'ESTP':70,'ISTJ':68},
-    'ISFP':{'ENFJ':90,'ESFJ':88,'ESTJ':85,'ENTJ':78,'ISFJ':72},
-    'ISFJ':{'ESFP':88,'ESTP':85,'ENFP':78,'ISFP':72,'ISTJ':70},
-    'ISTP':{'ESFJ':85,'ESTJ':82,'ENTP':72,'ESTP':68,'INTP':65},
-    'ISTJ':{'ESFP':85,'ESTP':82,'ENFP':75,'ESTJ':68,'ISFJ':70},
-};
-function calcMbtiCompat(mbti1, mbti2) {
-    if (!mbti1 || !mbti2) return 50;
-    const a = mbti1.toUpperCase(), b = mbti2.toUpperCase();
-    if (a === b) return 65;
-    return MBTI_COMPAT[a]?.[b] || MBTI_COMPAT[b]?.[a] || 50;
-}
+// (MBTI_COMPAT, calcMbtiCompat → js/common.js)
 
 // 이상형 키 범위 옵션 (선택자의 성별에 따라 상대의 키 범위)
 const HEIGHT_OPTIONS_FOR_FEMALE_TARGET = ['155미만','155~160','160~165','165~170','170이상']; // 선택자가 남자 → 여자 키
@@ -2402,20 +2362,19 @@ async function renderAdmin() {
         filterAdmin(currentAdminFilter, { silent: true });
     }
 
-    // 매칭 요청 + 상호관심 현황 로드
-    loadMatchRequests();
-    await loadMutualOverview();
-    loadAdminInquiries();
-    renderMatchedCouples();
-    // 신규 관리자 대시보드 위젯 로드
-    loadAdminTodoWidget();
-    loadAdminHealthMetrics();
-    loadAdminActivityFeed();
-    loadAdminFeedbackWidget();
-    renderAiMatchSuggestions();
-    // 탭 배지 업데이트 (약간 지연 — 비동기 카운트 로드 후)
+    // 매칭 요청 + 상호관심 + 문의 + 위젯 병렬 로드
+    renderMatchedCouples(); // sync (uses adminCache)
+    await Promise.all([
+        loadMatchRequests(),
+        loadMutualOverview(),
+        loadAdminInquiries(),
+        loadAdminTodoWidget(),
+        loadAdminHealthMetrics(),
+        loadAdminActivityFeed(),
+        loadAdminFeedbackWidget(),
+    ]);
+    renderAiMatchSuggestions(); // depends on _adminMutualPairs from loadMutualOverview
     updateAdminTabBadges();
-    setTimeout(updateAdminTabBadges, 800);
 }
 
 // ── 관리자 탭 전환 ──
@@ -2589,7 +2548,7 @@ function renderAiMatchSuggestions() {
 
     list.innerHTML = top.map((item, idx) => {
         const { m, f, compat } = item;
-        const mAge = calcAge(m.birth), fAge = calcAge(f.birth);
+        const mAge = displayAge(m.birth), fAge = displayAge(f.birth);
         const scoreCls = compat.score >= 80 ? 'match-score-high' : compat.score >= 60 ? 'match-score-mid' : 'match-score-low';
         const rankIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
         const warnHtml = compat.warnings.length > 0 ? `<span style="color:#d97706;font-size:.72em;">⚠ ${esc(compat.warnings.join(', '))}</span>` : '';
@@ -3067,31 +3026,7 @@ async function rejectMatchRequest(reqId) {
 }
 
 // ── 상호 관심 현황 (관리자용) ──
-// MBTI 궁합표 (대시보드와 동일)
-const MBTI_COMPAT_ADMIN = {
-    'ENFP':{'INFJ':95,'INTJ':92,'ENFJ':85,'ENTJ':82,'INFP':80,'ENTP':78,'INTP':75},
-    'ENFJ':{'INFP':95,'ISFP':90,'ENFP':85,'ENTP':82,'INTJ':80,'INFJ':78},
-    'ENTP':{'INFJ':95,'INTJ':90,'ENFJ':82,'ENFP':78,'INTP':75,'ENTJ':72},
-    'ENTJ':{'INFP':92,'INTP':88,'ENFP':82,'ENTP':72,'INTJ':70,'ENFJ':68},
-    'INFP':{'ENFJ':95,'ENTJ':92,'INFJ':85,'ENFP':80,'INTP':75,'ISFP':72},
-    'INFJ':{'ENTP':95,'ENFP':92,'INTJ':85,'INFP':85,'ENFJ':78,'INTP':72},
-    'INTP':{'ENTJ':88,'ENFJ':82,'ENTP':75,'INTJ':72,'INFJ':72,'INFP':75},
-    'INTJ':{'ENFP':92,'ENTP':90,'INFJ':85,'ENTJ':70,'INFP':68,'INTP':72},
-    'ESFP':{'ISFJ':88,'ISTJ':85,'ESFJ':78,'ESTP':72,'ISFP':70},
-    'ESFJ':{'ISFP':88,'ISTP':85,'ESFP':78,'ESTJ':75,'ISFJ':72},
-    'ESTP':{'ISFJ':85,'ISTJ':82,'ESFP':72,'ESTJ':70,'ISTP':68},
-    'ESTJ':{'ISFP':85,'ISTP':82,'ESFJ':75,'ESTP':70,'ISTJ':68},
-    'ISFP':{'ENFJ':90,'ESFJ':88,'ESTJ':85,'ENTJ':78,'ISFJ':72},
-    'ISFJ':{'ESFP':88,'ESTP':85,'ENFP':78,'ISFP':72,'ISTJ':70},
-    'ISTP':{'ESFJ':85,'ESTJ':82,'ENTP':72,'ESTP':68,'INTP':65},
-    'ISTJ':{'ESFP':85,'ESTP':82,'ENFP':75,'ESTJ':68,'ISFJ':70},
-};
-function calcMbtiCompatAdmin(m1, m2) {
-    if (!m1 || !m2) return 50;
-    const a = m1.toUpperCase(), b = m2.toUpperCase();
-    if (a === b) return 65;
-    return MBTI_COMPAT_ADMIN[a]?.[b] || MBTI_COMPAT_ADMIN[b]?.[a] || 50;
-}
+// (MBTI_COMPAT_ADMIN → common.js의 MBTI_COMPAT 사용)
 
 // 두 사람 궁합 집계 (관리자용 빠른 의사결정)
 function calcPairCompat(a, b) {
@@ -3110,7 +3045,7 @@ function calcPairCompat(a, b) {
     if (a.location && b.location && a.location !== b.location) warnings.push('지역 다름');
 
     // 점수: MBTI(30%) + 외모평균(20%) + 나이적합(20%) + 지역(15%) + 직업평균(15%)
-    const mbtiS = calcMbtiCompatAdmin(a.mbti, b.mbti);
+    const mbtiS = calcMbtiCompat(a.mbti, b.mbti);
     const lookS = ((a.look_score || 50) + (b.look_score || 50)) / 2;
     const ageS = ageDiff <= 3 ? 95 : ageDiff <= 5 ? 80 : ageDiff <= 8 ? 60 : 30;
     const locS = (a.location && b.location && a.location === b.location) ? 90 : 60;
@@ -3176,8 +3111,8 @@ async function loadMutualOverview() {
         }
         list.innerHTML = pairs.map(function(pair, idx) {
             var m = pair[0], f = pair[1];
-            var mAge = calcAge(m.birth);
-            var fAge = calcAge(f.birth);
+            var mAge = displayAge(m.birth);
+            var fAge = displayAge(f.birth);
             var compat = calcPairCompat(m, f);
             var scoreCls = compat.score >= 80 ? 'match-score-high' : compat.score >= 60 ? 'match-score-mid' : 'match-score-low';
             var warnText = compat.warnings.length > 0 ? ' · <span style="color:#d97706;">⚠ ' + esc(compat.warnings.join(', ')) + '</span>' : '';
@@ -3338,7 +3273,7 @@ function relTime(iso) {
 }
 
 function applicantRowHtml(a, idx=0) {
-    const age   = calcAge(a.birth);
+    const age   = displayAge(a.birth);
     const icon  = a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);font-size:22px;"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);font-size:22px;"></i>';
     const gBadge = a.gender === 'male' ? '<span class="badge badge-male"><i class="fa-solid fa-mars"></i> 남성</span>' : '<span class="badge badge-female"><i class="fa-solid fa-venus"></i> 여성</span>';
     const sBadge = {
@@ -3443,7 +3378,7 @@ async function openAdminDetail(id) {
     const a = adminCache.find(x => x.id === id);
     if (!a) return;
 
-    const age     = calcAge(a.birth);
+    const age     = displayAge(a.birth);
     const gc      = a.gender;
     const icon    = gc === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);font-size:28px;"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);font-size:28px;"></i>';
     const bgColor = gc === 'male' ? 'var(--male-light)' : 'var(--female-light)';
@@ -3772,7 +3707,7 @@ function profileMiniHtml(a) {
         <div style="font-size:28px;margin-bottom:6px;">${icon}</div>
         <div class="match-split-name">${esc(a.name)}</div>
         <div class="match-split-meta">
-            ${calcAge(a.birth)}세 · ${esc(a.job)}<br>
+            ${displayAge(a.birth)}세 · ${esc(a.job)}<br>
             ${a.height ? a.height + 'cm' : ''}${a.location ? (a.height ? ' · ' : '') + esc(a.location) : ''}<br>
             ${a.mbti ? `<span style="color:var(--primary);font-weight:700;">${a.mbti}</span>` : ''}
             ${a.ideal ? `<div style="margin-top:4px;font-size:.78em;">${renderIdealDisplay(a.ideal)}</div>` : ''}
@@ -3796,7 +3731,7 @@ function openMatchingView(id) {
                 <div class="applicant-row-icon">${oppIcon}</div>
                 <div class="applicant-info">
                     <div class="applicant-name">${esc(c.name)}${c.mbti ? ` <span style="font-size:.78em;color:var(--primary);font-weight:700;">${c.mbti}</span>` : ''}</div>
-                    <div class="applicant-detail">${calcAge(c.birth)}세 · ${esc(c.job)}${c.height ? ' · ' + c.height + 'cm' : ''}${c.location ? ' · ' + esc(c.location) : ''}</div>
+                    <div class="applicant-detail">${displayAge(c.birth)}세 · ${esc(c.job)}${c.height ? ' · ' + c.height + 'cm' : ''}${c.location ? ' · ' + esc(c.location) : ''}</div>
                     ${c.ideal ? `<div style="font-size:.76em;margin-top:3px;">${renderIdealDisplay(c.ideal)}</div>` : ''}
                 </div>
                 <div style="font-size:.8em;color:#9ca3af;flex-shrink:0;padding-top:4px;">선택 →</div>
@@ -3881,8 +3816,8 @@ async function unmatch(id) {
 function coupleCardHtml(male, female) {
     const mName = male   ? esc(male.name)   : '?';
     const fName = female ? esc(female.name) : '?';
-    const mMeta = male   ? `${calcAge(male.birth)}세 · ${esc(male.job)}${male.mbti ? ' · ' + male.mbti : ''}` : '';
-    const fMeta = female ? `${calcAge(female.birth)}세 · ${esc(female.job)}${female.mbti ? ' · ' + female.mbti : ''}` : '';
+    const mMeta = male   ? `${displayAge(male.birth)}세 · ${esc(male.job)}${male.mbti ? ' · ' + male.mbti : ''}` : '';
+    const fMeta = female ? `${displayAge(female.birth)}세 · ${esc(female.job)}${female.mbti ? ' · ' + female.mbti : ''}` : '';
     const mId   = male   ? male.id   : '';
     const fId   = female ? female.id : '';
     const mReleased = male && male.contact_released;
@@ -4239,15 +4174,10 @@ function openLightbox(url) {
 function closeLightbox() { document.getElementById('lightbox-overlay').classList.remove('open'); }
 
 // ── 유틸 ──
-function calcAge(birth) {
-    if (!birth) return '?';
-    const b = new Date(birth);
-    if (isNaN(b.getTime())) return '?';
-    const today = new Date();
-    let age = today.getFullYear() - b.getFullYear();
-    if (today.getMonth() - b.getMonth() < 0 || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
-    return (age > 0 && age < 120) ? age : '?';
-}
+// calcAge → js/common.js (returns number|null)
+// 관리자 표시용 래퍼: null → '?'
+function displayAge(birth) { return calcAge(birth) ?? '?'; }
+
 function formatDate(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -4260,29 +4190,7 @@ function formatDate(iso) {
     return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
 }
 function pad(n) { return String(n).padStart(2,'0'); }
-function esc(str) {
-    if (str == null) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
-}
-let toastTimer;
-function toast(msg, type) {
-    const el = document.getElementById('toast');
-    // 자동 타입 감지
-    if (!type) {
-        if (msg.includes('완료') || msg.includes('되었습니다') || msg.includes('저장') || msg.includes('성공')) type = 'success';
-        else if (msg.includes('실패') || msg.includes('오류') || msg.includes('Error')) type = 'error';
-        else if (msg.includes('입력해') || msg.includes('선택해') || msg.includes('업로드')) type = 'warning';
-        else type = 'info';
-    }
-    const icons = { success:'<i class="fa-solid fa-circle-check"></i>', error:'<i class="fa-solid fa-circle-xmark"></i>', warning:'<i class="fa-solid fa-triangle-exclamation"></i>', info:'<i class="fa-solid fa-circle-info"></i>' };
-    el.className = 'toast toast-' + type;
-    el.innerHTML = `<span style="font-size:1.1em;">${icons[type]}</span> ${esc(msg)}`;
-    el.classList.add('show');
-    clearTimeout(toastTimer);
-    const duration = (type === 'error' || type === 'warning') ? 5000 : 3200;
-    toastTimer = setTimeout(() => el.classList.remove('show'), duration);
-}
+// esc, toast → js/common.js
 
 document.getElementById('admin-login-overlay').addEventListener('click', function(e) { if(e.target===this) closeAdminModal(); });
 document.getElementById('admin-detail-overlay').addEventListener('click', function(e) { if(e.target===this) closeAdminDetail(); });
