@@ -108,7 +108,8 @@ function heightInRange(h, range, candidateGender) {
 }
 
 // ── 매칭 점수 (개인화: viewer의 이상형 기준) ──
-function calcMatchScore(viewer, candidate) {
+// opts.detailed=true → 항목별 breakdown 객체 반환
+function calcMatchScore(viewer, candidate, opts) {
     let w = { height:20, looks:20, job:15, location:15, age:15, mbti:15 };
     if (viewer.ideal_weights) { try { const saved = JSON.parse(viewer.ideal_weights); Object.assign(w, saved); } catch {} }
     const total = (w.height||0) + (w.looks||0) + (w.job||0) + (w.location||0) + (w.age||0) + (w.mbti||0);
@@ -181,7 +182,42 @@ function calcMatchScore(viewer, candidate) {
     }
 
     const weighted = (heightScore*(w.height||0) + looksScore*(w.looks||0) + jobScore*(w.job||0) + locationScore*(w.location||0) + ageScore*(w.age||0) + mbtiScore*(w.mbti||0)) / total;
-    return Math.min(100, Math.max(0, Math.round(weighted + religionBonus)));
+    const finalScore = Math.min(100, Math.max(0, Math.round(weighted + religionBonus)));
+
+    if (opts && opts.detailed) {
+        return {
+            total: finalScore,
+            categories: [
+                { key:'height', score:heightScore, weight:w.height||0, label:'키', icon:'fa-ruler-vertical' },
+                { key:'looks',  score:looksScore,  weight:w.looks||0,  label:'외모', icon:'fa-star' },
+                { key:'job',    score:jobScore,     weight:w.job||0,    label:'직업', icon:'fa-briefcase' },
+                { key:'location',score:locationScore,weight:w.location||0,label:'지역', icon:'fa-location-dot' },
+                { key:'age',    score:ageScore,     weight:w.age||0,    label:'나이', icon:'fa-cake-candles' },
+                { key:'mbti',   score:mbtiScore,    weight:w.mbti||0,   label:'MBTI', icon:'fa-brain' },
+            ]
+        };
+    }
+    return finalScore;
+}
+
+// ── 매칭 확률 예측 ──
+function calcMatchProbability(viewer, candidate, opts) {
+    const forward = calcMatchScore(viewer, candidate);
+    const reverse = calcMatchScore(candidate, viewer);
+    const bidir = Math.sqrt(forward * reverse);
+
+    // 활동성 (최근 접속)
+    let activity = 0.3;
+    if (candidate.last_seen_at) {
+        const h = (Date.now() - new Date(candidate.last_seen_at).getTime()) / 3600000;
+        activity = h < 1 ? 1.0 : h < 24 ? 0.9 : h < 72 ? 0.7 : h < 168 ? 0.5 : 0.3;
+    }
+
+    // 인기도 (찜 많으면 경쟁 높음)
+    const fav = opts?.favCount || 0;
+    const pop = fav > 10 ? 0.6 : fav > 5 ? 0.75 : fav > 2 ? 0.85 : 1.0;
+
+    return Math.min(95, Math.max(5, Math.round(bidir * activity * pop / 100 * 100)));
 }
 
 // ── 프로필 품질 점수 (객관적, 관리자용) ──

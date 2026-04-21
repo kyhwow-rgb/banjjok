@@ -379,6 +379,22 @@
     .notif-backdrop { position:fixed; inset:0; z-index:149; display:none; }
     .notif-backdrop.open { display:block; }
 
+    /* COMPAT BREAKDOWN */
+    .compat-breakdown { padding:8px 0; }
+    .compat-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:.78em; }
+    .compat-row-icon { width:20px; text-align:center; color:var(--muted); flex-shrink:0; }
+    .compat-row-label { width:36px; color:var(--muted); font-weight:600; flex-shrink:0; }
+    .compat-row-bar { flex:1; height:8px; background:#f3f4f6; border-radius:8px; overflow:hidden; }
+    .compat-row-fill { height:100%; border-radius:8px; transition:width .6s cubic-bezier(.34,1.56,.64,1); }
+    .compat-row-val { width:28px; text-align:right; font-weight:800; font-size:.9em; }
+
+    /* MATCH PROBABILITY */
+    .match-prob-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:10px; font-size:.72em; font-weight:800; background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+    /* VISITOR BLUR */
+    .visitor-blurred img { filter:blur(14px) brightness(.9); transform:scale(1.05); }
+    .visitor-blurred { filter:blur(14px); }
+
     /* PROFILE DETAIL MODAL */
     .profile-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:none; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
     .profile-modal-overlay.open { display:flex; }
@@ -488,6 +504,15 @@
                 <span id="liked-me-count" style="font-size:.8em;color:#f59e0b;font-weight:700;"></span>
             </div>
             <div class="section-body" id="liked-me-section"></div>
+        </div>
+
+        <!-- 프로필 방문 흔적 -->
+        <div class="section-card" id="visitors-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-eye" style="color:var(--accent);"></i> 누가 내 프로필을 봤어요</div>
+                <span id="visitor-count" style="font-size:.8em;color:var(--accent);font-weight:700;"></span>
+            </div>
+            <div class="section-body" id="visitors-section"></div>
         </div>
 
         <!-- 아무것도 없을 때 빈 상태 -->
@@ -1313,6 +1338,8 @@ function switchTab(tab) {
     if (tab === 'discover' && window._allCandidates) {
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }
+    // 관심 탭 전환 시 방문 흔적 새로고침
+    if (tab === 'interest') { loadProfileVisitors(); }
     // MY 탭 전환 시 문의 내역 새로고침 (관리자 답변 반영)
     if (tab === 'my') {
         loadInquiries();
@@ -1372,6 +1399,7 @@ function renderMatchRanking(candidates) {
         _score: calcMatchScore(window._myProfile, c),
         _mbtiCompat: calcMbtiCompat(window._myProfile.mbti, c.mbti),
         _favCount: (window._favCounts || {})[c.id] || 0,
+        _matchProb: calcMatchProbability(window._myProfile, c, { favCount: (window._favCounts || {})[c.id] || 0 }),
         _boosted: c.boost_until && new Date(c.boost_until) > now
     }));
     _scoredCandidates.sort((a, b) => {
@@ -1528,6 +1556,7 @@ function renderCardView(sec, favSet) {
                         <div class="card-compat-bar" style="flex:1;"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
                         <span style="font-size:.72em;color:var(--muted);white-space:nowrap;">${mbtiLabel} ${mbtiCompat}%</span>
                     </div>
+                    <div style="text-align:center;margin-bottom:8px;"><span class="match-prob-badge"><i class="fa-solid fa-chart-line"></i> 매칭 확률 ${c._matchProb}%</span></div>
                     ${ibHtml}
                 </div>
                 <div class="card-actions">
@@ -2024,10 +2053,24 @@ async function openProfileModal(applicantId) {
     const isFav = (window._favSet || new Set()).has(c.id);
     const isMutual = (window._mutualSet || new Set()).has(c.id);
 
-    // 궁합 점수
-    const compat = window._myProfile ? calcMatchScore(window._myProfile, c) : 50;
+    // 궁합 점수 + 상세 + 매칭 확률
+    const compatDetail = window._myProfile ? calcMatchScore(window._myProfile, c, { detailed: true }) : null;
+    const compat = compatDetail ? compatDetail.total : 50;
     const mbtiCompat = window._myProfile ? calcMbtiCompat(window._myProfile.mbti, c.mbti) : 50;
     const mbtiLabel = mbtiCompat >= 80 ? '찰떡궁합! <i class="fa-solid fa-fire" style="color:#ef4444;"></i>' : mbtiCompat >= 65 ? '궁합 좋아요 <i class="fa-solid fa-star" style="color:#f59e0b;"></i>' : mbtiCompat >= 50 ? '보통' : '다른 스타일';
+    const matchProb = window._myProfile ? calcMatchProbability(window._myProfile, c, { favCount: c._favCount || popCount }) : null;
+    let breakdownHtml = '';
+    if (compatDetail) {
+        breakdownHtml = compatDetail.categories.map(cat => {
+            const color = cat.score >= 80 ? '#22c55e' : cat.score >= 60 ? '#f59e0b' : '#9ca3af';
+            return `<div class="compat-row">
+                <span class="compat-row-icon"><i class="fa-solid ${cat.icon}"></i></span>
+                <span class="compat-row-label">${cat.label}</span>
+                <div class="compat-row-bar"><div class="compat-row-fill" style="width:${cat.score}%;background:${color};"></div></div>
+                <span class="compat-row-val" style="color:${color};">${cat.score}</span>
+            </div>`;
+        }).join('');
+    }
 
     // Ice Breaker
     let ibHtml = '';
@@ -2110,6 +2153,14 @@ async function openProfileModal(applicantId) {
           </button>`
         : '';
 
+    // 프로필 조회 기록 (fire-and-forget)
+    if (window._myProfile && window._myProfile.id !== c.id) {
+        db.from('profile_views')
+            .upsert({ viewer_id: window._myProfile.id, viewed_id: c.id, viewed_at: new Date().toISOString() },
+                    { onConflict: 'viewer_id,viewed_id' })
+            .then(() => {}, () => {});
+    }
+
     window._pmPhotos = photos;
     window._pmPhotoIdx = 0;
     document.getElementById('profile-modal-content').innerHTML = `
@@ -2126,7 +2177,7 @@ async function openProfileModal(applicantId) {
                 <div class="pm-tags">${tags.map(t => `<span class="pm-tag">${esc(t)}</span>`).join('')}</div>
             </div>
             <div class="pm-section">
-                <div class="pm-section-title">궁합</div>
+                <div class="pm-section-title" style="display:flex;justify-content:space-between;align-items:center;">궁합 ${matchProb ? `<span class="match-prob-badge"><i class="fa-solid fa-chart-line"></i> 매칭 확률 ${matchProb}%</span>` : ''}</div>
                 <div class="pm-compat">
                     <div class="pm-compat-score">${compat}%</div>
                     <div style="flex:1;">
@@ -2134,6 +2185,7 @@ async function openProfileModal(applicantId) {
                         <div style="font-size:.72em;color:var(--muted);margin-top:4px;">MBTI ${mbtiLabel} (${mbtiCompat}%)</div>
                     </div>
                 </div>
+                ${breakdownHtml ? `<button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.nextElementSibling.style.display==='none'?'궁합 자세히 보기 ▾':'접기 ▴';" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:10px;background:#fafafa;font-size:.78em;font-weight:700;cursor:pointer;font-family:inherit;color:#374151;">궁합 자세히 보기 ▾</button><div class="compat-breakdown" style="display:none;">${breakdownHtml}</div>` : ''}
             </div>
             ${c.intro ? `<div class="pm-section"><div class="pm-section-title">자기소개</div><div class="pm-intro">${esc(c.intro)}</div></div>` : ''}
             ${ibHtml}
@@ -2620,6 +2672,46 @@ async function loadInquiries() {
     } catch(e) { console.log('loadInquiries error:', e.message); }
 }
 
+// ── 프로필 방문 흔적 ──
+async function loadProfileVisitors() {
+    const card = document.getElementById('visitors-card');
+    const sec = document.getElementById('visitors-section');
+    if (!window._myProfile) return;
+    try {
+        const { data: count } = await db.rpc('get_my_view_count', { my_applicant_id: window._myProfile.id });
+        if (!count || count === 0) { card.style.display = 'none'; return; }
+        card.style.display = '';
+        document.getElementById('visitor-count').textContent = count + '명';
+        const { data: viewers } = await db.rpc('get_my_profile_viewers', { my_applicant_id: window._myProfile.id });
+        if (!viewers || viewers.length === 0) { sec.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85em;">방문 기록이 없어요</div>'; return; }
+        const favSet = window._favSet || new Set();
+        sec.innerHTML = `<div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">찜하면 누가 방문했는지 공개돼요!</div>
+        <div class="fav-list">${viewers.map(v => {
+            const isLiked = favSet.has(v.viewer_id);
+            const age = calcAge(v.birth);
+            const photo = v.photos && v.photos[0];
+            const photoHtml = photo
+                ? `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}"><img src="${photo}" alt=""></div>`
+                : `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}" style="background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:22px;">${v.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+            const tags = isLiked
+                ? [age ? age+'세' : null, v.job, v.location, v.mbti].filter(Boolean).map(t => `<span class="fav-tag">${esc(t)}</span>`).join('')
+                : '<span class="fav-tag" style="color:#d1d5db;">???</span>';
+            const timeAgo = formatTimeAgo(v.viewed_at);
+            const action = isLiked
+                ? `<span style="color:var(--primary);font-size:.75em;font-weight:700;cursor:pointer;" onclick="openProfileModal('${v.viewer_id}')">보기</span>`
+                : `<span style="color:var(--accent);font-size:.72em;font-weight:700;cursor:pointer;" onclick="toggleFav('${v.viewer_id}')"><i class="fa-solid fa-heart"></i> 찜하면 공개</span>`;
+            return `<div class="fav-item" style="cursor:pointer;">
+                ${photoHtml}
+                <div class="fav-info">
+                    <div class="fav-tags">${tags}</div>
+                    <div style="font-size:.65em;color:#d1d5db;margin-top:2px;">${timeAgo}</div>
+                </div>
+                ${action}
+            </div>`;
+        }).join('')}</div>`;
+    } catch(e) { console.log('loadProfileVisitors error:', e.message); }
+}
+
 function updateInquiryBadge(count) {
     const badge = document.getElementById('inquiry-new-badge');
     if (!badge) return;
@@ -2811,7 +2903,7 @@ async function init() {
         // 이성 승인 참가자 로드 (온보딩에서도 숫자 필요)
         const oppGender = profile.gender === 'male' ? 'female' : 'male';
         const { data: candidates } = await db.from('applicants')
-            .select('id,name,gender,birth,job,job_category,height,education,look_score,location,mbti,photos,icebreaker,ideal,smoking,drinking,religion,hobby,last_seen_at,user_id')
+            .select('id,name,gender,birth,job,job_category,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id')
             .eq('status', 'approved')
             .eq('gender', oppGender);
         window._allCandidates = candidates || [];
@@ -2853,9 +2945,12 @@ async function init() {
         }
 
         if (showRecommendations) {
-            // 상호 관심 + 나를 찜한 사람 로드
-            await loadMutualInterests(user.id);
-            await loadWhoLikedMe();
+            // 상호 관심 + 나를 찜한 사람 + 방문 흔적 로드
+            await Promise.all([
+                loadMutualInterests(user.id),
+                loadWhoLikedMe(),
+                loadProfileVisitors(),
+            ]);
         }
 
         // 프로필 다시 렌더 (인기도 포함)
