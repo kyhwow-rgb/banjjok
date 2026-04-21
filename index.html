@@ -1699,8 +1699,11 @@ function removePhoto(event, i) {
     updateScoreBar();
 }
 
-// ── 이미지 압축 → base64 ──
-async function compressToBase64(file, maxKB = 350) {
+// ── 이미지 압축 → Blob (Supabase Storage 업로드용) ──
+// 무료 티어 가드: 200KB/장 × 3장 × 1,700명 = 1GB
+const PHOTO_MAX_KB = 200;
+
+async function compressToBlob(file, maxKB = PHOTO_MAX_KB) {
     return new Promise(resolve => {
         const reader = new FileReader();
         reader.onload = e => {
@@ -1716,17 +1719,63 @@ async function compressToBase64(file, maxKB = 350) {
                 canvas.width = width; canvas.height = height;
                 canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                 let quality = 0.8;
-                let dataUrl = canvas.toDataURL('image/jpeg', quality);
-                while (dataUrl.length * 0.75 > maxKB * 1024 && quality > 0.25) {
-                    quality -= 0.08;
-                    dataUrl = canvas.toDataURL('image/jpeg', quality);
-                }
-                resolve(dataUrl); // base64 data URL 반환
+                const tryBlob = (q) => new Promise(r => canvas.toBlob(b => r(b), 'image/jpeg', q));
+                (async () => {
+                    let blob = await tryBlob(quality);
+                    while (blob.size > maxKB * 1024 && quality > 0.25) {
+                        quality -= 0.08;
+                        blob = await tryBlob(quality);
+                    }
+                    resolve(blob);
+                })();
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     });
+}
+
+// Supabase Storage에 사진 업로드 → public URL 반환
+async function uploadPhotoToStorage(file, userId, index) {
+    const blob = await compressToBlob(file);
+    const filename = `${userId}/${Date.now()}_${index}.jpg`;
+    const { data, error } = await db.storage
+        .from('photos')
+        .upload(filename, blob, {
+            contentType: 'image/jpeg',
+            cacheControl: '31536000',
+            upsert: false
+        });
+    if (error) throw new Error('사진 업로드 실패: ' + error.message);
+    const { data: { publicUrl } } = db.storage.from('photos').getPublicUrl(filename);
+    return publicUrl;
+}
+
+// 유저 폴더의 모든 사진 삭제
+async function deleteUserPhotosFromStorage(userId) {
+    try {
+        const { data: files } = await db.storage.from('photos').list(userId);
+        if (files && files.length > 0) {
+            const paths = files.map(f => `${userId}/${f.name}`);
+            await db.storage.from('photos').remove(paths);
+        }
+    } catch(e) { console.log('Storage cleanup error:', e.message); }
+}
+
+// 특정 URL의 사진만 삭제 (Storage URL인 경우만)
+function getStoragePath(url) {
+    if (!url || url.startsWith('data:')) return null;
+    const marker = '/storage/v1/object/public/photos/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.slice(idx + marker.length);
+}
+
+async function deletePhotosFromStorage(urls) {
+    const paths = (urls || []).map(getStoragePath).filter(Boolean);
+    if (paths.length > 0) {
+        await db.storage.from('photos').remove(paths).catch(() => {});
+    }
 }
 
 // ── 신청서 제출 ──
@@ -1833,15 +1882,22 @@ async function submitApplication() {
         return;
     }
 
-    // 사진 압축 (base64로 DB 저장)
+    // 사진 압축 → Supabase Storage 업로드
     let photoUrls = [];
-    for (let i = 0; i < 3; i++) {
-        if (!photoFiles[i]) continue;
-        setLoading(true, `사진 ${photoUrls.length + 1}장 처리 중...`);
-        try {
-            const b64 = await compressToBase64(photoFiles[i], 350);
-            photoUrls.push(b64);
-        } catch { toast(`사진 ${i+1} 처리 실패`); }
+    const hasNewPhotos = photoFiles.some(f => f !== null);
+    if (hasNewPhotos) {
+        // 새 사진이 있으면 기존 Storage 사진 정리
+        if (existingPhotos.length > 0) {
+            await deletePhotosFromStorage(existingPhotos);
+        }
+        for (let i = 0; i < 3; i++) {
+            if (!photoFiles[i]) continue;
+            setLoading(true, `사진 ${photoUrls.length + 1}장 업로드 중...`);
+            try {
+                const url = await uploadPhotoToStorage(photoFiles[i], userId, i);
+                photoUrls.push(url);
+            } catch(e) { toast(`사진 ${i+1} 업로드 실패: ${e.message}`, 'error'); }
+        }
     }
     // 새 사진 없으면 기존 사진 유지
     if (photoUrls.length === 0 && existingPhotos.length > 0) {
@@ -3997,7 +4053,13 @@ async function deleteFromDetail(id) {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     closeAdminDetail();
     setLoading(true);
-    try { await adminFetch('applicants', 'DELETE', null, `?id=eq.${id}`); }
+    try {
+        // Storage 사진 정리
+        const target = adminCache.find(a => a.id === id);
+        if (target?.photos) await deletePhotosFromStorage(target.photos);
+        if (target?.user_id) await deleteUserPhotosFromStorage(target.user_id);
+        await adminFetch('applicants', 'DELETE', null, `?id=eq.${id}`);
+    }
     catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('삭제되었습니다.');

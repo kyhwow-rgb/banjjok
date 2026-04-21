@@ -2826,6 +2826,13 @@ async function deleteAccount() {
                 const { data: { user } } = await db.auth.getUser();
                 if (user && window._myProfile) {
                     const myId = window._myProfile.id;
+                    // Storage 사진 정리
+                    try {
+                        const { data: files } = await db.storage.from('photos').list(user.id);
+                        if (files && files.length > 0) {
+                            await db.storage.from('photos').remove(files.map(f => `${user.id}/${f.name}`));
+                        }
+                    } catch(e) { console.log('Storage cleanup:', e.message); }
                     // 연관 데이터 모두 정리 (FK cascade 없으므로 수동)
                     await Promise.allSettled([
                         db.from('favorites').delete().eq('user_id', user.id),
