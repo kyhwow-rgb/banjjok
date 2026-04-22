@@ -361,7 +361,10 @@
     .chat-empty i { font-size:3em; color:#e5e7eb; margin-bottom:12px; display:block; }
 
     /* NOTIFICATION BELL */
-    .notif-bell { position:relative; background:none; border:none; cursor:pointer; font-size:1.3em; padding:6px; line-height:1; }
+    .notif-bell { position:relative; background:none; border:none; cursor:pointer; font-size:1.3em; padding:6px; line-height:1; transition:transform .15s, color .15s; }
+    .notif-bell:active { transform:scale(.8); color:#d1d5db; }
+    .notif-bell.ring { animation:bellRing .5s ease; }
+    @keyframes bellRing { 0%{transform:rotate(0)} 15%{transform:rotate(14deg)} 30%{transform:rotate(-14deg)} 45%{transform:rotate(10deg)} 60%{transform:rotate(-10deg)} 75%{transform:rotate(4deg)} 100%{transform:rotate(0)} }
     .notif-badge { position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:.6em; font-weight:800; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
     .notif-panel { position:fixed; top:62px; right:0; width:100%; max-width:380px; max-height:70vh; background:white; border-radius:0 0 16px 16px; box-shadow:0 16px 48px rgba(0,0,0,.18); z-index:150; overflow-y:auto; display:none; }
     .notif-panel.open { display:block; animation:notifSlide .25s ease; }
@@ -2482,6 +2485,9 @@ function updatePushToggleUI() {
 }
 
 async function togglePush() {
+    // 스위치 즉시 반응 (바운스)
+    const sw = document.getElementById('push-toggle-switch');
+    if (sw) { sw.style.transform = 'scale(.9)'; setTimeout(() => sw.style.transform = '', 150); }
     if (!('Notification' in window)) { toast('이 브라우저는 푸시 알림을 지원하지 않아요', 'info'); return; }
     if (Notification.permission === 'denied') {
         toast('브라우저 설정에서 알림을 허용해주세요', 'info');
@@ -2548,6 +2554,10 @@ function formatTimeAgo(iso) {
 }
 
 function toggleNotifPanel() {
+    const bell = document.getElementById('notif-bell');
+    bell.classList.remove('ring');
+    void bell.offsetWidth; // reflow for re-trigger
+    bell.classList.add('ring');
     const panel = document.getElementById('notif-panel');
     const backdrop = document.getElementById('notif-backdrop');
     const isOpen = panel.classList.contains('open');
