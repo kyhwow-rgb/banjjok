@@ -560,32 +560,31 @@
     <!-- ══ TAB: MY ══ -->
     <div class="tab-content" id="tab-my">
         <!-- 내 프로필 (MY) -->
-        <div class="section-card">
-            <div class="section-header" style="cursor:pointer;" onclick="const b=document.getElementById('my-profile-section');b.style.display=b.style.display==='none'?'':'none';">
+        <div class="section-card" style="margin-bottom:8px;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('my-profile-section');b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-user" style="color:var(--muted);"></i> 내 프로필</div>
                 <div style="display:flex;gap:6px;align-items:center;">
                     <button class="btn btn-outline" id="edit-profile-btn-my" style="display:none;padding:7px 16px;font-size:.82em;" onclick="event.stopPropagation();if(window._myProfile){localStorage.setItem('bj_edit_profile',JSON.stringify(window._myProfile));}window.location.href='index.html#register';">프로필 수정</button>
                     <span style="font-size:.78em;color:var(--muted);">▾</span>
                 </div>
             </div>
-            <div class="section-body" id="my-profile-section" style="display:none;">
+            <div class="section-body" id="my-profile-section" style="display:none;padding:14px 20px;"></div>
         </div>
         <!-- 매칭 결과 -->
-        <div class="section-card" id="match-result-card" style="display:none;">
-            <div class="section-header">
-                <div class="section-title">매칭 성사</div>
+        <div class="section-card" id="match-result-card" style="display:none;margin-bottom:8px;">
+            <div class="section-header" style="padding:14px 20px 12px;">
+                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사</div>
             </div>
-            <div class="section-body" id="match-result-section"></div>
+            <div class="section-body" id="match-result-section" style="padding:14px 20px;"></div>
         </div>
-        <!-- (매칭 우선순위 제거 — 이상형 설정으로 통합) -->
 
         <!-- 문의사항 (접이식) -->
-        <div class="section-card">
-            <div class="section-header" style="cursor:pointer;" onclick="const b=document.getElementById('inquiry-body');b.style.display=b.style.display==='none'?'':'none';">
+        <div class="section-card" style="margin-bottom:8px;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('inquiry-body');b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-headset" style="color:var(--muted);"></i> 문의사항 <span id="inquiry-new-badge" style="display:none;font-size:.65em;background:var(--cta);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700;vertical-align:middle;margin-left:6px;">새 답변</span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
-            <div class="section-body" id="inquiry-body" style="display:none;">
+            <div class="section-body" id="inquiry-body" style="display:none;padding:14px 20px;">
                 <textarea id="inquiry-input" placeholder="문의 내용을 입력해주세요..." rows="3" maxlength="500" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;"></textarea>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
                     <span id="inquiry-charcount" style="font-size:.72em;color:var(--muted);">0 / 500</span>
@@ -596,8 +595,8 @@
         </div>
 
         <!-- MY 메뉴 -->
-        <div class="section-card">
-            <div class="section-body" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="section-card" style="margin-bottom:8px;">
+            <div class="section-body" style="display:flex;flex-direction:column;gap:8px;padding:14px 20px;">
                 <div id="push-toggle-row" onclick="togglePush()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
                     <i class="fa-solid fa-bell" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
                     <div style="flex:1;">
