@@ -2188,7 +2188,6 @@ async function openMatchedProfile() {
                 ${tags.map(t => `<span class="pm-tag">${esc(t)}</span>`).join('')}
             </div>
             ${p.intro ? `<div style="margin-top:12px;padding:14px;background:#f9fafb;border-radius:12px;font-size:.9em;line-height:1.6;">${esc(p.intro)}</div>` : ''}
-            ${p.kakao ? `<div style="margin-top:12px;padding:12px 16px;background:#FEE500;border-radius:12px;font-size:.88em;font-weight:700;color:#3C1E1E;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-comment"></i> 카카오 ID: ${esc(p.kakao)}</div>` : ''}
         </div>
         <div style="padding:0 20px 20px;display:flex;gap:10px;">
             <button class="btn btn-primary" onclick="switchTab('chat');closeProfileModal();" style="flex:1;"><i class="fa-regular fa-comment-dots"></i> 대화하기</button>
@@ -2289,6 +2288,8 @@ async function init() {
         // 프로필 다시 렌더 (인기도 포함)
         renderProfile(profile);
         if (showRecommendations) {
+            // 찜 목록을 먼저 로드 (추천 카드에서 이미 찜한 사람 제외 필요)
+            await loadFavorites(user.id);
             // 관리자가 스와이프 리셋한 경우 체크
             if (profile.swipe_reset_date) {
                 const today = new Date().toISOString().slice(0, 10);
@@ -2307,7 +2308,7 @@ async function init() {
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
-                    .select('id,name,gender,birth,job,height,location,mbti,education,smoking,drinking,religion,hobby,intro,photos,kakao,user_id')
+                    .select('id,name,gender,birth,job,height,location,mbti,education,smoking,drinking,religion,hobby,intro,photos,user_id')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) {
                     renderMatchResult(partners[0]);
@@ -2330,7 +2331,6 @@ async function init() {
     }
 
     if (!isMatched) {
-        await loadFavorites(user.id);
         // 미매칭 상태 → 대화 불가 표시
         document.getElementById('chat-not-matched').style.display = '';
     } else {
