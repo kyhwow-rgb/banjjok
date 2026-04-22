@@ -564,9 +564,9 @@ function switchTab(tab) {
         loadInquiries();
         updatePushToggleUI();
     }
-    // 대화 탭 전환 시 읽음 처리
+    // 대화 탭 전환 시 채팅방 목록 새로고침
     if (tab === 'chat') {
-        markChatAsRead();
+        renderChatRoomList();
     }
 }
 
@@ -1222,16 +1222,20 @@ function closeMatchCelebrate() {
 
 async function startChatFromCelebrate(applicantId, partnerUserId, partnerName) {
     closeMatchCelebrate();
-    // 채팅 초기화
-    await initChat(window._myProfile, partnerUserId, partnerName);
-    window._chatInitialized = true;
-    document.getElementById('chat-not-matched').style.display = 'none';
-    document.getElementById('chat-card').style.display = '';
-    // 매칭 결과 표시
+    // 채팅방 목록에 추가
     const candidate = (window._allCandidates || []).find(c => c.id === applicantId);
+    window._chatRooms = window._chatRooms || [];
+    if (!window._chatRooms.some(r => r.userId === partnerUserId)) {
+        window._chatRooms.push({
+            applicantId, userId: partnerUserId, name: partnerName,
+            photo: candidate?.photos?.[0] || null, gender: candidate?.gender || 'male'
+        });
+    }
+    // 매칭 결과 표시
     if (candidate) renderMatchResult(candidate);
-    // 대화 탭으로 전환
+    // 대화 탭으로 전환 후 채팅방 열기
     switchTab('chat');
+    await openChatRoom(partnerUserId, partnerName, candidate?.photos?.[0] || '', candidate?.gender || 'male');
 }
 
 function renderMutualSection() {
@@ -2138,29 +2142,15 @@ function renderMatchResult(partner) {
         ? `<img loading="lazy" src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
         : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;">${partner.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
 
-    // 관리자가 연락처 공개 승인했는지 확인
-    const released = partner.contact_released === true;
-
     sec.innerHTML = `
         <div style="text-align:center;padding:8px 0;">
             <div style="font-size:1.1em;font-weight:800;color:var(--primary);margin-bottom:16px;">축하합니다! 반쪽을 찾았어요</div>
             <div style="display:flex;justify-content:center;margin-bottom:16px;">${photoHtml}</div>
             <div style="font-size:1em;font-weight:700;margin-bottom:4px;">${esc(partner.name)}</div>
             <div style="font-size:.88em;color:var(--muted);margin-bottom:16px;">${age ? age + '세' : ''} · ${esc(partner.job || '')}${partner.location ? ' · ' + esc(partner.location) : ''}</div>
-            ${released
-                ? `<div style="background:#FEE500;color:#3C1E1E;padding:14px 24px;border-radius:14px;font-weight:700;font-size:.92em;display:inline-flex;align-items:center;gap:8px;">
-                    <i class="fa-solid fa-comment" style="font-size:1.2em;"></i> 카카오 ID: ${esc(partner.kakao)}
-                  </div>
-                  ${partner.contact ? `<div style="margin-top:8px;font-size:.85em;color:var(--muted);"><i class="fa-solid fa-phone"></i> ${esc(partner.contact)}</div>` : ''}`
-                : `<div style="padding:20px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:16px;">
-                    <div style="font-size:2em;margin-bottom:10px;"><i class="fa-solid fa-clock" style="color:var(--primary);"></i></div>
-                    <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">관리자 확인 대기 중</div>
-                    <div style="font-size:.82em;color:var(--muted);line-height:1.6;">
-                        매칭이 성사되었어요!<br>
-                        관리자가 확인 후 양쪽에 카카오 ID를 전달해드립니다.
-                    </div>
-                  </div>`
-            }
+            <button onclick="switchTab('chat')" style="width:100%;padding:14px;background:#111;color:#fff;border:none;border-radius:12px;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit;">
+                <i class="fa-regular fa-comment-dots"></i> 대화하러 가기
+            </button>
         </div>`;
 }
 
@@ -2277,16 +2267,17 @@ async function init() {
                     .select('id,name,gender,birth,job,location,photos,contact_released,user_id')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) {
-                    // 연락처는 관리자가 공개 승인한 경우에만 별도 fetch
-                    if (partners[0].contact_released) {
-                        const { data: contactData } = await db.from('applicants')
-                            .select('kakao,contact').eq('id', profile.matched_with).limit(1);
-                        if (contactData?.[0]) { partners[0].kakao = contactData[0].kakao; partners[0].contact = contactData[0].contact; }
-                    }
                     renderMatchResult(partners[0]);
-                    // 채팅 초기화
+                    // 채팅방 목록에 추가
                     if (partners[0].user_id) {
-                        await initChat(profile, partners[0].user_id, partners[0].name);
+                        window._chatRooms = window._chatRooms || [];
+                        window._chatRooms.push({
+                            applicantId: partners[0].id,
+                            userId: partners[0].user_id,
+                            name: partners[0].name,
+                            photo: partners[0].photos?.[0] || null,
+                            gender: partners[0].gender
+                        });
                         chatInitialized = true;
                     }
                 }
@@ -2299,26 +2290,13 @@ async function init() {
         await loadFavorites(user.id);
         // 미매칭 상태 → 대화 불가 표시
         document.getElementById('chat-not-matched').style.display = '';
-        document.getElementById('chat-card').style.display = 'none';
     } else {
         // 매칭된 후에는 찜 목록/추천 숨김
         document.getElementById('match-ranking-card').style.display = 'none';
         document.getElementById('mutual-card').style.display = 'none';
-        // 매칭이지만 채팅 초기화 실패 (상대 user_id 없음 등) → fallback 안내
-        if (!window._chatInitialized) {
-            const notMatched = document.getElementById('chat-not-matched');
-            if (notMatched) {
-                notMatched.innerHTML = `<div class="chat-empty">
-                    <i class="fa-regular fa-circle-question"></i>
-                    <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">대화를 시작할 수 없어요</div>
-                    <div style="font-size:.82em;color:var(--muted);line-height:1.5;">상대방 계정 정보를 찾을 수 없어요.<br>MY 탭 &gt; 문의사항으로 관리자에게 알려주세요.</div>
-                </div>`;
-                notMatched.style.display = '';
-            }
-            const chatCard = document.getElementById('chat-card');
-            if (chatCard) chatCard.style.display = 'none';
-        }
     }
+    // 채팅방 목록 렌더
+    renderChatRoomList();
     // 웹 푸시 — 이미 허용했으면 자동 구독 갱신
     if ('Notification' in window && Notification.permission === 'granted') {
         setupPushSubscription(false);
@@ -2559,6 +2537,80 @@ function appendChatMessage(msg) {
     container.scrollTop = container.scrollHeight;
 }
 
+// ── 채팅방 목록 렌더 (카카오톡 스타일) ──
+async function renderChatRoomList() {
+    const container = document.getElementById('chat-rooms-container');
+    const noMatch = document.getElementById('chat-not-matched');
+    const rooms = window._chatRooms || [];
+    if (rooms.length === 0) {
+        container.innerHTML = '';
+        noMatch.style.display = '';
+        return;
+    }
+    noMatch.style.display = 'none';
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) return;
+    // 각 채팅방의 마지막 메시지 + 안 읽은 수 조회
+    let html = '';
+    for (const room of rooms) {
+        const matchKey = computeMatchKey(session.user.id, room.userId);
+        // 마지막 메시지
+        const { data: lastMsgs } = await db.from('chat_messages')
+            .select('content,created_at,sender_id')
+            .eq('match_key', matchKey)
+            .order('created_at', { ascending: false })
+            .limit(1);
+        const lastMsg = lastMsgs?.[0];
+        const lastText = lastMsg ? (lastMsg.sender_id === session.user.id ? '나: ' : '') + lastMsg.content : '대화를 시작해보세요';
+        const lastTime = lastMsg ? formatChatTime(lastMsg.created_at) : '';
+        // 안 읽은 메시지 수
+        const { count } = await db.from('chat_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('match_key', matchKey)
+            .eq('receiver_id', session.user.id)
+            .is('read_at', null);
+        const photoHtml = room.photo
+            ? `<img class="chat-room-avatar" src="${room.photo}" alt="">`
+            : `<div class="chat-room-avatar-placeholder">${room.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        const unreadHtml = count > 0 ? `<div class="chat-room-unread">${count > 99 ? '99+' : count}</div>` : '';
+        html += `<div class="chat-room-item" onclick="openChatRoom('${room.userId}','${escJs(room.name)}','${escJs(room.photo || '')}','${room.gender}')">
+            ${photoHtml}
+            <div class="chat-room-info">
+                <div class="chat-room-name">${esc(room.name)}</div>
+                <div class="chat-room-last-msg">${esc(lastText.length > 30 ? lastText.slice(0, 30) + '...' : lastText)}</div>
+            </div>
+            <div class="chat-room-meta">
+                <div class="chat-room-time">${lastTime}</div>
+                ${unreadHtml}
+            </div>
+        </div>`;
+    }
+    container.innerHTML = `<div class="section-card">${html}</div>`;
+}
+
+async function openChatRoom(partnerUserId, partnerName, partnerPhoto, partnerGender) {
+    // 목록 숨기고 채팅방 표시
+    document.getElementById('chat-room-list').style.display = 'none';
+    document.getElementById('chat-room-view').style.display = '';
+    // 헤더 설정
+    const headerInfo = document.getElementById('chat-room-partner-info');
+    const photoHtml = partnerPhoto
+        ? `<img src="${partnerPhoto}" alt="">`
+        : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:14px;">${partnerGender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+    headerInfo.innerHTML = `${photoHtml}<span class="chat-room-partner-name">${esc(partnerName)}</span>`;
+    // 채팅 초기화
+    await initChat(window._myProfile, partnerUserId, partnerName);
+}
+
+function closeChatRoom() {
+    document.getElementById('chat-room-view').style.display = 'none';
+    document.getElementById('chat-room-list').style.display = '';
+    // 실시간 구독 해제
+    if (_chatChannel) { db.removeChannel(_chatChannel); _chatChannel = null; }
+    // 목록 새로고침 (읽음 상태 반영)
+    renderChatRoomList();
+}
+
 async function initChat(profile, partnerUserId, partnerName) {
     const { data: { session } } = await db.auth.getSession();
     if (!session) return;
@@ -2566,10 +2618,6 @@ async function initChat(profile, partnerUserId, partnerName) {
     _chatPartnerUserId = partnerUserId;
     _chatPartnerName = partnerName;
     _chatMatchKey = computeMatchKey(session.user.id, partnerUserId);
-
-    document.getElementById('chat-card').style.display = '';
-    document.getElementById('chat-not-matched').style.display = 'none';
-    document.getElementById('chat-partner-name').textContent = partnerName + '님과의 대화';
 
     // 기존 메시지 로드
     const { data: messages } = await db.from('chat_messages')

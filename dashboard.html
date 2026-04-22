@@ -63,6 +63,14 @@
 
     <!-- ══ TAB: 관심 ══ -->
     <div class="tab-content" id="tab-interest">
+        <!-- 매칭 결과 (관심 탭 상단) -->
+        <div class="section-card" id="match-result-card" style="display:none;">
+            <div class="section-header" style="padding:14px 20px 12px;">
+                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사</div>
+            </div>
+            <div class="section-body" id="match-result-section" style="padding:14px 20px;"></div>
+        </div>
+
         <!-- 상호 관심 -->
         <div class="section-card" id="mutual-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
@@ -111,19 +119,23 @@
 
     <!-- ══ TAB: 대화 ══ -->
     <div class="tab-content" id="tab-chat">
-        <!-- 매칭 안 된 상태 -->
-        <div id="chat-not-matched" style="display:none;">
-            <div class="chat-empty">
-                <i class="fa-regular fa-comment-dots"></i>
-                <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 대화할 수 없어요</div>
-                <div style="font-size:.82em;">매칭이 성사되면 대화를 시작할 수 있어요</div>
+        <!-- 채팅방 목록 (카카오톡 스타일) -->
+        <div id="chat-room-list">
+            <div id="chat-rooms-container"></div>
+            <!-- 매칭 없을 때 -->
+            <div id="chat-not-matched" style="display:none;">
+                <div class="chat-empty">
+                    <i class="fa-regular fa-comment-dots"></i>
+                    <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 대화할 수 없어요</div>
+                    <div style="font-size:.82em;">매칭이 성사되면 대화를 시작할 수 있어요</div>
+                </div>
             </div>
         </div>
-        <!-- 채팅 UI -->
-        <div class="section-card" id="chat-card" style="display:none;">
-            <div class="section-header">
-                <div class="section-title"><i class="fa-regular fa-comment-dots"></i> 대화</div>
-                <span id="chat-partner-name" style="font-size:.82em;color:var(--muted);font-weight:600;"></span>
+        <!-- 개별 채팅방 (처음엔 숨김) -->
+        <div id="chat-room-view" style="display:none;">
+            <div class="chat-room-header" id="chat-room-header">
+                <button onclick="closeChatRoom()" class="chat-back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="chat-room-partner" id="chat-room-partner-info"></div>
             </div>
             <div id="chat-messages" class="chat-messages">
                 <div class="chat-empty" id="chat-empty-msg">
@@ -156,14 +168,6 @@
             </div>
             <div class="section-body" id="my-profile-section" style="display:none;padding:14px 20px;"></div>
         </div>
-        <!-- 매칭 결과 -->
-        <div class="section-card" id="match-result-card" style="display:none;">
-            <div class="section-header" style="padding:14px 20px 12px;">
-                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사</div>
-            </div>
-            <div class="section-body" id="match-result-section" style="padding:14px 20px;"></div>
-        </div>
-
         <!-- 문의사항 (접이식) -->
         <div class="section-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('inquiry-body');b.style.display=b.style.display==='none'?'':'none';">
