@@ -121,7 +121,7 @@
     .no-profile-title { font-size:1em; font-weight:700; margin-bottom:8px; }
     .no-profile-sub { font-size:.85em; color:var(--muted); margin-bottom:20px; }
 
-    .site-footer { text-align:center; padding:28px 16px 80px; color:#d1d5db; font-size:.7em; letter-spacing:.04em; font-weight:400; }
+    .site-footer { text-align:center; padding:8px 16px 4px; color:#d1d5db; font-size:.65em; letter-spacing:.04em; font-weight:400; }
 
     /* BOTTOM TAB BAR */
     .tab-bar {
@@ -155,7 +155,7 @@
     /* FULLSCREEN CARD (추천 탭) */
     .discover-card-wrap { display:flex; flex-direction:column; align-items:center; padding:0 4px; }
     .discover-card-wrap .card-view { max-width:340px; width:100%; }
-    .discover-card-wrap .card-photo-area { height:220px; }
+    .discover-card-wrap .card-photo-area { height:250px; }
     .discover-hint { text-align:center; font-size:.78em; color:var(--muted); margin-top:12px; }
 
     /* WEIGHT SLIDERS */
@@ -219,7 +219,7 @@
     @keyframes cardEnter { from { opacity:0; transform:scale(.9) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
     .profile-card.swiping-left { transform:translateX(-120%) rotate(-15deg); opacity:0; }
     .profile-card.swiping-right { transform:translateX(120%) rotate(15deg); opacity:0; }
-    .card-photo-area { position:relative; width:100%; height:220px; background:linear-gradient(135deg,#ede9fe,#fce7f3); overflow:hidden; }
+    .card-photo-area { position:relative; width:100%; height:250px; background:linear-gradient(135deg,#ede9fe,#fce7f3); overflow:hidden; }
     .card-photo-area img { width:100%; height:100%; object-fit:cover; }
     .card-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:72px; }
     .card-photo-overlay { position:absolute; bottom:0; left:0; right:0; padding:16px 20px; background:linear-gradient(transparent, rgba(0,0,0,.6)); color:white; }
@@ -294,7 +294,7 @@
         .section-body { padding:16px; }
         .btn { font-size:.95em; }
         .match-item { padding:14px 10px; }
-        .card-photo-area { height:200px; }
+        .card-photo-area { height:220px; }
         input[type="range"].weight-slider { height:8px; }
         input[type="range"].weight-slider::-webkit-slider-thumb { width:24px; height:24px; }
         .onboard-content { padding:32px 20px; }
@@ -621,6 +621,7 @@
 
 </div>
 
+<div class="site-footer">Designed &amp; Developed by Kang</div>
 <!-- 하단 탭 바 -->
 <div class="tab-bar" id="tab-bar">
     <div class="tab-item active" onclick="switchTab('discover')" id="tab-btn-discover" style="position:relative;">
@@ -642,8 +643,6 @@
         <span>MY</span>
     </div>
 </div>
-
-<div class="site-footer">Designed &amp; Developed by Kang</div>
 
 <!-- 프로필 상세 모달 -->
 <div class="profile-modal-overlay" id="profile-modal" onclick="if(event.target===this)closeProfileModal()">
