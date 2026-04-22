@@ -1286,8 +1286,11 @@ function switchTab(tab) {
     if (tab === 'discover' && window._allCandidates) {
         renderCardView(document.getElementById('match-ranking-section'), window._favSet || new Set());
     }
-    // 관심 탭 전환 시 방문 흔적 새로고침
-    if (tab === 'interest') { loadProfileVisitors(); }
+    // 관심 탭 전환 시 찜 목록 + 방문 흔적 동기화
+    if (tab === 'interest') {
+        (async () => { const { data:{user} } = await db.auth.getUser(); if(user) { await loadFavorites(user.id); loadMutualInterests(user.id); } })();
+        loadProfileVisitors();
+    }
     // MY 탭 전환 시 문의 내역 새로고침 (관리자 답변 반영)
     if (tab === 'my') {
         loadInquiries();
@@ -1728,13 +1731,18 @@ function cardLike(id) {
     window._favSet = favSet;
     toast(`찜 목록에 담았어요 (${favSet.size}/${maxFav})`, 'success');
     logEvent('card_like', { liked: id });
-    // DB insert + 후속 로드 (비동기, non-blocking)
+    // DB insert (비동기, non-blocking) + 디바운스 동기화
     (async () => {
         try {
             const { data: { user } } = await db.auth.getUser();
             await db.from('favorites').insert([{ user_id: user.id, applicant_id: id }]);
-            await loadFavorites(user.id);
-            loadMutualInterests(user.id);
+            // 연속 찜 시 마지막 것만 동기화 (1.5초 대기)
+            clearTimeout(window._favSyncTimer);
+            window._favSyncTimer = setTimeout(async () => {
+                const { data: { user: u } } = await db.auth.getUser();
+                await loadFavorites(u.id);
+                loadMutualInterests(u.id);
+            }, 1500);
             // 상대방 알림 (fire-and-forget)
             const { data: tgt } = await db.from('applicants').select('user_id,name').eq('id', id).limit(1);
             if (tgt?.[0]?.user_id) {
@@ -1809,8 +1817,12 @@ async function toggleFav(applicantId, opts) {
     if (!opts.skipRerender) {
         renderMatchRanking(window._allCandidates || []);
     }
-    await loadFavorites(user.id);
-    await loadMutualInterests(user.id);
+    // 디바운스: 연속 조작 시 마지막 것만 DB 동기화
+    clearTimeout(window._favSyncTimer);
+    window._favSyncTimer = setTimeout(async () => {
+        await loadFavorites(user.id);
+        loadMutualInterests(user.id);
+    }, 800);
     } finally { window._favToggling = false; }
 }
 
