@@ -27,6 +27,11 @@ function esc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
 }
+// JS 컨텍스트 이스케이프 (onclick 등 인라인 핸들러 내 문자열에 사용)
+function escJs(str) {
+    if (str == null) return '';
+    return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/</g,'\\x3c');
+}
 
 // ── 토스트 ──
 let _toastTimer;

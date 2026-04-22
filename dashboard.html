@@ -1408,6 +1408,7 @@ function renderListView(sec, favSet) {
 }
 
 function renderCardView(sec, favSet) {
+    const _isActiveUser = window._myProfile && (window._myProfile.status === 'approved' || window._myProfile.status === 'matched');
     // 추천 대상 없음
     if (!_scoredCandidates || _scoredCandidates.length === 0) {
         sec.innerHTML = `<div style="text-align:center;padding:48px 20px;">
@@ -1507,17 +1508,17 @@ function renderCardView(sec, favSet) {
                     <div style="text-align:center;"><span class="match-prob-badge"><i class="fa-solid fa-chart-line"></i> 매칭 확률 ${c._matchProb}%</span></div>
                     ${ibHtml}
                 </div>
-                <div class="card-actions">
+                ${_isActiveUser ? `<div class="card-actions">
                     <button class="card-btn card-btn-pass" onclick="cardPass()" title="패스"><i class="fa-solid fa-xmark"></i></button>
                     <button class="card-btn card-btn-like" onclick="cardLike('${c.id}')" title="${isFav ? '이미 찜함' : '찜하기'}"><i class="fa-solid fa-heart"></i></button>
-                </div>
+                </div>` : `<div style="text-align:center;padding:12px;font-size:.82em;color:var(--muted);">승인 후 찜할 수 있어요</div>`}
             </div>
             <div class="card-counter"></div>
-            <div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →${photos.length > 1 ? ' · 사진 좌우 탭' : ''}</div>
+            ${_isActiveUser ? `<div style="text-align:center;font-size:.72em;color:#d1d5db;margin-top:4px;">← 패스 | 좋아요 →${photos.length > 1 ? ' · 사진 좌우 탭' : ''}</div>
             <div style="text-align:center;margin-top:12px;display:flex;justify-content:center;gap:16px;">
                 <button onclick="reportUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-flag"></i> 신고</button>
                 <button onclick="blockUser('${c.id}')" style="background:none;border:none;font-size:.72em;color:#d1d5db;cursor:pointer;"><i class="fa-solid fa-ban"></i> 차단</button>
-            </div>
+            </div>` : ''}
         </div>`;
     // 스와이프 이벤트 바인딩
     setTimeout(initSwipe, 50);
@@ -1972,50 +1973,7 @@ async function loadFavorites(userId) {
 
 // (reportUser, blockUser → 하단에 올바른 컬럼명으로 정의됨)
 
-// ── 매칭 메시지 ──
-async function loadMatchMessages(myAppId, partnerAppId) {
-    if (!myAppId || !partnerAppId) return;
-    const el = document.getElementById('match-messages');
-    if (!el) return;
-    try {
-        const { data } = await db.from('messages')
-            .select('*')
-            .or(`and(from_applicant.eq.${myAppId},to_applicant.eq.${partnerAppId}),and(from_applicant.eq.${partnerAppId},to_applicant.eq.${myAppId})`)
-            .order('created_at', { ascending: true })
-            .limit(50);
-        if (!data || data.length === 0) {
-            el.innerHTML = '<div style="text-align:center;padding:12px;color:#d1d5db;font-size:.82em;">아직 대화가 없어요. 첫 인사를 보내보세요!</div>';
-            return;
-        }
-        el.innerHTML = data.map(m => {
-            const isMine = m.from_applicant === myAppId;
-            return `<div style="display:flex;${isMine?'justify-content:flex-end':'justify-content:flex-start'};">
-                <div style="max-width:75%;padding:10px 14px;border-radius:${isMine?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isMine?'linear-gradient(135deg,#7c3aed,#ec4899)':'#f3f4f6'};color:${isMine?'white':'var(--text)'};font-size:.88em;">
-                    ${esc(m.content)}
-                    <div style="font-size:.65em;margin-top:4px;opacity:.7;text-align:right;">${formatTimeAgo(m.created_at)}</div>
-                </div>
-            </div>`;
-        }).join('');
-        el.scrollTop = el.scrollHeight;
-    } catch(e) { console.log('msg load error:', e.message); }
-}
-
-async function sendMatchMsg() {
-    const input = document.getElementById('match-msg-input');
-    if (!input) return;
-    const content = input.value.trim();
-    if (!content) return;
-    if (!window._myProfile || !partner_id_for_msg) return;
-    input.value = '';
-    try {
-        await db.from('messages').insert([{
-            from_applicant: window._myProfile.id,
-            to_applicant: partner_id_for_msg,
-            content: content
-        }]);
-        await loadMatchMessages(window._myProfile.id, partner_id_for_msg);
-    } catch(e) { toast('메시지 전송 실패', 'error'); }
-}
+// (레거시 messages 테이블 코드 제거 — chat_messages 시스템으로 통합됨)
 
 // ── 프로필 상세 모달 ──
 async function openProfileModal(applicantId) {
@@ -2140,7 +2098,7 @@ async function openProfileModal(applicantId) {
         : (isSelf ? '' : '<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-handshake" style="color:var(--muted);"></i> 아직 평판이 없어요</div></div>');
 
     const repWriteBtn = canWriteReputation
-        ? `<button class="btn btn-outline" onclick="openReputationModal('${c.id}','${esc(c.name || '').replace(/'/g,"\\'")}')" style="width:100%;">
+        ? `<button class="btn btn-outline" onclick="openReputationModal('${c.id}','${escJs(c.name || '')}')" style="width:100%;">
             <i class="fa-solid fa-pen"></i> ${myRep ? '내 평판 수정' : '보증하기 (평판 남기기)'}
           </button>`
         : '';
@@ -2236,8 +2194,10 @@ document.addEventListener('keydown', e => {
 let _notifications = [];
 async function loadNotifications() {
     try {
+        const { data: { user: _u } } = await db.auth.getUser();
         const { data } = await db.from('notifications')
             .select('*')
+            .eq('user_id', _u.id)
             .order('created_at', { ascending: false })
             .limit(30);
         const prev = _notifications.filter(n => !n.is_read).length;
@@ -2641,7 +2601,8 @@ async function loadInquiries() {
     const el = document.getElementById('inquiry-history');
     if (!el) return;
     try {
-        const { data } = await db.from('inquiries').select('*').order('created_at', { ascending: false }).limit(20);
+        const { data: { user: _iu } } = await db.auth.getUser();
+        const { data } = await db.from('inquiries').select('*').eq('user_id', _iu.id).order('created_at', { ascending: false }).limit(20);
         if (!data || data.length === 0) { el.innerHTML = ''; updateInquiryBadge(0); return; }
         // 새 답변 개수 (답변이 있는데 아직 확인 안 한 것)
         const newReplies = data.filter(q => q.reply && !q.user_read).length;
@@ -2743,7 +2704,7 @@ async function deleteAccount() {
     if (!confirm('정말 계정을 삭제하시겠어요?\n모든 프로필, 사진, 찜, 알림이 즉시 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.')) return;
     if (!confirm('마지막 확인: 계정을 삭제합니다.')) return;
     openFeedbackModal('exit', {
-        required: true,
+        required: false,
         callback: async () => {
             setLoading(true);
             try {
@@ -2991,9 +2952,15 @@ async function init() {
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
-                    .select('id,name,gender,birth,job,location,kakao,contact,photos,contact_released,user_id')
+                    .select('id,name,gender,birth,job,location,photos,contact_released,user_id')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) {
+                    // 연락처는 관리자가 공개 승인한 경우에만 별도 fetch
+                    if (partners[0].contact_released) {
+                        const { data: contactData } = await db.from('applicants')
+                            .select('kakao,contact').eq('id', profile.matched_with).limit(1);
+                        if (contactData?.[0]) { partners[0].kakao = contactData[0].kakao; partners[0].contact = contactData[0].contact; }
+                    }
                     renderMatchResult(partners[0]);
                     // 채팅 초기화
                     if (partners[0].user_id) {
