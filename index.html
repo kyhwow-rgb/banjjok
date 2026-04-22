@@ -4225,20 +4225,10 @@ async function prefillRegisterForm(userId) {
         const el = document.getElementById(id);
         if (el && val != null) el.value = val;
     });
-    // 접속경로: 드롭다운에 없는 값이면 직접입력 모드
-    if (p.referral) {
-        const refSelect = document.getElementById('reg-referral');
-        const refWrap = document.getElementById('reg-referral-text-wrap');
-        const refTextInput = document.getElementById('reg-referral-text');
-        const matched = [...refSelect.options].some(o => o.value === p.referral && o.value !== 'direct');
-        if (matched) {
-            refSelect.value = p.referral;
-        } else {
-            refSelect.style.display = 'none';
-            if (refWrap) refWrap.style.display = '';
-            if (refTextInput) refTextInput.value = p.referral;
-            refSelect.value = p.referral;
-        }
+    // 추천인 코드 프리필 (수정 시 표시용)
+    if (p.referred_by) {
+        const refCodeEl = document.getElementById('reg-referral-code');
+        if (refCodeEl) refCodeEl.value = p.referred_by;
     }
     if (p.icebreaker) {
         try {
@@ -4308,7 +4298,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             showScreen('register');
         } catch(e) {
             console.error('프로필 수정 진입 실패:', e);
-            showScreen('register'); // 에러 나도 신청서 화면은 보여줌
+            _skipRegisterReset = true; // 에러 나도 폼 초기화 방지
+            showScreen('register');
         }
         return;
     }
