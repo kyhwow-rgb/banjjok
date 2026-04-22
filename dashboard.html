@@ -361,10 +361,10 @@
     .chat-empty i { font-size:3em; color:#e5e7eb; margin-bottom:12px; display:block; }
 
     /* NOTIFICATION BELL */
-    .notif-bell { position:relative; background:none; border:none; cursor:pointer; font-size:1.3em; padding:6px; line-height:1; transition:transform .15s, color .15s; }
-    .notif-bell:active { transform:scale(.8); color:#d1d5db; }
-    .notif-bell.ring { animation:bellRing .5s ease; }
-    @keyframes bellRing { 0%{transform:rotate(0)} 15%{transform:rotate(14deg)} 30%{transform:rotate(-14deg)} 45%{transform:rotate(10deg)} 60%{transform:rotate(-10deg)} 75%{transform:rotate(4deg)} 100%{transform:rotate(0)} }
+    .notif-bell { position:relative; background:none; border:none; cursor:pointer; font-size:1.3em; padding:6px; line-height:1; transition:transform .15s, color .3s; color:#111; }
+    .notif-bell.tapped { color:#d1d5db; transform:scale(.85); }
+    .notif-bell.ring { animation:bellRing .6s ease; }
+    @keyframes bellRing { 0%{transform:rotate(0);color:#111} 10%{transform:rotate(14deg);color:#7c3aed} 25%{transform:rotate(-14deg);color:#ec4899} 40%{transform:rotate(10deg);color:#7c3aed} 55%{transform:rotate(-10deg)} 70%{transform:rotate(4deg)} 100%{transform:rotate(0);color:#111} }
     .notif-badge { position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:.6em; font-weight:800; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
     .notif-panel { position:fixed; top:62px; right:0; width:100%; max-width:380px; max-height:70vh; background:white; border-radius:0 0 16px 16px; box-shadow:0 16px 48px rgba(0,0,0,.18); z-index:150; overflow-y:auto; display:none; }
     .notif-panel.open { display:block; animation:notifSlide .25s ease; }
@@ -606,7 +606,7 @@
                         <div style="font-weight:600;font-size:.9em;">푸시 알림 받기</div>
                         <div id="push-toggle-status" style="font-size:.72em;color:var(--muted);margin-top:2px;">매칭·메시지·찜 알림</div>
                     </div>
-                    <div id="push-toggle-switch" style="width:40px;height:22px;background:#e5e7eb;border-radius:11px;position:relative;transition:all .2s;">
+                    <div id="push-toggle-switch" style="width:40px;height:22px;background:#e5e7eb;border-radius:11px;position:relative;transition:all .3s cubic-bezier(.34,1.56,.64,1);">
                         <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
                     </div>
                 </div>
@@ -2464,30 +2464,33 @@ function updatePushToggleUI() {
     const sw = document.getElementById('push-toggle-switch');
     const status = document.getElementById('push-toggle-status');
     if (!sw) return;
-    const enabled = 'Notification' in window && Notification.permission === 'granted';
     const knob = sw.firstElementChild;
-    if (enabled) {
-        sw.style.background = '#111';
-        if (knob) knob.style.left = '20px';
-        status.textContent = '켜짐 · 매칭·메시지·찜 알림';
-        status.style.color = '#059669';
-    } else if ('Notification' in window && Notification.permission === 'denied') {
+    const pushOn = localStorage.getItem('bj_push_enabled') === '1';
+    const denied = 'Notification' in window && Notification.permission === 'denied';
+    if (denied) {
         sw.style.background = '#e5e7eb';
         if (knob) knob.style.left = '2px';
         status.textContent = '브라우저 설정에서 알림을 허용해주세요';
         status.style.color = '#ef4444';
+    } else if (pushOn) {
+        sw.style.background = '#10b981';
+        if (knob) knob.style.left = '20px';
+        status.textContent = '켜짐';
+        status.style.color = '#059669';
     } else {
         sw.style.background = '#e5e7eb';
         if (knob) knob.style.left = '2px';
-        status.textContent = '매칭·메시지·찜 알림 받기';
+        status.textContent = '꺼짐';
         status.style.color = 'var(--muted)';
     }
 }
 
 async function togglePush() {
-    // 스위치 즉시 반응 (바운스)
+    // 스위치 바운스 + 행 하이라이트
     const sw = document.getElementById('push-toggle-switch');
-    if (sw) { sw.style.transform = 'scale(.9)'; setTimeout(() => sw.style.transform = '', 150); }
+    const row = document.getElementById('push-toggle-row');
+    if (sw) { sw.style.transform = 'scale(.75)'; setTimeout(() => sw.style.transform = '', 200); }
+    if (row) { row.style.background = '#ede9fe'; setTimeout(() => row.style.background = '#fafafa', 300); }
     if (!('Notification' in window)) { toast('이 브라우저는 푸시 알림을 지원하지 않아요', 'info'); return; }
     if (Notification.permission === 'denied') {
         toast('브라우저 설정에서 알림을 허용해주세요', 'info');
@@ -2555,9 +2558,14 @@ function formatTimeAgo(iso) {
 
 function toggleNotifPanel() {
     const bell = document.getElementById('notif-bell');
-    bell.classList.remove('ring');
-    void bell.offsetWidth; // reflow for re-trigger
-    bell.classList.add('ring');
+    // 탭 피드백: 색 빠짐 → 흔들림 → 복원
+    bell.classList.add('tapped');
+    setTimeout(() => {
+        bell.classList.remove('tapped');
+        bell.classList.remove('ring');
+        void bell.offsetWidth;
+        bell.classList.add('ring');
+    }, 150);
     const panel = document.getElementById('notif-panel');
     const backdrop = document.getElementById('notif-backdrop');
     const isOpen = panel.classList.contains('open');
