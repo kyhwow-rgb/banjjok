@@ -305,6 +305,11 @@
     </div>
 </div>
 
+<!-- 매칭 축하 모달 -->
+<div id="match-celebrate-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1200;padding:20px;" onclick="if(event.target===this)closeMatchCelebrate()">
+    <div id="match-celebrate-content" style="background:#fff;border-radius:20px;padding:32px 24px;width:100%;max-width:380px;text-align:center;animation:modalSlideUp .3s cubic-bezier(.34,1.56,.64,1);"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
