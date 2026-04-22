@@ -1665,7 +1665,7 @@ function navigateByNotifType(type, relatedId) {
             }, 150);
             break;
         case 'matched':
-            switchTab('my');
+            switchTab('interest');
             setTimeout(() => document.getElementById('match-result-card')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
         case 'chat_message':
@@ -1812,21 +1812,26 @@ function renderNotifBadge() {
     }
 }
 
+function stripEmoji(str) {
+    if (!str) return '';
+    return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{FE0F}]/gu, '').trim();
+}
+
 function renderNotifList() {
     const list = document.getElementById('notif-list');
     if (_notifications.length === 0) {
         list.innerHTML = '<div class="notif-empty">아직 알림이 없어요</div>';
         return;
     }
-    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>' };
+    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#7c3aed;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>' };
     list.innerHTML = _notifications.map(n => {
-        const icon = icons[n.type] || '🔔';
+        const icon = icons[n.type] || '<i class="fa-solid fa-bell" style="color:var(--muted);"></i>';
         const timeAgo = formatTimeAgo(n.created_at);
         return `<div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="readNotif(${n.id})">
             <div class="notif-icon">${icon}</div>
             <div class="notif-body">
-                <div class="notif-title">${esc(n.title)}</div>
-                ${n.body ? `<div class="notif-desc">${esc(n.body)}</div>` : ''}
+                <div class="notif-title">${esc(stripEmoji(n.title))}</div>
+                ${n.body ? `<div class="notif-desc">${esc(stripEmoji(n.body))}</div>` : ''}
                 <div class="notif-time">${timeAgo}</div>
             </div>
         </div>`;
