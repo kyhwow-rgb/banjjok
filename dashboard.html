@@ -564,9 +564,7 @@
             <div class="section-header" style="cursor:pointer;" onclick="const b=document.getElementById('my-profile-section');b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-user" style="color:var(--muted);"></i> 내 프로필</div>
                 <div style="display:flex;gap:6px;align-items:center;">
-                    <a href="index.html#register" id="edit-profile-btn-my" style="display:none;">
-                        <button class="btn btn-outline" style="padding:7px 16px;font-size:.82em;">프로필 수정</button>
-                    </a>
+                    <button class="btn btn-outline" id="edit-profile-btn-my" style="display:none;padding:7px 16px;font-size:.82em;" onclick="event.stopPropagation();localStorage.setItem('bj_edit_profile','1');window.location.href='index.html#register';">프로필 수정</button>
                     <span style="font-size:.78em;color:var(--muted);">▾</span>
                 </div>
             </div>
@@ -1065,7 +1063,7 @@ async function showOnboarding(status, candidateCount) {
             <div class="onboard-title">신청서가 반려되었어요</div>
             <div class="onboard-sub">걱정 마세요! 신청서를 수정해서 다시 제출할 수 있어요.</div>
             <div style="margin-top:8px;">
-                <a href="index.html#register"><button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);">신청서 수정하기 ✏️</button></a>
+                <button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);" onclick="localStorage.setItem('bj_edit_profile','1');window.location.href='index.html#register';">신청서 수정하기 ✏️</button>
             </div>
             <div style="margin-top:16px;">
                 <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none'">닫기</button>
@@ -1132,7 +1130,7 @@ function renderProfile(p) {
             </div>
         </div>` : ''}
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
-        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="index.html#register" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
+        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="#" onclick="event.preventDefault();localStorage.setItem('bj_edit_profile','1');window.location.href='index.html#register';" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
         <div id="my-reputation-box" style="margin-top:16px;"></div>`;
     loadMyReputations(p.id);
     if (mySec) {

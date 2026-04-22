@@ -4296,13 +4296,20 @@ window.addEventListener('DOMContentLoaded', async () => {
     const screen = localStorage.getItem('kj_screen') || (role === 'admin' ? 'admin' : 'home');
     const filter = localStorage.getItem('kj_filter') || 'all';
 
-    // #register 해시 → 프로필 수정 (admin이어도 우선 처리)
+    // 프로필 수정 진입 (hash 또는 localStorage 플래그)
     const { data: { session } } = await db.auth.getSession();
-    if (session && location.hash === '#register') {
-        saveSession(role || 'viewer', 'register');
-        const prefilled = await prefillRegisterForm(session.user.id);
-        _skipRegisterReset = !!prefilled;
-        showScreen('register');
+    const editFlag = localStorage.getItem('bj_edit_profile');
+    if (session && (location.hash === '#register' || editFlag)) {
+        localStorage.removeItem('bj_edit_profile');
+        try {
+            saveSession(role || 'viewer', 'register');
+            const prefilled = await prefillRegisterForm(session.user.id);
+            _skipRegisterReset = !!prefilled;
+            showScreen('register');
+        } catch(e) {
+            console.error('프로필 수정 진입 실패:', e);
+            showScreen('register'); // 에러 나도 신청서 화면은 보여줌
+        }
         return;
     }
 
