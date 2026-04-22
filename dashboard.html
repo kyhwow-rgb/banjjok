@@ -78,7 +78,7 @@
     .btn-outline { background:white; color:#111; border:1px solid #d1d5db; }
 
     /* LAYOUT */
-    .page { max-width:720px; margin:0 auto; padding:28px 20px calc(110px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:24px; }
+    .page { max-width:720px; margin:0 auto; padding:20px 16px calc(110px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:12px; }
     .section-card { background:white; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); }
     .section-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
     .section-title { font-size:.88em; font-weight:700; color:#111; letter-spacing:-.01em; text-transform:none; }
@@ -149,7 +149,7 @@
 
     /* TAB CONTENT */
     .tab-content { display:none; animation:tabFadeIn .3s ease; }
-    .tab-content.active { display:block; }
+    .tab-content.active { display:flex; flex-direction:column; gap:8px; }
     @keyframes tabFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
     /* FULLSCREEN CARD (추천 탭) */
@@ -478,7 +478,7 @@
     <!-- ══ TAB: 관심 ══ -->
     <div class="tab-content" id="tab-interest">
         <!-- 상호 관심 -->
-        <div class="section-card" id="mutual-card" style="margin-bottom:8px;">
+        <div class="section-card" id="mutual-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 상호 관심 <span id="mutual-count" style="font-size:.85em;color:var(--primary);font-weight:700;margin-left:4px;"></span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
@@ -489,7 +489,7 @@
         </div>
 
         <!-- 내가 찜한 사람 -->
-        <div class="section-card" style="margin-bottom:8px;">
+        <div class="section-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-heart" style="color:#7c3aed;"></i> 내가 찜한 사람 <span id="fav-count" style="font-size:.85em;color:var(--muted);font-weight:600;margin-left:4px;"></span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
@@ -498,7 +498,7 @@
         </div>
 
         <!-- 나를 찜한 사람 -->
-        <div class="section-card" id="liked-me-card" style="margin-bottom:8px;">
+        <div class="section-card" id="liked-me-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-fire" style="color:#f59e0b;"></i> 나를 찜한 사람 <span id="liked-me-count" style="font-size:.85em;color:#f59e0b;font-weight:700;margin-left:4px;"></span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
@@ -507,7 +507,7 @@
         </div>
 
         <!-- 프로필 방문 흔적 -->
-        <div class="section-card" id="visitors-card" style="display:none;margin-bottom:8px;">
+        <div class="section-card" id="visitors-card" style="display:none;">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-eye" style="color:var(--accent);"></i> 프로필 방문 <span id="visitor-count" style="font-size:.85em;color:var(--accent);font-weight:700;margin-left:4px;"></span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
@@ -560,7 +560,7 @@
     <!-- ══ TAB: MY ══ -->
     <div class="tab-content" id="tab-my">
         <!-- 내 프로필 (MY) -->
-        <div class="section-card" style="margin-bottom:8px;">
+        <div class="section-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('my-profile-section');b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-user" style="color:var(--muted);"></i> 내 프로필</div>
                 <div style="display:flex;gap:6px;align-items:center;">
@@ -571,7 +571,7 @@
             <div class="section-body" id="my-profile-section" style="display:none;padding:14px 20px;"></div>
         </div>
         <!-- 매칭 결과 -->
-        <div class="section-card" id="match-result-card" style="display:none;margin-bottom:8px;">
+        <div class="section-card" id="match-result-card" style="display:none;">
             <div class="section-header" style="padding:14px 20px 12px;">
                 <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사</div>
             </div>
@@ -579,7 +579,7 @@
         </div>
 
         <!-- 문의사항 (접이식) -->
-        <div class="section-card" style="margin-bottom:8px;">
+        <div class="section-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('inquiry-body');b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-headset" style="color:var(--muted);"></i> 문의사항 <span id="inquiry-new-badge" style="display:none;font-size:.65em;background:var(--cta);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700;vertical-align:middle;margin-left:6px;">새 답변</span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
@@ -595,7 +595,7 @@
         </div>
 
         <!-- MY 메뉴 -->
-        <div class="section-card" style="margin-bottom:8px;">
+        <div class="section-card">
             <div class="section-body" style="display:flex;flex-direction:column;gap:8px;padding:14px 20px;">
                 <div id="push-toggle-row" onclick="togglePush()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
                     <i class="fa-solid fa-bell" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
@@ -1004,12 +1004,12 @@ async function showOnboarding(status, candidateCount) {
                     <div class="waiting-dot"></div>
                 </div>
                 <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:14px;text-align:left;">
-                    <div style="font-size:.82em;font-weight:700;color:var(--text);margin-bottom:8px;"><i class="fa-solid fa-eye" style="color:var(--primary);"></i> 지금 할 수 있는 것</div>
+                    <div style="font-size:.82em;font-weight:700;color:var(--text);"><i class="fa-solid fa-eye" style="color:var(--primary);"></i> 지금 할 수 있는 것</div>
                     <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
                         · 이성 참가자 프로필 둘러보기<br>
                         · 관심 가는 사람 기억해두기
                     </div>
-                    <div style="font-size:.82em;font-weight:700;color:var(--text);margin-top:12px;margin-bottom:8px;"><i class="fa-solid fa-lock" style="color:var(--muted);"></i> 승인 후 가능</div>
+                    <div style="font-size:.82em;font-weight:700;color:var(--text);margin-top:12px;"><i class="fa-solid fa-lock" style="color:var(--muted);"></i> 승인 후 가능</div>
                     <div style="font-size:.78em;color:var(--muted);line-height:1.6;">
                         · 찜하기 / 상호 매칭<br>
                         · 매칭된 반쪽과 대화하기
@@ -1139,7 +1139,7 @@ function renderProfile(p) {
             const maxFav = p.fav_slots || 3;
             mySec.innerHTML += `
                 <div style="margin-top:16px;padding:14px 18px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
-                    <div style="font-size:.82em;font-weight:700;margin-bottom:8px;">내 추천인 코드</div>
+                    <div style="font-size:.82em;font-weight:700;">내 추천인 코드</div>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span style="font-size:1.1em;font-weight:800;letter-spacing:.08em;color:var(--primary);font-family:monospace;">${esc(p.referral_code)}</span>
                         <button onclick="navigator.clipboard.writeText('${esc(p.referral_code)}');toast('복사됨!','success');" style="background:#f3f4f6;border:none;padding:5px 12px;border-radius:6px;font-size:.78em;cursor:pointer;">복사</button>
@@ -1419,7 +1419,7 @@ function renderCardView(sec, favSet) {
         sec.innerHTML = `
             <div style="text-align:center;padding:48px 20px;">
                 <div style="font-size:3.5em;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-check" style="color:var(--primary);"></i></div>
-                <div style="font-size:1.15em;font-weight:800;color:var(--text);margin-bottom:8px;">오늘의 추천을 모두 확인했어요</div>
+                <div style="font-size:1.15em;font-weight:800;color:var(--text);">오늘의 추천을 모두 확인했어요</div>
                 <div style="font-size:.88em;color:var(--muted);line-height:1.6;margin-bottom:20px;">
                     다시 보면서 찜 여부를 변경할 수 있어요
                 </div>
@@ -1501,7 +1501,7 @@ function renderCardView(sec, favSet) {
                         <div class="card-compat-bar" style="flex:1;"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
                         <span style="font-size:.72em;color:var(--muted);white-space:nowrap;">${mbtiLabel} ${mbtiCompat}%</span>
                     </div>
-                    <div style="text-align:center;margin-bottom:8px;"><span class="match-prob-badge"><i class="fa-solid fa-chart-line"></i> 매칭 확률 ${c._matchProb}%</span></div>
+                    <div style="text-align:center;"><span class="match-prob-badge"><i class="fa-solid fa-chart-line"></i> 매칭 확률 ${c._matchProb}%</span></div>
                     ${ibHtml}
                 </div>
                 <div class="card-actions">
@@ -1841,7 +1841,7 @@ async function loadWhoLikedMe() {
         card.style.display = '';
         if (!data || data.length === 0) {
             document.getElementById('liked-me-count').textContent = '';
-            sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-eye" style="color:#ede9fe;font-size:1.5em;display:block;margin-bottom:8px;"></i>아직 나를 찜한 사람이 없어요</div>';
+            sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-eye" style="color:#ede9fe;font-size:1.5em;display:block;"></i>아직 나를 찜한 사람이 없어요</div>';
             updateInterestEmptyState();
             return;
         }
@@ -1899,7 +1899,7 @@ function renderMutualSection() {
 
     if (mutuals.length === 0) {
         document.getElementById('mutual-count').textContent = '';
-        sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ede9fe;font-size:1.5em;display:block;margin-bottom:8px;"></i>서로 찜하면 여기에 표시돼요</div>';
+        sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ede9fe;font-size:1.5em;display:block;"></i>서로 찜하면 여기에 표시돼요</div>';
         return;
     }
     document.getElementById('mutual-count').textContent = mutuals.length + '명';
@@ -1986,7 +1986,7 @@ async function loadMatchMessages(myAppId, partnerAppId) {
         }
         el.innerHTML = data.map(m => {
             const isMine = m.from_applicant === myAppId;
-            return `<div style="display:flex;${isMine?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px;">
+            return `<div style="display:flex;${isMine?'justify-content:flex-end':'justify-content:flex-start'};">
                 <div style="max-width:75%;padding:10px 14px;border-radius:${isMine?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isMine?'linear-gradient(135deg,#7c3aed,#ec4899)':'#f3f4f6'};color:${isMine?'white':'var(--text)'};font-size:.88em;">
                     ${esc(m.content)}
                     <div style="font-size:.65em;margin-top:4px;opacity:.7;text-align:right;">${formatTimeAgo(m.created_at)}</div>
@@ -2137,7 +2137,7 @@ async function openProfileModal(applicantId) {
         : (isSelf ? '' : '<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-handshake" style="color:var(--muted);"></i> 아직 평판이 없어요</div></div>');
 
     const repWriteBtn = canWriteReputation
-        ? `<button class="btn btn-outline" onclick="openReputationModal('${c.id}','${esc(c.name || '').replace(/'/g,"\\'")}')" style="width:100%;margin-bottom:8px;">
+        ? `<button class="btn btn-outline" onclick="openReputationModal('${c.id}','${esc(c.name || '').replace(/'/g,"\\'")}')" style="width:100%;">
             <i class="fa-solid fa-pen"></i> ${myRep ? '내 평판 수정' : '보증하기 (평판 남기기)'}
           </button>`
         : '';
@@ -2633,7 +2633,7 @@ async function loadInquiries() {
                 const date = new Date(q.created_at).toLocaleDateString('ko-KR');
                 const timeAgo = getTimeAgo(q.created_at);
                 const isNewReply = q.reply && !q.user_read;
-                return '<div style="padding:12px;background:' + (isNewReply ? '#fefce8' : '#fafafa') + ';border-radius:10px;margin-bottom:8px;border:1px solid ' + (isNewReply ? '#fde68a' : 'var(--border)') + ';position:relative;">' +
+                return '<div style="padding:12px;background:' + (isNewReply ? '#fefce8' : '#fafafa') + ';border-radius:10px;border:1px solid ' + (isNewReply ? '#fde68a' : 'var(--border)') + ';position:relative;">' +
                     '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
                         '<div style="flex:1;">' +
                             '<div style="font-size:.85em;color:#111;">' + esc(q.message) + '</div>' +
