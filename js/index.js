@@ -1802,7 +1802,7 @@ async function loadMutualOverview() {
         sec.style.display = '';
         document.getElementById('mutual-overview-count').textContent = pairs.length + '쌍';
         function mutualProfileCard(p, age) {
-            var photo = p.photos && p.photos[0] ? '<img loading="lazy" src='+p.photos[0]+'" style="width:52px;height:52px;border-radius:8px;object-fit:cover;">' : '<div style="width:52px;height:52px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:var(--muted);">?</div>';
+            var photo = p.photos && p.photos[0] ? '<img loading="lazy" src="'+p.photos[0]+'" style="width:52px;height:52px;border-radius:8px;object-fit:cover;">' : '<div style="width:52px;height:52px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:var(--muted);">?</div>';
             return '<div style="flex:1;min-width:140px;padding:12px;background:#fff;border:1px solid var(--border);border-radius:10px;">' +
                 '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">' + photo +
                 '<div><div style="font-weight:700;font-size:.88em;">' + esc(p.name) + '</div>' +

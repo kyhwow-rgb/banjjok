@@ -1127,7 +1127,7 @@ async function loadWhoLikedMe() {
                 const age = calcAge(a.birth);
                 const photo = a.photos && a.photos[0];
                 const photoHtml = photo
-                    ? '<div class="fav-photo"><img loading="lazy" src=' + photo + '" alt=""></div>'
+                    ? '<div class="fav-photo"><img loading="lazy" src="' + photo + '" alt=""></div>'
                     : '<div class="fav-photo">' + (a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>') + '</div>';
                 const tags = [age ? age + '세' : null, a.job, a.location, a.mbti].filter(Boolean)
                     .map(t => '<span class="fav-tag">' + esc(t) + '</span>').join('');
@@ -1279,7 +1279,7 @@ async function openProfileModal(applicantId) {
     const compat = compatDetail ? compatDetail.total : 50;
     const mbtiCompat = window._myProfile ? calcMbtiCompat(window._myProfile.mbti, c.mbti) : 50;
     const mbtiLabel = mbtiCompat >= 80 ? '찰떡궁합! <i class="fa-solid fa-fire" style="color:#ef4444;"></i>' : mbtiCompat >= 65 ? '궁합 좋아요 <i class="fa-solid fa-star" style="color:#f59e0b;"></i>' : mbtiCompat >= 50 ? '보통' : '다른 스타일';
-    const matchProb = window._myProfile ? calcMatchProbability(window._myProfile, c, { favCount: c._favCount || popCount }) : null;
+    const matchProb = window._myProfile ? calcMatchProbability(window._myProfile, c, { favCount: c._favCount || 0 }) : null;
     let breakdownHtml = '';
     if (compatDetail) {
         breakdownHtml = compatDetail.categories.map(cat => {
