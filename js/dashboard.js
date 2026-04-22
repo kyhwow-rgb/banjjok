@@ -2147,16 +2147,54 @@ function renderMatchResult(partner) {
         ? `<img loading="lazy" src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
         : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;">${partner.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
 
+    // 매칭 상대 ID 저장 (프로필 모달용)
+    window._matchedPartner = partner;
+
     sec.innerHTML = `
         <div style="text-align:center;padding:8px 0;">
             <div style="font-size:1.1em;font-weight:800;color:var(--primary);margin-bottom:16px;">축하합니다! 반쪽을 찾았어요</div>
-            <div style="display:flex;justify-content:center;margin-bottom:16px;">${photoHtml}</div>
-            <div style="font-size:1em;font-weight:700;margin-bottom:4px;">${esc(partner.name)}</div>
+            <div style="display:flex;justify-content:center;margin-bottom:16px;cursor:pointer;" onclick="openMatchedProfile()">${photoHtml}</div>
+            <div style="font-size:1em;font-weight:700;margin-bottom:4px;cursor:pointer;" onclick="openMatchedProfile()">${esc(partner.name)}</div>
+            <div style="font-size:.72em;color:var(--accent);margin-bottom:12px;cursor:pointer;" onclick="openMatchedProfile()">프로필 보기 <i class="fa-solid fa-chevron-right" style="font-size:.6em;"></i></div>
             <div style="font-size:.88em;color:var(--muted);margin-bottom:16px;">${age ? age + '세' : ''} · ${esc(partner.job || '')}${partner.location ? ' · ' + esc(partner.location) : ''}</div>
             <button onclick="switchTab('chat')" style="width:100%;padding:14px;background:#111;color:#fff;border:none;border-radius:12px;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit;">
                 <i class="fa-regular fa-comment-dots"></i> 대화하러 가기
             </button>
         </div>`;
+}
+
+// 매칭 상대 프로필 보기 (이상형 제외)
+async function openMatchedProfile() {
+    const p = window._matchedPartner;
+    if (!p) return;
+    // openProfileModal은 이상형도 보여주므로, 매칭 상대 전용 간소 프로필 표시
+    const age = calcAge(p.birth);
+    const photos = p.photos || [];
+    const photo = photos[0];
+    const photoHtml = photo
+        ? `<img loading="lazy" src="${photo}" alt="" style="width:100%;height:280px;object-fit:cover;">`
+        : `<div style="width:100%;height:280px;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:60px;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+    const tags = [age ? `${age}세` : null, p.job, p.height ? p.height + 'cm' : null, p.location, p.mbti, p.education, p.religion, p.smoking, p.drinking, p.hobby].filter(Boolean);
+
+    const content = document.getElementById('profile-modal-content');
+    content.innerHTML = `
+        <div style="border-radius:16px 16px 0 0;overflow:hidden;position:relative;">
+            ${photoHtml}
+            ${photos.length > 1 ? `<div style="position:absolute;bottom:8px;right:12px;background:rgba(0,0,0,.5);color:#fff;padding:3px 10px;border-radius:12px;font-size:.72em;">+${photos.length - 1}장</div>` : ''}
+        </div>
+        <div style="padding:20px;">
+            <div style="font-size:1.15em;font-weight:800;margin-bottom:4px;">${esc(p.name)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;">
+                ${tags.map(t => `<span class="pm-tag">${esc(t)}</span>`).join('')}
+            </div>
+            ${p.intro ? `<div style="margin-top:12px;padding:14px;background:#f9fafb;border-radius:12px;font-size:.9em;line-height:1.6;">${esc(p.intro)}</div>` : ''}
+            ${p.kakao ? `<div style="margin-top:12px;padding:12px 16px;background:#FEE500;border-radius:12px;font-size:.88em;font-weight:700;color:#3C1E1E;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-comment"></i> 카카오 ID: ${esc(p.kakao)}</div>` : ''}
+        </div>
+        <div style="padding:0 20px 20px;display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="switchTab('chat');closeProfileModal();" style="flex:1;"><i class="fa-regular fa-comment-dots"></i> 대화하기</button>
+            <button class="btn btn-outline" onclick="closeProfileModal()" style="flex:1;">닫기</button>
+        </div>`;
+    document.getElementById('profile-modal').classList.add('open');
 }
 
 async function init() {
@@ -2269,7 +2307,7 @@ async function init() {
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
-                    .select('id,name,gender,birth,job,location,photos,contact_released,user_id')
+                    .select('id,name,gender,birth,job,height,location,mbti,education,smoking,drinking,religion,hobby,intro,photos,kakao,user_id')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) {
                     renderMatchResult(partners[0]);
@@ -2602,7 +2640,7 @@ async function openChatRoom(partnerUserId, partnerName, partnerPhoto, partnerGen
     const photoHtml = partnerPhoto
         ? `<img src="${partnerPhoto}" alt="">`
         : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:14px;">${partnerGender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
-    headerInfo.innerHTML = `${photoHtml}<span class="chat-room-partner-name">${esc(partnerName)}</span>`;
+    headerInfo.innerHTML = `<div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openMatchedProfile()">${photoHtml}<span class="chat-room-partner-name">${esc(partnerName)}</span></div>`;
     // 채팅 초기화
     await initChat(window._myProfile, partnerUserId, partnerName);
 }
