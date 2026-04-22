@@ -478,41 +478,41 @@
     <!-- ══ TAB: 관심 ══ -->
     <div class="tab-content" id="tab-interest">
         <!-- 상호 관심 -->
-        <div class="section-card" id="mutual-card">
-            <div class="section-header">
-                <div class="section-title">상호 관심</div>
-                <span id="mutual-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span>
+        <div class="section-card" id="mutual-card" style="margin-bottom:8px;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 상호 관심 <span id="mutual-count" style="font-size:.85em;color:var(--primary);font-weight:700;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
-            <div class="section-body" id="mutual-section">
-                <div style="text-align:center;padding:20px;color:#d1d5db;font-size:.85em;">서로 찜하면 여기 표시</div>
+            <div class="section-body" id="mutual-section" style="display:none;padding:14px 20px;">
+                <div style="text-align:center;padding:16px;color:#d1d5db;font-size:.85em;">서로 찜하면 여기 표시</div>
             </div>
         </div>
 
         <!-- 내가 찜한 사람 -->
-        <div class="section-card">
-            <div class="section-header">
-                <div class="section-title">내가 찜한 사람 <span id="fav-max-label" style="font-size:.85em;font-weight:400;color:var(--muted);">3명까지</span></div>
-                <span id="fav-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+        <div class="section-card" style="margin-bottom:8px;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-heart" style="color:#7c3aed;"></i> 내가 찜한 사람 <span id="fav-count" style="font-size:.85em;color:var(--muted);font-weight:600;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
-            <div class="section-body" id="favorites-section"></div>
+            <div class="section-body" id="favorites-section" style="display:none;padding:14px 20px;"></div>
         </div>
 
         <!-- 나를 찜한 사람 -->
-        <div class="section-card" id="liked-me-card">
-            <div class="section-header">
-                <div class="section-title">나를 찜한 사람</div>
-                <span id="liked-me-count" style="font-size:.8em;color:#f59e0b;font-weight:700;"></span>
+        <div class="section-card" id="liked-me-card" style="margin-bottom:8px;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-fire" style="color:#f59e0b;"></i> 나를 찜한 사람 <span id="liked-me-count" style="font-size:.85em;color:#f59e0b;font-weight:700;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
-            <div class="section-body" id="liked-me-section"></div>
+            <div class="section-body" id="liked-me-section" style="display:none;padding:14px 20px;"></div>
         </div>
 
         <!-- 프로필 방문 흔적 -->
-        <div class="section-card" id="visitors-card" style="display:none;">
-            <div class="section-header">
-                <div class="section-title"><i class="fa-solid fa-eye" style="color:var(--accent);"></i> 누가 내 프로필을 봤어요</div>
-                <span id="visitor-count" style="font-size:.8em;color:var(--accent);font-weight:700;"></span>
+        <div class="section-card" id="visitors-card" style="display:none;margin-bottom:8px;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-eye" style="color:var(--accent);"></i> 프로필 방문 <span id="visitor-count" style="font-size:.85em;color:var(--accent);font-weight:700;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
-            <div class="section-body" id="visitors-section"></div>
+            <div class="section-body" id="visitors-section" style="display:none;padding:14px 20px;"></div>
         </div>
 
         <!-- 아무것도 없을 때 빈 상태 -->
@@ -1926,7 +1926,7 @@ function renderMutualSection() {
             } else {
                 actionHtml = `<button class="btn-match-request" onclick="requestMatch('${c.id}')"><i class="fa-solid fa-heart-circle-bolt"></i> 매칭 신청</button>`;
             }
-            return `<div class="mutual-item">
+            return `<div class="mutual-item" style="cursor:pointer;" onclick="openProfileModal('${c.id}')">
                 ${photoHtml}
                 <div class="match-info" style="flex:1;">
                     <div style="display:flex;align-items:center;gap:6px;">
@@ -1934,7 +1934,7 @@ function renderMutualSection() {
                     </div>
                     <div class="match-tags">${tags}</div>
                 </div>
-                <div style="flex-shrink:0;">${actionHtml}</div>
+                <div style="flex-shrink:0;" onclick="event.stopPropagation();">${actionHtml}</div>
             </div>`;
         }).join('')}`;
 }
