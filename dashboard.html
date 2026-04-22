@@ -1996,14 +1996,14 @@ async function requestMatch(targetId) {
 
 async function loadFavorites(userId) {
     const { data: favs } = await db.from('favorites').select('applicant_id').eq('user_id', userId);
-    window._favSet = new Set((favs || []).map(f => f.applicant_id));
-    if (!favs || !favs.length) { renderFavorites([]); return; }
+    if (!favs || !favs.length) { window._favSet = new Set(); renderFavorites([]); return; }
     const ids = favs.map(f => f.applicant_id);
     const { data: applicants } = await db.from('applicants')
         .select('id,gender,birth,job,location,mbti,photos,status')
         .in('id', ids);
-    // 매칭/거절된 유저는 찜 목록에서 제외
+    // 활성 유저만 favSet에 포함 (매칭/거절/삭제된 유저 제외)
     const visibleFavs = (applicants || []).filter(a => a.status === 'approved');
+    window._favSet = new Set(visibleFavs.map(a => a.id));
     renderFavorites(visibleFavs);
 }
 
