@@ -4296,6 +4296,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     const screen = localStorage.getItem('kj_screen') || (role === 'admin' ? 'admin' : 'home');
     const filter = localStorage.getItem('kj_filter') || 'all';
 
+    // #register 해시 → 프로필 수정 (admin이어도 우선 처리)
+    const { data: { session } } = await db.auth.getSession();
+    if (session && location.hash === '#register') {
+        saveSession(role || 'viewer', 'register');
+        const prefilled = await prefillRegisterForm(session.user.id);
+        _skipRegisterReset = !!prefilled;
+        showScreen('register');
+        return;
+    }
+
     // 관리자 세션 복원
     if (role === 'admin') {
         currentAdminFilter = filter;
@@ -4305,16 +4315,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Supabase Auth 세션 확인
-    const { data: { session } } = await db.auth.getSession();
     if (session) {
-        if (location.hash === '#register') {
-            saveSession('viewer', 'register');
-            // 기존 데이터 먼저 가져오기 → 있으면 reset 건너뛰고 screen 전환 (prefill 값 보존)
-            const prefilled = await prefillRegisterForm(session.user.id);
-            _skipRegisterReset = !!prefilled;
-            showScreen('register');
-            return;
-        }
         // 신청서 유무 확인
         let profileName = null;
         try {
