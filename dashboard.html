@@ -1966,8 +1966,9 @@ async function loadFavorites(userId) {
     const { data: applicants } = await db.from('applicants')
         .select('id,gender,birth,job,location,mbti,photos,status')
         .in('id', ids);
-    // 활성 유저만 favSet에 포함 (매칭/거절/삭제된 유저 제외)
-    const visibleFavs = (applicants || []).filter(a => a.status === 'approved');
+    // 활성 유저만 favSet에 포함 (거절/삭제된 유저 제외)
+    const ACTIVE_STATUS = ['approved', 'matched'];
+    const visibleFavs = (applicants || []).filter(a => ACTIVE_STATUS.includes(a.status));
     window._favSet = new Set(visibleFavs.map(a => a.id));
     renderFavorites(visibleFavs);
 }
