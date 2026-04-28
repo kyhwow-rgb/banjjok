@@ -2060,47 +2060,6 @@ function getTimeAgo(dateStr) {
     return new Date(dateStr).toLocaleDateString('ko-KR');
 }
 
-// ── 내 데이터 내보내기 ──
-async function exportMyData() {
-    if (!window._myProfile) { toast('프로필 데이터가 없어요.', 'warning'); return; }
-    setLoading(true, '데이터 준비 중...');
-    try {
-        const { data: { user } } = await db.auth.getUser();
-        const p = { ...window._myProfile };
-        // 민감 필드 마스킹 해제 (본인 데이터이므로 전체 포함)
-        const exportData = {
-            profile: p,
-            email: user.email,
-            exported_at: new Date().toISOString(),
-        };
-        // 찜 목록
-        try {
-            const { data: favs } = await db.from('favorites').select('applicant_id,created_at').eq('user_id', user.id);
-            exportData.favorites = favs || [];
-        } catch(e) {}
-        // 받은 평판
-        try {
-            const { data: reps } = await db.from('reputations').select('content,is_referrer,created_at').eq('target_applicant_id', p.id);
-            exportData.reputations_received = reps || [];
-        } catch(e) {}
-        // 알림
-        try {
-            const { data: notifs } = await db.from('notifications').select('type,title,body,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
-            exportData.notifications = notifs || [];
-        } catch(e) {}
-
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `banjjok_${p.name}_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast('데이터 다운로드 완료!', 'success');
-    } catch(e) { toast('데이터 내보내기 실패: ' + e.message, 'error'); }
-    setLoading(false);
-}
-
 async function deleteAccount() {
     if (!confirm('정말 계정을 삭제하시겠어요?\n모든 프로필, 사진, 찜, 알림이 즉시 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.')) return;
     if (!confirm('마지막 확인: 계정을 삭제합니다.')) return;
