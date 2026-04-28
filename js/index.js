@@ -6,6 +6,23 @@ let selectedGender     = null;
 let adminCache         = [];
 let photoFiles         = [null, null, null];
 let _skipRegisterReset = false; // prefill 직후 showScreen 시 resetForm 건너뛰기용
+let _submitting = false; // 더블서밋 방지 가드
+
+// ── 생년월일 유효성 검증 ──
+function isValidBirth(str) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+    const [y, m, d] = str.split('-').map(Number);
+    if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+    const date = new Date(y, m - 1, d);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+// ── 직업군 정규화 (레거시 값 호환) ──
+function normalizeJobCategory(val) {
+    if (!val) return '';
+    if (['대학생','대학원생','학생'].includes(val)) return '대학생/대학원생';
+    return val;
+}
 let _adminRendered     = false;
 let currentAdminFilter = 'all';
 let _historyNav        = false;
@@ -178,6 +195,12 @@ async function doSignup() {
     setLoading(false);
     if (error) { err.textContent = translateAuthError(error.message); err.style.display = 'block'; return; }
     err.style.display = 'none';
+    // 이메일 인증이 필요한 경우 세션이 없을 수 있음
+    if (!data.session) {
+        toast('인증 메일을 보냈어요. 메일함에서 인증 후 로그인해주세요.', 'success');
+        showAuthView('login');
+        return;
+    }
     // 가입 성공 → 신청서 작성 화면으로
     saveSession('viewer', 'register');
     showScreen('register');
@@ -415,6 +438,11 @@ function previewPhoto(i, input) {
 function removePhoto(event, i) {
     event.stopPropagation();
     photoFiles[i] = null;
+    // 기존 사진 삭제 추적 (수정 모드에서 구사진 제거 반영)
+    if (window._existingPhotos && window._existingPhotos[i]) {
+        if (!window._retainedPhotos) window._retainedPhotos = [...(window._existingPhotos || [])];
+        window._retainedPhotos = window._retainedPhotos.filter(u => u !== window._existingPhotos[i]);
+    }
     const preview = document.getElementById(`photo-preview-${i}`);
     preview.style.display = 'none';
     preview.src = '';
@@ -553,6 +581,7 @@ function resetForm() {
 }
 
 async function submitApplication() {
+    if (_submitting) return;
     const name     = document.getElementById('reg-name').value.trim();
     const birthRaw = document.getElementById('reg-birth').value.trim();
     const birth    = birthRaw.replace(/\./g, '-');
@@ -566,9 +595,9 @@ async function submitApplication() {
     const missing = [];
     if (!selectedGender) missing.push('성별');
     if (!name)     missing.push('이름');
-    if (!birth || !/^\d{4}-\d{2}-\d{2}$/.test(birth)) missing.push('생년월일 (예: 2000.01.15)');
+    if (!isValidBirth(birth)) missing.push('생년월일 (예: 2000.01.15)');
     if (!job)      missing.push('직업');
-    if (!height)   missing.push('키');
+    if (!height || parseInt(height) < 140 || parseInt(height) > 220) missing.push('키 (140~220)');
     if (!location_) missing.push('거주지');
     if (!mbti)     missing.push('MBTI');
     if (!ideal)    missing.push('이상형');
@@ -582,6 +611,7 @@ async function submitApplication() {
         return;
     }
 
+    _submitting = true;
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
     const origText = btn.textContent;
@@ -615,10 +645,7 @@ async function submitApplication() {
     let photoUrls = [];
     const hasNewPhotos = photoFiles.some(f => f !== null);
     if (hasNewPhotos) {
-        // 새 사진이 있으면 기존 Storage 사진 정리
-        if (existingPhotos.length > 0) {
-            await deletePhotosFromStorage(existingPhotos);
-        }
+        // 새 사진 먼저 업로드 (구사진은 성공 후 삭제)
         for (let i = 0; i < 3; i++) {
             if (!photoFiles[i]) continue;
             setLoading(true, `사진 ${photoUrls.length + 1}장 업로드 중...`);
@@ -627,10 +654,14 @@ async function submitApplication() {
                 photoUrls.push(url);
             } catch(e) { toast(`사진 ${i+1} 업로드 실패: ${e.message}`, 'error'); }
         }
+        // 새 사진 업로드 성공 시에만 구사진 삭제
+        if (photoUrls.length > 0 && existingPhotos.length > 0) {
+            try { await deletePhotosFromStorage(existingPhotos); } catch(e) {}
+        }
     }
-    // 새 사진 없으면 기존 사진 유지
+    // 새 사진 없으면 삭제되지 않은 기존 사진 유지 (UI에서 제거한 것 반영)
     if (photoUrls.length === 0 && existingPhotos.length > 0) {
-        photoUrls = existingPhotos;
+        photoUrls = window._retainedPhotos || existingPhotos;
     }
     // 신규 신청인데 사진 처리 전부 실패한 경우 차단
     if (!existingId && photoUrls.length === 0) {
@@ -674,8 +705,14 @@ async function submitApplication() {
 
     // 추천인 코드 처리
     const referralCodeInput = document.getElementById('reg-referral-code').value.trim().toUpperCase();
-    const SUPER_CODE = 'KANGYONGHWAN';
-    const isSuperCode = referralCodeInput === SUPER_CODE;
+    // 슈퍼코드 검증 (SHA-256 해시 비교 — 원문 노출 방지)
+    const _SC_HASH = '17383edbe36604497caed4e82804f529edd5f4257ded15d4608f047c03ea8018';
+    let isSuperCode = false;
+    try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(referralCodeInput));
+        const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+        isSuperCode = hex === _SC_HASH;
+    } catch {}
 
     // 신규 가입자는 추천인 코드 필수 (지인 추천제)
     let referrerApplicant = null;
@@ -718,8 +755,13 @@ async function submitApplication() {
         const { error: updateError } = await db.from('applicants').update(rowData).eq('id', existingId);
         error = updateError;
     } else {
-        // 고유 추천 코드 생성 (이름 첫 글자 + 랜덤 5자리)
-        const myCode = (name.charAt(0) || 'B') + Math.random().toString(36).slice(2, 7).toUpperCase();
+        // 고유 추천 코드 생성 (이름 첫 글자 + 랜덤 5자리, 충돌 시 재생성)
+        let myCode;
+        for (let _retry = 0; _retry < 5; _retry++) {
+            myCode = (name.charAt(0) || 'B') + Math.random().toString(36).slice(2, 7).toUpperCase();
+            const { data: dup } = await db.from('applicants').select('id').eq('referral_code', myCode).limit(1);
+            if (!dup || dup.length === 0) break;
+        }
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
             status:  isSuperCode ? 'pending' : 'pending_reputation', // 슈퍼코드 → 바로 심사, 일반 → 평판 대기
@@ -788,6 +830,7 @@ async function submitApplication() {
         console.error('submitApplication error:', e);
         toast('제출 중 오류가 발생했어요. 다시 시도해주세요.');
     } finally {
+        _submitting = false;
         setLoading(false);
         btn.disabled = false;
         if (btn.textContent === '제출 중...') btn.textContent = origText;
@@ -2353,6 +2396,17 @@ function openEditForm(id) {
             document.getElementById('edit-icebreaker-a').value = ib.a || '';
         } catch {}
     }
+    // edit-birth 자동 포맷 (YYYY.MM.DD)
+    const editBirthEl = document.getElementById('edit-birth');
+    if (editBirthEl) {
+        editBirthEl.addEventListener('input', function() {
+            let v = this.value.replace(/[^\d]/g, '');
+            if (v.length > 8) v = v.slice(0, 8);
+            if (v.length >= 5) v = v.slice(0,4) + '.' + v.slice(4);
+            if (v.length >= 8) v = v.slice(0,7) + '.' + v.slice(7);
+            this.value = v;
+        });
+    }
 
     document.getElementById('admin-detail-actions').innerHTML = `
         <button class="btn btn-approve" onclick="saveEdit('${id}')"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
@@ -2378,7 +2432,7 @@ async function saveEdit(id) {
 
     if (!gender)  { toast('성별을 선택해주세요.'); return; }
     if (!name)    { toast('이름을 입력해주세요.'); return; }
-    if (!birth)   { toast('생년월일을 입력해주세요.'); return; }
+    if (!isValidBirth(birth)) { toast('생년월일을 정확히 입력해주세요. (예: 2000.01.15)'); return; }
     if (!job)     { toast('직업을 입력해주세요.'); return; }
 
     // Ice Breaker
@@ -2978,7 +3032,7 @@ async function prefillRegisterForm(userId) {
 function _doPrefill(p) {
     if (p.gender) selectGender(p.gender);
     const fields = [
-        ['reg-name', p.name], ['reg-birth', p.birth ? p.birth.replace(/-/g, '.') : null], ['reg-job', p.job_category || p.job],
+        ['reg-name', p.name], ['reg-birth', p.birth ? p.birth.replace(/-/g, '.') : null], ['reg-job', normalizeJobCategory(p.job_category || p.job)],
         ['reg-height', p.height], ['reg-location', p.location], ['reg-mbti', p.mbti],
         ['reg-kakao', p.kakao], ['reg-intro', p.intro], ['reg-contact', p.contact],
         ['reg-referral', p.referral], ['reg-education', p.education],
