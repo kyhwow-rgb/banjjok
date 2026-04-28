@@ -131,12 +131,22 @@ async function saveReputation() {
             if (error) throw error;
             toast('평판이 수정되었어요', 'success');
         } else {
+            // is_referrer 판별: 내 referral_code가 대상의 referred_by와 일치하면 추천인
+            let isReferrer = false;
+            try {
+                const { data: tgtInfo } = await db.from('applicants').select('referred_by').eq('id', _currentRepTargetId).limit(1);
+                if (tgtInfo?.[0]?.referred_by && window._myProfile.referral_code) {
+                    isReferrer = tgtInfo[0].referred_by.toUpperCase() === window._myProfile.referral_code.toUpperCase();
+                }
+            } catch(e) {}
+
             // 신규
             const { error } = await db.from('reputations').insert({
                 target_applicant_id: _currentRepTargetId,
                 writer_applicant_id: myApplicantId,
                 writer_user_id: user.id,
-                content
+                content,
+                is_referrer: isReferrer
             });
             if (error) {
                 if (error.message.includes('duplicate') || error.code === '23505') {
@@ -147,7 +157,7 @@ async function saveReputation() {
             toast(`${_currentRepTargetName}님에게 평판을 남겼어요 💐`, 'success');
             // 대상자에게 알림
             try {
-                const { data: target } = await db.from('applicants').select('user_id').eq('id', _currentRepTargetId).limit(1);
+                const { data: target } = await db.from('applicants').select('user_id,status').eq('id', _currentRepTargetId).limit(1);
                 if (target?.[0]?.user_id) {
                     await db.from('notifications').insert({
                         user_id: target[0].user_id,
@@ -156,6 +166,21 @@ async function saveReputation() {
                         body: `${window._myProfile.name}님이 당신에 대한 평판을 남겼어요`,
                     });
                     sendPushNotif(target[0].user_id, '🤝 평판이 도착했어요', `${window._myProfile.name}님이 평판을 남겼어요`, dashUrl('my'), 'approved');
+
+                    // 평판 자동 전환: 2개 이상이면 pending_reputation → pending
+                    if (target[0].status === 'pending_reputation') {
+                        const { count } = await db.from('reputations').select('id', { count: 'exact', head: true }).eq('target_applicant_id', _currentRepTargetId);
+                        if (count >= 2) {
+                            await db.from('applicants').update({ status: 'pending' }).eq('id', _currentRepTargetId).eq('status', 'pending_reputation');
+                            await db.from('notifications').insert({
+                                user_id: target[0].user_id,
+                                type: 'reputation_complete',
+                                title: '평판 수집 완료! 🎉',
+                                body: '평판이 모두 모였어요! 관리자 심사가 시작됩니다.',
+                            });
+                            sendPushNotif(target[0].user_id, '🎉 평판 수집 완료', '관리자 심사가 시작됩니다!', dashUrl('my'), 'approved');
+                        }
+                    }
                 }
             } catch(e) {}
         }

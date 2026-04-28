@@ -239,11 +239,11 @@
 
             <!-- 추천인 코드 (필수 · 최상단) -->
             <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:14px 16px;border-radius:12px;margin-bottom:20px;">
-                <label style="color:#92400e;font-weight:800;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
-                <input type="text" id="reg-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;">
+                <label style="color:#92400e;font-weight:800;">추천인 코드 / 초대 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
+                <input type="text" id="reg-referral-code" placeholder="추천인 코드 또는 초대 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;">
                 <div style="font-size:.72em;color:#92400e;margin-top:6px;line-height:1.5;">
-                    <i class="fa-solid fa-circle-info"></i> 반쪽은 지인 추천제예요. 지인에게 받은 코드가 있어야 가입 가능해요.<br>
-                    가입 후 추천인과 다른 지인 1명의 <b>평판 (20자 이상)</b>이 쌓여야 승인 심사가 시작됩니다.
+                    <i class="fa-solid fa-circle-info"></i> 지인에게 받은 <b>추천인 코드</b> 또는 관리자에게 받은 <b>초대 코드</b>를 입력해주세요.<br>
+                    추천인 코드로 가입 시 평판 2개 수집 후 승인 심사가 시작됩니다. 초대 코드는 바로 심사로 넘어가요.
                 </div>
             </div>
 
@@ -637,6 +637,17 @@
                     <button class="btn btn-primary" onclick="sendBroadcast()" style="flex:2;"><i class="fa-solid fa-paper-plane"></i> 발송</button>
                 </div>
                 <div id="broadcast-status" style="margin-top:10px;font-size:.82em;"></div>
+            </div>
+
+            <!-- 초대 코드 관리 -->
+            <div class="admin-section">
+                <div class="admin-section-title"><i class="fa-solid fa-ticket" style="color:var(--primary);"></i> 초대 코드 관리</div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">추천인 없이 가입할 수 있는 1회용 초대 코드를 발급합니다. 초대 코드로 가입하면 평판 수집을 건너뛰고 바로 관리자 심사로 넘어갑니다.</div>
+                <div style="display:flex;gap:8px;margin-bottom:16px;">
+                    <input type="number" id="invite-code-count" value="5" min="1" max="50" style="width:80px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;">
+                    <button class="btn btn-primary" onclick="generateInviteCodes()" style="flex:1;"><i class="fa-solid fa-plus"></i> 초대 코드 생성</button>
+                </div>
+                <div id="invite-codes-list" style="font-size:.85em;">로딩 중...</div>
             </div>
 
             <div class="admin-section">

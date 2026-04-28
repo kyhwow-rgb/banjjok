@@ -714,8 +714,9 @@ async function submitApplication() {
         isSuperCode = hex === _SC_HASH;
     } catch {}
 
-    // 신규 가입자는 추천인 코드 필수 (지인 추천제)
+    // 신규 가입자는 추천인 코드 또는 초대 코드 필수
     let referrerApplicant = null;
+    let _usedInviteCode = false;
     if (!existingId) {
         if (!referralCodeInput) {
             setLoading(false);
@@ -725,27 +726,43 @@ async function submitApplication() {
             return;
         }
         if (!isSuperCode) {
-            // 일반 추천인 코드 유효성 검증
-            const { data: refData } = await db.from('applicants')
-                .select('id,name,referral_code,status,user_id')
-                .eq('referral_code', referralCodeInput)
-                .limit(1);
-            if (!refData || !refData.length) {
-                setLoading(false);
-                btn.disabled = false;
-                btn.textContent = origText;
-                toast('유효하지 않은 추천인 코드입니다.', 'error');
-                return;
+            // 1) 초대 코드 테이블에서 먼저 확인
+            let inviteValid = false;
+            try {
+                const { data: inv } = await db.from('invite_codes')
+                    .select('id,code,used_at')
+                    .eq('code', referralCodeInput)
+                    .limit(1);
+                if (inv && inv.length > 0) {
+                    if (inv[0].used_at) {
+                        setLoading(false); btn.disabled = false; btn.textContent = origText;
+                        toast('이미 사용된 초대 코드입니다.', 'error');
+                        return;
+                    }
+                    inviteValid = true;
+                    _usedInviteCode = inv[0];
+                }
+            } catch(e) { /* invite_codes 테이블 미존재 시 무시 */ }
+
+            if (!inviteValid) {
+                // 2) 일반 추천인 코드 유효성 검증
+                const { data: refData } = await db.from('applicants')
+                    .select('id,name,referral_code,status,user_id')
+                    .eq('referral_code', referralCodeInput)
+                    .limit(1);
+                if (!refData || !refData.length) {
+                    setLoading(false); btn.disabled = false; btn.textContent = origText;
+                    toast('유효하지 않은 추천인 코드입니다.', 'error');
+                    return;
+                }
+                const ACTIVE = ['approved', 'matched'];
+                if (!ACTIVE.includes(refData[0].status)) {
+                    setLoading(false); btn.disabled = false; btn.textContent = origText;
+                    toast('추천인이 아직 활동 중이 아니에요. 다른 추천 코드가 필요합니다.', 'error');
+                    return;
+                }
+                referrerApplicant = refData[0];
             }
-            const ACTIVE = ['approved', 'matched'];
-            if (!ACTIVE.includes(refData[0].status)) {
-                setLoading(false);
-                btn.disabled = false;
-                btn.textContent = origText;
-                toast('추천인이 아직 활동 중이 아니에요. 다른 추천 코드가 필요합니다.', 'error');
-                return;
-            }
-            referrerApplicant = refData[0];
         }
     }
 
@@ -764,7 +781,7 @@ async function submitApplication() {
         }
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
-            status:  isSuperCode ? 'pending' : 'pending_reputation', // 슈퍼코드 → 바로 심사, 일반 → 평판 대기
+            status:  (isSuperCode || _usedInviteCode) ? 'pending' : 'pending_reputation', // 슈퍼코드/초대코드 → 바로 심사, 일반 → 평판 대기
             user_id: userId,
             referral_code: myCode,
             referred_by: referralCodeInput || null,
@@ -773,6 +790,16 @@ async function submitApplication() {
         };
         const { error: insertError } = await db.from('applicants').insert([row]);
         error = insertError;
+
+        // 초대 코드 사용 처리
+        if (!insertError && _usedInviteCode) {
+            try {
+                await db.from('invite_codes').update({
+                    used_at: new Date().toISOString(),
+                    used_by: userId
+                }).eq('id', _usedInviteCode.id);
+            } catch(e) {}
+        }
 
         // 추천인에게 평판 요청 푸시/알림
         if (!insertError && referrerApplicant?.user_id) {
@@ -793,22 +820,26 @@ async function submitApplication() {
             } catch(e) { console.log('notify referrer error:', e.message); }
         }
 
-        // 추천인 인센티브 적용 (추천인 찜 슬롯 +1, 24시간 상위 노출) — 슈퍼코드 제외
-        if (!insertError && referralCodeInput && !isSuperCode) {
+        // 추천인 인센티브 적용 (원자적 업데이트) — 슈퍼코드 및 초대코드 제외
+        if (!insertError && referralCodeInput && !isSuperCode && !_usedInviteCode) {
             try {
-                const { data: referrer } = await db.from('applicants').select('id,referral_count,fav_slots').eq('referral_code', referralCodeInput).limit(1);
-                if (referrer && referrer.length > 0) {
-                    const r = referrer[0];
-                    const newSlots = Math.min((r.fav_slots || 3) + 1, 5);
-                    const boostUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-                    await db.from('applicants').update({
-                        referral_count: (r.referral_count || 0) + 1,
-                        fav_slots: newSlots,
-                        boost_until: boostUntil,
-                    }).eq('id', r.id);
-                    // 피추천인(나)도 24시간 상위 노출
-                    await db.from('applicants').update({ boost_until: boostUntil }).eq('user_id', userId);
+                const boostUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+                // RPC 사용 시도, 없으면 직접 업데이트
+                try {
+                    await db.rpc('apply_referral_bonus', { referrer_code: referralCodeInput, boost_ts: boostUntil });
+                } catch(rpcErr) {
+                    // RPC 미설정 시 폴백 (직접 업데이트)
+                    const { data: referrer } = await db.from('applicants').select('id').eq('referral_code', referralCodeInput).limit(1);
+                    if (referrer?.[0]) {
+                        await db.from('applicants').update({
+                            referral_count: db.rpc ? undefined : 1, // 폴백용
+                            fav_slots: 4,
+                            boost_until: boostUntil,
+                        }).eq('id', referrer[0].id);
+                    }
                 }
+                // 피추천인(나)도 24시간 상위 노출
+                await db.from('applicants').update({ boost_until: boostUntil }).eq('user_id', userId);
             } catch(e) { console.log('referral bonus error:', e.message); }
         }
     }
@@ -1136,6 +1167,7 @@ async function renderAdmin() {
         loadAdminHealthMetrics(),
         loadAdminActivityFeed(),
         loadAdminFeedbackWidget(),
+        loadInviteCodes(),
     ]);
     renderAiMatchSuggestions(); // depends on _adminMutualPairs from loadMutualOverview
     updateAdminTabBadges();
@@ -2926,6 +2958,66 @@ async function deleteInquiryAdmin(id) {
         toast('삭제 완료');
         loadAdminInquiries();
     } catch(e) { toast('오류: ' + e.message, 'error'); }
+}
+
+// ── 초대 코드 관리 ──
+async function generateInviteCodes() {
+    const count = parseInt(document.getElementById('invite-code-count').value) || 5;
+    if (count < 1 || count > 50) { toast('1~50개 사이로 입력해주세요.', 'warning'); return; }
+    setLoading(true, '초대 코드 생성 중...');
+    try {
+        const codes = [];
+        for (let i = 0; i < count; i++) {
+            const code = 'INV-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+            codes.push({ code, created_by: (await db.auth.getUser()).data.user.id });
+        }
+        const { error } = await db.from('invite_codes').insert(codes);
+        if (error) throw error;
+        toast(`초대 코드 ${count}개가 생성되었어요!`, 'success');
+        loadInviteCodes();
+    } catch(e) { toast('생성 실패: ' + e.message, 'error'); }
+    setLoading(false);
+}
+
+async function loadInviteCodes() {
+    const list = document.getElementById('invite-codes-list');
+    if (!list) return;
+    try {
+        const { data, error } = await db.from('invite_codes').select('*').order('created_at', { ascending: false }).limit(100);
+        if (error) throw error;
+        if (!data || data.length === 0) { list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">생성된 초대 코드가 없습니다.</div>'; return; }
+        const unused = data.filter(c => !c.used_at);
+        const used = data.filter(c => c.used_at);
+        let html = `<div style="margin-bottom:10px;font-weight:700;font-size:.82em;">미사용 ${unused.length}개 · 사용됨 ${used.length}개</div>`;
+        if (unused.length > 0) {
+            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
+            unused.forEach(c => {
+                html += `<span onclick="navigator.clipboard.writeText('${c.code}');toast('복사됨!','success');" style="cursor:pointer;padding:5px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-family:monospace;font-size:.85em;color:#166534;" title="클릭하면 복사">${c.code}</span>`;
+            });
+            html += '</div>';
+            html += `<button class="btn btn-outline" onclick="copyAllInviteCodes()" style="font-size:.78em;margin-bottom:12px;"><i class="fa-solid fa-copy"></i> 미사용 코드 전체 복사</button>`;
+        }
+        if (used.length > 0) {
+            html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:.78em;color:var(--muted);">사용된 코드 보기 (' + used.length + '개)</summary><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">';
+            used.forEach(c => {
+                html += `<span style="padding:5px 10px;background:#f5f5f5;border:1px solid #e5e5e5;border-radius:8px;font-family:monospace;font-size:.85em;color:#9ca3af;text-decoration:line-through;">${c.code}</span>`;
+            });
+            html += '</div></details>';
+        }
+        list.innerHTML = html;
+    } catch(e) {
+        list.innerHTML = '<div style="color:#ef4444;padding:12px;">초대 코드 테이블이 없습니다. Supabase에서 invite_codes 테이블을 먼저 생성해주세요.</div>';
+    }
+}
+
+async function copyAllInviteCodes() {
+    try {
+        const { data } = await db.from('invite_codes').select('code').is('used_at', null).order('created_at', { ascending: false });
+        if (!data || data.length === 0) { toast('미사용 코드가 없어요.', 'warning'); return; }
+        const txt = data.map(c => c.code).join('\n');
+        await navigator.clipboard.writeText(txt);
+        toast(`미사용 코드 ${data.length}개 복사 완료!`, 'success');
+    } catch(e) { toast('복사 실패', 'error'); }
 }
 
 async function savePasswords() {
