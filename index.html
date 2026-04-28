@@ -263,7 +263,7 @@
                 </div>
                 <div class="input-group">
                     <label>생년월일 <span style="color:#e11d48;">*</span></label>
-                    <input type="date" id="reg-birth" max="2010-12-31">
+                    <input type="text" id="reg-birth" placeholder="2000.01.15" maxlength="10" inputmode="numeric">
                 </div>
             </div>
 
@@ -278,14 +278,23 @@
                         <option value="대기업·중견기업직">대기업·중견기업직 (사무/기획/마케팅/영업 등)</option>
                         <option value="사업·전문자유직">사업·전문자유직 (대표/사업자/프리랜서 등)</option>
                         <option value="일반사무·기술직">일반사무·기술직 (중소기업/일반 기술직 등)</option>
-                        <option value="대학생">학생 (대학생)</option>
-                        <option value="대학원생">학생 (대학원생)</option>
+                        <option value="대학생/대학원생">학생 (대학생/대학원생)</option>
                         <option value="기타">기타</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label>키 (cm) <span style="color:#e11d48;">*</span></label>
                     <input type="number" id="reg-height" min="140" max="220">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>직장명 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>
+                    <input type="text" id="reg-company" placeholder="예: 삼성전자">
+                </div>
+                <div class="input-group">
+                    <label>직무 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>
+                    <input type="text" id="reg-job-title" placeholder="예: 백엔드 개발">
                 </div>
             </div>
 
@@ -356,7 +365,7 @@
             </div>
             <div class="form-row">
                 <div class="input-group">
-                    <label>종교</label>
+                    <label>종교 <span style="color:#e11d48;">*</span></label>
                     <select id="reg-religion">
                         <option value="">선택해주세요</option>
                         <option value="무교">무교</option>

@@ -321,7 +321,7 @@ async function renderHome() {
 }
 
 // ── 보석 순도 점수 ──
-const SCORE_BASIC = ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-mbti','reg-kakao','reg-intro','reg-education','reg-contact','reg-smoking','reg-drinking'];
+const SCORE_BASIC = ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-mbti','reg-kakao','reg-intro','reg-education','reg-contact','reg-smoking','reg-drinking','reg-religion'];
 
 function calcProfileScore() {
     let score = 0;
@@ -371,6 +371,18 @@ function autoFillJobCategory() {
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('ideal-chips');
     if (container) container.innerHTML = buildIdealChipsHtml('reg', null);
+
+    // 생년월일 자동 포맷 (YYYY.MM.DD)
+    const birthEl = document.getElementById('reg-birth');
+    if (birthEl) {
+        birthEl.addEventListener('input', function(e) {
+            let v = this.value.replace(/[^\d]/g, '');
+            if (v.length > 8) v = v.slice(0, 8);
+            if (v.length >= 5) v = v.slice(0,4) + '.' + v.slice(4);
+            if (v.length >= 8) v = v.slice(0,7) + '.' + v.slice(7);
+            this.value = v;
+        });
+    }
 
     // 점수바 이벤트 리스너
     SCORE_BASIC.forEach(id => document.getElementById(id)?.addEventListener('input', updateScoreBar));
@@ -520,7 +532,7 @@ function resetForm() {
     photoFiles = [null, null, null];
     ['gender-male','gender-female'].forEach(id => document.getElementById(id).className = 'gender-option');
     ['reg-name','reg-birth','reg-job','reg-height','reg-location','reg-contact','reg-kakao',
-     'reg-intro','reg-mbti','reg-education','reg-smoking','reg-drinking','reg-religion','reg-hobby','reg-referral-code'].forEach(id => {
+     'reg-intro','reg-mbti','reg-education','reg-smoking','reg-drinking','reg-religion','reg-company','reg-job-title','reg-hobby','reg-referral-code'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     // hidden referral field 리셋
@@ -542,7 +554,8 @@ function resetForm() {
 
 async function submitApplication() {
     const name     = document.getElementById('reg-name').value.trim();
-    const birth    = document.getElementById('reg-birth').value;
+    const birthRaw = document.getElementById('reg-birth').value.trim();
+    const birth    = birthRaw.replace(/\./g, '-');
     const job      = document.getElementById('reg-job').value.trim();
     const kakao    = document.getElementById('reg-kakao').value.trim();
     const contact  = document.getElementById('reg-contact').value.trim();
@@ -553,7 +566,7 @@ async function submitApplication() {
     const missing = [];
     if (!selectedGender) missing.push('성별');
     if (!name)     missing.push('이름');
-    if (!birth)    missing.push('생년월일');
+    if (!birth || !/^\d{4}-\d{2}-\d{2}$/.test(birth)) missing.push('생년월일 (예: 2000.01.15)');
     if (!job)      missing.push('직업');
     if (!height)   missing.push('키');
     if (!location_) missing.push('거주지');
@@ -562,6 +575,7 @@ async function submitApplication() {
     if (!kakao)    missing.push('카카오 ID');
     if (!document.getElementById('reg-smoking').value) missing.push('흡연');
     if (!document.getElementById('reg-drinking').value) missing.push('음주');
+    if (!document.getElementById('reg-religion').value) missing.push('종교');
     if (!photoFiles.some(f => f !== null) && !(window._existingPhotos && window._existingPhotos.length > 0)) missing.push('사진');
     if (missing.length > 0) {
         toast('미입력: ' + missing.join(', '), 'warning');
@@ -652,6 +666,8 @@ async function submitApplication() {
         smoking:   document.getElementById('reg-smoking').value || null,
         drinking:  document.getElementById('reg-drinking').value || null,
         religion:  document.getElementById('reg-religion').value || null,
+        company:   document.getElementById('reg-company').value.trim() || null,
+        job_title: document.getElementById('reg-job-title').value.trim() || null,
         hobby:     document.getElementById('reg-hobby').value.trim() || null,
         icebreaker:    icebreaker,
     };
@@ -787,7 +803,7 @@ const JOB_KEYWORDS = {
     '공공·금융·교육직': ['공무원','공기업','한전','KT','LH','코레일','공단','공사','행정','소방','경찰','군인','장교','부사관','교수','교사','교원','은행','금융','증권','보험'],
     '대기업·중견기업직': ['대기업','중견','삼성','현대','LG','SK','포스코','롯데','기획','마케팅','재무','영업','인사'],
     '사업·전문자유직':  ['대표','CEO','사장','이사','임원','창업','사업','오너','원장','프리랜서','작가','PD','감독','유튜버','크리에이터'],
-    '학생':           ['학생','대학생','대학원생','취준','취업준비','수험생'],
+    '대학생/대학원생': ['학생','대학생','대학원생','취준','취업준비','수험생'],
 };
 function autoDetectJobCategory(jobText) {
     if (!jobText) return '';
@@ -2118,6 +2134,8 @@ async function openAdminDetail(id) {
 
     const rows = [
         ['직업',   `${esc(a.job)}${a.job_category ? ' ('+esc(a.job_category)+')' : ''}`],
+        a.company   ? ['직장명', esc(a.company)]  : null,
+        a.job_title ? ['직무',   esc(a.job_title)] : null,
         ['직업 점수', scoreBar(jobScore, '직업')],
         a.height    ? ['키',     a.height + 'cm'] : null,
         a.height    ? ['키 점수', scoreBar(heightScore, '키')] : null,
@@ -2251,11 +2269,15 @@ function openEditForm(id) {
         </div>
         <div class="form-row">
             <div class="input-group"><label>이름</label><input type="text" id="edit-name" value="${esc(a.name||'')}"></div>
-            <div class="input-group"><label>생년월일</label><input type="date" id="edit-birth" value="${a.birth||''}" max="2010-12-31"></div>
+            <div class="input-group"><label>생년월일</label><input type="text" id="edit-birth" value="${(a.birth||'').replace(/-/g,'.')}" placeholder="2000.01.15" maxlength="10" inputmode="numeric"></div>
         </div>
         <div class="form-row">
             <div class="input-group"><label>직업</label><input type="text" id="edit-job" value="${esc(a.job||'')}"></div>
             <div class="input-group"><label>키 (cm)</label><input type="number" id="edit-height" value="${a.height||''}" min="140" max="220"></div>
+        </div>
+        <div class="form-row">
+            <div class="input-group"><label>직장명</label><input type="text" id="edit-company" value="${esc(a.company||'')}"></div>
+            <div class="input-group"><label>직무</label><input type="text" id="edit-job-title" value="${esc(a.job_title||'')}"></div>
         </div>
         <div class="form-row">
             <div class="input-group"><label>학력</label><input type="text" id="edit-education" value="${esc(a.education||'')}"></div>
@@ -2311,7 +2333,7 @@ function openEditForm(id) {
                     <option value="대기업·중견기업직" ${a.job_category==='대기업·중견기업직'?'selected':''}>대기업·중견기업직</option>
                     <option value="사업·전문자유직" ${a.job_category==='사업·전문자유직'?'selected':''}>사업·전문자유직</option>
                     <option value="일반사무·기술직" ${a.job_category==='일반사무·기술직'?'selected':''}>일반사무·기술직</option>
-                    <option value="학생" ${a.job_category==='학생'?'selected':''}>학생</option>
+                    <option value="대학생/대학원생" ${(a.job_category==='학생'||a.job_category==='대학생/대학원생'||a.job_category==='대학생'||a.job_category==='대학원생')?'selected':''}>대학생/대학원생</option>
                     <option value="기타" ${a.job_category==='기타'?'selected':''}>기타</option>
                 </select>
             </div>
@@ -2341,7 +2363,8 @@ function openEditForm(id) {
 async function saveEdit(id) {
     const gender    = document.querySelector('input[name="edit-gender"]:checked')?.value;
     const name      = document.getElementById('edit-name').value.trim();
-    const birth     = document.getElementById('edit-birth').value;
+    const birthRaw  = document.getElementById('edit-birth').value.trim();
+    const birth     = birthRaw.replace(/\./g, '-');
     const job       = document.getElementById('edit-job').value.trim();
     const heightVal = document.getElementById('edit-height').value;
     const education = document.getElementById('edit-education').value.trim();
@@ -2375,6 +2398,8 @@ async function saveEdit(id) {
             smoking: document.getElementById('edit-smoking').value || null,
             drinking: document.getElementById('edit-drinking').value || null,
             religion: document.getElementById('edit-religion').value || null,
+            company: document.getElementById('edit-company')?.value.trim() || null,
+            job_title: document.getElementById('edit-job-title')?.value.trim() || null,
             hobby: document.getElementById('edit-hobby')?.value.trim() || null,
             look_score: document.getElementById('edit-look-score').value ? parseInt(document.getElementById('edit-look-score').value) : null,
             icebreaker: editIcebreaker,
@@ -2953,12 +2978,13 @@ async function prefillRegisterForm(userId) {
 function _doPrefill(p) {
     if (p.gender) selectGender(p.gender);
     const fields = [
-        ['reg-name', p.name], ['reg-birth', p.birth], ['reg-job', p.job_category || p.job],
+        ['reg-name', p.name], ['reg-birth', p.birth ? p.birth.replace(/-/g, '.') : null], ['reg-job', p.job_category || p.job],
         ['reg-height', p.height], ['reg-location', p.location], ['reg-mbti', p.mbti],
         ['reg-kakao', p.kakao], ['reg-intro', p.intro], ['reg-contact', p.contact],
         ['reg-referral', p.referral], ['reg-education', p.education],
         ['reg-smoking', p.smoking], ['reg-drinking', p.drinking],
-        ['reg-religion', p.religion], ['reg-hobby', p.hobby],
+        ['reg-religion', p.religion], ['reg-company', p.company], ['reg-job-title', p.job_title],
+        ['reg-hobby', p.hobby],
     ];
     fields.forEach(([id, val]) => {
         const el = document.getElementById(id);

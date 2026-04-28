@@ -385,6 +385,8 @@ function renderProfile(p) {
             ${p.name     ? `<div class="profile-item"><div class="profile-label">이름</div><div class="profile-value">${esc(p.name)}</div></div>` : ''}
             ${age        ? `<div class="profile-item"><div class="profile-label">나이</div><div class="profile-value">${age}세</div></div>` : ''}
             ${p.job      ? `<div class="profile-item"><div class="profile-label">직업</div><div class="profile-value">${esc(p.job)}</div></div>` : ''}
+            ${p.company  ? `<div class="profile-item"><div class="profile-label">직장명</div><div class="profile-value">${esc(p.company)}</div></div>` : ''}
+            ${p.job_title? `<div class="profile-item"><div class="profile-label">직무</div><div class="profile-value">${esc(p.job_title)}</div></div>` : ''}
             ${p.location ? `<div class="profile-item"><div class="profile-label">사는 곳</div><div class="profile-value">${esc(p.location)}</div></div>` : ''}
             ${p.height   ? `<div class="profile-item"><div class="profile-label">키</div><div class="profile-value">${p.height}cm</div></div>` : ''}
             ${p.mbti     ? `<div class="profile-item"><div class="profile-label">MBTI</div><div class="profile-value">${esc(p.mbti)}</div></div>` : ''}
@@ -2236,7 +2238,7 @@ async function init() {
         // 이성 승인 참가자 로드 (온보딩에서도 숫자 필요)
         const oppGender = profile.gender === 'male' ? 'female' : 'male';
         const { data: candidates } = await db.from('applicants')
-            .select('id,name,gender,birth,job,job_category,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id')
+            .select('id,name,gender,birth,job,job_category,company,job_title,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id')
             .eq('status', 'approved')
             .eq('gender', oppGender);
         window._allCandidates = candidates || [];
@@ -2308,7 +2310,7 @@ async function init() {
         if (isMatched && profile.matched_with) {
             try {
                 const { data: partners } = await db.from('applicants')
-                    .select('id,name,gender,birth,job,height,location,mbti,education,smoking,drinking,religion,hobby,intro,photos,user_id')
+                    .select('id,name,gender,birth,job,company,job_title,height,location,mbti,education,smoking,drinking,religion,hobby,intro,photos,user_id')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) {
                     renderMatchResult(partners[0]);
