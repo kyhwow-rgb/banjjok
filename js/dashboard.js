@@ -72,7 +72,7 @@ async function loadMyReputations(myId) {
                     </div>
                 </div>`;
             }).join('')}`;
-    } catch(e) { console.log('load reputations error:', e.message); }
+    } catch(e) { console.log('load reputations error:', e.message); toast('평판 정보를 불러오지 못했어요.', 'error'); }
 }
 
 // ── 평판 (보증) 시스템 ──
@@ -1565,7 +1565,7 @@ async function loadNotifications() {
             const newest = _notifications.find(n => !n.is_read);
             if (newest) showBrowserNotif(newest.title, newest.body);
         }
-    } catch(e) { console.log('notif load error:', e.message); }
+    } catch(e) { console.log('notif load error:', e.message); /* 알림 로드 실패는 치명적이지 않으므로 silent */ }
 }
 
 // 브라우저 알림
@@ -1997,7 +1997,7 @@ async function loadInquiries() {
                 await db.from('inquiries').update({ user_read: true }).eq('id', uid);
             }
         }
-    } catch(e) { console.log('loadInquiries error:', e.message); }
+    } catch(e) { console.log('loadInquiries error:', e.message); toast('문의 내역을 불러오지 못했어요.', 'error'); }
 }
 
 // ── 프로필 방문 흔적 ──
@@ -2037,7 +2037,7 @@ async function loadProfileVisitors() {
                 ${action}
             </div>`;
         }).join('')}</div>`;
-    } catch(e) { console.log('loadProfileVisitors error:', e.message); }
+    } catch(e) { console.log('loadProfileVisitors error:', e.message); /* 방문자 로드 실패 silent */ }
 }
 
 function updateInquiryBadge(count) {
@@ -2058,6 +2058,47 @@ function getTimeAgo(dateStr) {
     const days = Math.floor(hrs / 24);
     if (days < 7) return days + '일 전';
     return new Date(dateStr).toLocaleDateString('ko-KR');
+}
+
+// ── 내 데이터 내보내기 ──
+async function exportMyData() {
+    if (!window._myProfile) { toast('프로필 데이터가 없어요.', 'warning'); return; }
+    setLoading(true, '데이터 준비 중...');
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        const p = { ...window._myProfile };
+        // 민감 필드 마스킹 해제 (본인 데이터이므로 전체 포함)
+        const exportData = {
+            profile: p,
+            email: user.email,
+            exported_at: new Date().toISOString(),
+        };
+        // 찜 목록
+        try {
+            const { data: favs } = await db.from('favorites').select('applicant_id,created_at').eq('user_id', user.id);
+            exportData.favorites = favs || [];
+        } catch(e) {}
+        // 받은 평판
+        try {
+            const { data: reps } = await db.from('reputations').select('content,is_referrer,created_at').eq('target_applicant_id', p.id);
+            exportData.reputations_received = reps || [];
+        } catch(e) {}
+        // 알림
+        try {
+            const { data: notifs } = await db.from('notifications').select('type,title,body,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+            exportData.notifications = notifs || [];
+        } catch(e) {}
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `banjjok_${p.name}_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('데이터 다운로드 완료!', 'success');
+    } catch(e) { toast('데이터 내보내기 실패: ' + e.message, 'error'); }
+    setLoading(false);
 }
 
 async function deleteAccount() {
@@ -2364,7 +2405,7 @@ async function init() {
                         chatInitialized = true;
                     }
                 }
-            } catch(e) { console.log('match partner load error:', e.message); }
+            } catch(e) { console.log('match partner load error:', e.message); toast('매칭 상대 정보를 불러오지 못했어요.', 'error'); }
         }
         window._chatInitialized = chatInitialized;
     }
