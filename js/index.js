@@ -1236,7 +1236,7 @@ function renderMatchedCouples() {
 function updateAdminTabBadges() {
     const pending = adminCache.filter(a => a.status === 'pending').length;
     const pendingRep = adminCache.filter(a => a.status === 'pending_reputation').length;
-    const mutualBadge = (window._adminMutuals || []).length;
+    const mutualBadge = (window._adminMutualPairs || []).length;
     const inquiriesUnread = window._adminUnreadInq || 0;
 
     const setBadge = (id, n) => {
@@ -1280,12 +1280,15 @@ function previewBroadcast() {
     alert(`총 ${targets.length}명에게 발송됩니다.\n\n예시: ${names}${targets.length > 10 ? ` ...외 ${targets.length - 10}명` : ''}`);
 }
 
+let _broadcastSending = false;
 async function sendBroadcast() {
+    if (_broadcastSending) return;
     const title = document.getElementById('broadcast-title').value.trim();
     const body = document.getElementById('broadcast-body').value.trim();
     const withPush = document.getElementById('broadcast-push').checked;
     if (!title) { toast('제목을 입력해주세요', 'warning'); return; }
     if (!body) { toast('내용을 입력해주세요', 'warning'); return; }
+    _broadcastSending = true;
 
     const targets = getBroadcastTargets();
     if (targets.length === 0) { toast('대상이 없습니다', 'warning'); return; }
@@ -1329,10 +1332,12 @@ async function sendBroadcast() {
         }
         toast('공지사항 발송 완료!', 'success');
         setLoading(false);
+        _broadcastSending = false;
         document.getElementById('broadcast-title').value = '';
         document.getElementById('broadcast-body').value = '';
     } catch(e) {
         setLoading(false);
+        _broadcastSending = false;
         statusEl.innerHTML = '<span style="color:#ef4444;">발송 실패: ' + esc(e.message) + '</span>';
     }
 }
@@ -1419,7 +1424,7 @@ async function loadAdminTodoWidget() {
                 if (aApp?.status === 'matched' || bApp?.status === 'matched') mutuals.delete(pair);
             }
             mutualCount = mutuals.size;
-            window._adminMutuals = Array.from(mutuals);
+            window._adminMutualKeys = Array.from(mutuals);
         } catch(e) {}
 
         // 연락처 공개 대기
@@ -1528,22 +1533,9 @@ async function loadAdminHealthMetrics() {
 
         // 7일 신규 가입 + 차트
         const buckets = Array(7).fill(0);
+        const now = Date.now();
         adminCache.forEach(a => {
-            const t = new Date(a.created_at).getTime();
-            const daysAgo = Math.floor((todayStart.getTime() - t) / (24*60*60*1000));
-            if (daysAgo >= 0 && daysAgo < 7) buckets[6 - daysAgo]++;
-            else if (daysAgo === -1) buckets[6]++; // today
-        });
-        // 오늘 데이터
-        adminCache.forEach(a => {
-            const t = new Date(a.created_at).getTime();
-            if (t >= todayStart.getTime()) buckets[6]++;
-        });
-        // 실제 7일치만 집계 (중복 카운트 수정)
-        for (let i = 0; i < 7; i++) buckets[i] = 0;
-        adminCache.forEach(a => {
-            const t = new Date(a.created_at).getTime();
-            const daysAgo = Math.floor((Date.now() - t) / (24*60*60*1000));
+            const daysAgo = Math.floor((now - new Date(a.created_at).getTime()) / (24*60*60*1000));
             if (daysAgo >= 0 && daysAgo < 7) buckets[6 - daysAgo]++;
         });
         const totalSignups = buckets.reduce((s, v) => s + v, 0);
@@ -1903,7 +1895,7 @@ async function loadMutualOverview() {
         }
 
         document.getElementById('stat-mutual').textContent = pairs.length;
-        window._adminMutuals = pairs; // 탭 배지 카운트용
+        // pairs는 _adminMutualPairs에서 관리 (탭 배지 + AI 매칭)
         window._adminMutualPairs = pairs; // AI 매칭 제안용 [male, female] 객체 쌍
         if (typeof updateAdminTabBadges === 'function') updateAdminTabBadges();
         if (pairs.length === 0) { sec.style.display = 'none'; return; }
