@@ -127,8 +127,12 @@
         <div class="login-logo"><i class="fa-solid fa-user-plus"></i></div>
         <div class="login-title">회원가입</div>
         <div class="login-sub">이메일과 비밀번호를 설정해주세요</div>
-        <div style="font-size:.78em;color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:10px 12px;border-radius:10px;margin-bottom:16px;text-align:left;line-height:1.5;">
-            <i class="fa-solid fa-circle-info"></i> 반쪽은 <b>지인 추천제</b>예요. 지인에게 받은 <b>추천인 코드</b>가 있어야 신청 완료가 가능합니다.
+        <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:12px 14px;border-radius:12px;margin-bottom:16px;">
+            <label style="color:#92400e;font-weight:800;font-size:.82em;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
+            <input type="text" id="signup-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;" onkeydown="if(event.key==='Enter')document.getElementById('signup-email').focus()">
+            <div style="font-size:.7em;color:#92400e;margin-top:5px;line-height:1.5;">
+                <i class="fa-solid fa-circle-info"></i> 지인에게 받은 코드가 있어야 가입 가능해요.
+            </div>
         </div>
         <div class="input-group">
             <input type="email" id="signup-email" placeholder="이메일" onkeydown="if(event.key==='Enter')document.getElementById('signup-pw').focus()">
@@ -237,14 +241,11 @@
             <div class="form-title">소개팅 신청서</div>
             <div class="form-sub">신청 후 관리자 승인을 거쳐 등록됩니다. 카카오 ID와 연락처는 관리자에게만 공개됩니다.</div>
 
-            <!-- 추천인 코드 (필수 · 최상단) -->
-            <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:14px 16px;border-radius:12px;margin-bottom:20px;">
-                <label style="color:#92400e;font-weight:800;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
-                <input type="text" id="reg-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;">
-                <div style="font-size:.72em;color:#92400e;margin-top:6px;line-height:1.5;">
-                    <i class="fa-solid fa-circle-info"></i> 반쪽은 지인 추천제예요. 지인에게 받은 코드가 있어야 가입 가능해요.<br>
-                    가입 후 추천인과 다른 지인 1명의 <b>평판 (20자 이상)</b>이 쌓여야 승인 심사가 시작됩니다.
-                </div>
+            <!-- 추천인 코드 (회원가입 시 입력됨 · 읽기전용) -->
+            <div class="input-group" style="border:1px solid #e5e7eb;background:#f9fafb;padding:12px 16px;border-radius:12px;margin-bottom:20px;">
+                <label style="color:#6b7280;font-weight:700;font-size:.82em;"><i class="fa-solid fa-check-circle" style="color:#10b981;"></i> 추천인 코드</label>
+                <input type="text" id="reg-referral-code" readonly style="text-transform:uppercase;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;">
+                <div style="font-size:.7em;color:#9ca3af;margin-top:4px;">회원가입 시 입력한 코드입니다. 평판 2개 수집 후 관리자 심사가 시작됩니다.</div>
             </div>
 
             <!-- 성별 (단순 버튼) -->

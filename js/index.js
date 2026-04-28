@@ -69,10 +69,16 @@ function showScreen(name) {
     _skipRegisterReset = false;
     // register 화면 진입 시 ?ref= 파라미터로 저장된 코드 자동 입력 (reset 이후 실행)
     if (name === 'register') {
+        const el = document.getElementById('reg-referral-code');
+        // 회원가입 시 입력한 추천인 코드 자동 채움
+        const signupRef = localStorage.getItem('bj_signup_ref_code');
+        if (signupRef && el) {
+            el.value = signupRef;
+        }
+        // ?ref= URL 파라미터로 저장된 코드
         const pendingRef = localStorage.getItem('bj_pending_ref_code');
-        if (pendingRef) {
-            const el = document.getElementById('reg-referral-code');
-            if (el && !el.value) el.value = pendingRef;
+        if (pendingRef && el && !el.value) {
+            el.value = pendingRef;
             localStorage.removeItem('bj_pending_ref_code');
         }
     }
@@ -136,6 +142,12 @@ function showAuthView(view) {
     ['invite-error','signup-error','login-error'].forEach(id => {
         document.getElementById(id).style.display = 'none';
     });
+    // 회원가입 화면 진입 시 ?ref= 코드 자동 입력
+    if (view === 'signup') {
+        const ref = localStorage.getItem('bj_pending_ref_code') || localStorage.getItem('bj_signup_ref_code');
+        const el = document.getElementById('signup-referral-code');
+        if (ref && el && !el.value) el.value = ref;
+    }
 }
 
 // (입장 코드 → 추천인 코드로 대체됨, checkInviteCode 제거)
@@ -183,13 +195,46 @@ function translateAuthError(msg) {
 
 // ── 회원가입 ──
 async function doSignup() {
+    const refCode = (document.getElementById('signup-referral-code').value || '').trim().toUpperCase();
     const email = document.getElementById('signup-email').value.trim();
     const pw    = document.getElementById('signup-pw').value;
     const pw2   = document.getElementById('signup-pw2').value;
     const err   = document.getElementById('signup-error');
+
+    // 추천인 코드 먼저 검증
+    if (!refCode) { err.textContent = '추천인 코드를 입력해주세요.'; err.style.display = 'block'; return; }
     if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요.'; err.style.display = 'block'; return; }
     if (pw !== pw2)    { err.textContent = '비밀번호가 일치하지 않습니다.';     err.style.display = 'block'; return; }
     if (pw.length < 6) { err.textContent = '비밀번호는 6자 이상이어야 합니다.'; err.style.display = 'block'; return; }
+
+    setLoading(true, '추천인 코드 확인 중...');
+    // 슈퍼코드 확인
+    let isSuperRef = false;
+    try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(refCode));
+        const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+        isSuperRef = hex === '17383edbe36604497caed4e82804f529edd5f4257ded15d4608f047c03ea8018';
+    } catch {}
+
+    if (!isSuperRef) {
+        const { data: refData } = await db.from('applicants')
+            .select('id,status')
+            .eq('referral_code', refCode)
+            .limit(1);
+        if (!refData || !refData.length) {
+            setLoading(false);
+            err.textContent = '유효하지 않은 추천인 코드입니다.';
+            err.style.display = 'block';
+            return;
+        }
+        if (!['approved', 'matched'].includes(refData[0].status)) {
+            setLoading(false);
+            err.textContent = '추천인이 아직 활동 중이 아니에요.';
+            err.style.display = 'block';
+            return;
+        }
+    }
+
     setLoading(true, '가입 중...');
     const { data, error } = await db.auth.signUp({ email, password: pw });
     setLoading(false);
@@ -198,9 +243,12 @@ async function doSignup() {
     // 이메일 인증이 필요한 경우 세션이 없을 수 있음
     if (!data.session) {
         toast('인증 메일을 보냈어요. 메일함에서 인증 후 로그인해주세요.', 'success');
+        localStorage.setItem('bj_signup_ref_code', refCode);
         showAuthView('login');
         return;
     }
+    // 추천인 코드를 localStorage에 저장 → 프로필 폼에서 자동 채움
+    localStorage.setItem('bj_signup_ref_code', refCode);
     // 가입 성공 → 신청서 작성 화면으로
     saveSession('viewer', 'register');
     showScreen('register');
