@@ -1202,7 +1202,7 @@ function switchAdminTab(name) {
         loadMatchRequests(); loadMutualOverview(); renderMatchedCouples();
     }
     if (name === 'network') {
-        renderNetworkGraph();
+        setTimeout(renderNetworkGraph, 100);
     }
 }
 
@@ -3034,10 +3034,21 @@ function pad(n) { return String(n).padStart(2,'0'); }
 let _networkNodes = [], _networkEdges = [], _networkDrag = null, _networkPan = { x: 0, y: 0 }, _networkScale = 1;
 
 function renderNetworkGraph() {
-    if (!adminCache || adminCache.length === 0) return;
     const canvas = document.getElementById('network-canvas');
     const wrap = document.getElementById('network-canvas-wrap');
     if (!canvas || !wrap) return;
+
+    // 패널이 아직 안 보이면 재시도
+    if (wrap.clientWidth === 0) { setTimeout(renderNetworkGraph, 200); return; }
+
+    if (!adminCache || adminCache.length === 0) {
+        const ctx2 = canvas.getContext('2d');
+        ctx2.font = '14px Pretendard Variable, sans-serif';
+        ctx2.fillStyle = '#9ca3af';
+        ctx2.textAlign = 'center';
+        ctx2.fillText('데이터를 불러오는 중...', wrap.clientWidth / 2, wrap.clientHeight / 2);
+        return;
+    }
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = wrap.clientWidth * dpr;
