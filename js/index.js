@@ -1201,6 +1201,9 @@ function switchAdminTab(name) {
     if (name === 'matching') {
         loadMatchRequests(); loadMutualOverview(); renderMatchedCouples();
     }
+    if (name === 'network') {
+        renderNetworkGraph();
+    }
 }
 
 function jumpToApplicants(type) {
@@ -3026,6 +3029,266 @@ function formatDate(iso) {
 }
 function pad(n) { return String(n).padStart(2,'0'); }
 // esc, toast → js/common.js
+
+// ── 추천 인맥 네트워크 시각화 ──
+let _networkNodes = [], _networkEdges = [], _networkDrag = null, _networkPan = { x: 0, y: 0 }, _networkScale = 1;
+
+function renderNetworkGraph() {
+    if (!adminCache || adminCache.length === 0) return;
+    const canvas = document.getElementById('network-canvas');
+    const wrap = document.getElementById('network-canvas-wrap');
+    if (!canvas || !wrap) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = wrap.clientWidth * dpr;
+    canvas.height = wrap.clientHeight * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+
+    // 노드/엣지 빌드
+    const codeToId = {};
+    adminCache.forEach(a => { if (a.referral_code) codeToId[a.referral_code.toUpperCase()] = a.id; });
+
+    const nodes = [];
+    const edges = [];
+    const idToNode = {};
+    const childCount = {};
+
+    adminCache.forEach((a, i) => {
+        if (a.referred_by) {
+            const parentId = codeToId[a.referred_by.toUpperCase()];
+            if (parentId) {
+                childCount[parentId] = (childCount[parentId] || 0) + 1;
+            }
+        }
+    });
+
+    adminCache.forEach((a, i) => {
+        const statusColors = { approved: '#10b981', pending: '#f59e0b', matched: '#ec4899', rejected: '#ef4444', pending_reputation: '#9ca3af' };
+        const node = {
+            id: a.id,
+            name: a.name || '?',
+            status: a.status,
+            gender: a.gender,
+            color: statusColors[a.status] || '#d1d5db',
+            referral_code: a.referral_code,
+            referred_by: a.referred_by,
+            referral_count: a.referral_count || childCount[a.id] || 0,
+            created_at: a.created_at,
+            x: 0, y: 0, vx: 0, vy: 0,
+            r: Math.min(24, 12 + (childCount[a.id] || 0) * 3),
+        };
+        nodes.push(node);
+        idToNode[a.id] = node;
+    });
+
+    adminCache.forEach(a => {
+        if (a.referred_by) {
+            const parentId = codeToId[a.referred_by.toUpperCase()];
+            if (parentId && idToNode[parentId]) {
+                edges.push({ from: parentId, to: a.id });
+            }
+        }
+    });
+
+    // 초기 위치: 루트는 중앙, 자식은 주변에 배치
+    const roots = nodes.filter(n => !n.referred_by || !codeToId[(n.referred_by || '').toUpperCase()]);
+    const nonRoots = nodes.filter(n => n.referred_by && codeToId[(n.referred_by || '').toUpperCase()]);
+
+    roots.forEach((n, i) => {
+        const angle = (2 * Math.PI * i) / Math.max(roots.length, 1);
+        n.x = W / 2 + Math.cos(angle) * Math.min(W, H) * 0.2;
+        n.y = H / 2 + Math.sin(angle) * Math.min(W, H) * 0.2;
+    });
+
+    nonRoots.forEach(n => {
+        const parentId = codeToId[n.referred_by.toUpperCase()];
+        const parent = idToNode[parentId];
+        if (parent) {
+            n.x = parent.x + (Math.random() - 0.5) * 80;
+            n.y = parent.y + (Math.random() - 0.5) * 80;
+        } else {
+            n.x = Math.random() * W;
+            n.y = Math.random() * H;
+        }
+    });
+
+    _networkNodes = nodes;
+    _networkEdges = edges;
+
+    // Force-directed simulation (간단 버전)
+    for (let iter = 0; iter < 120; iter++) {
+        // 반발력 (모든 노드 쌍)
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                let dx = nodes[j].x - nodes[i].x;
+                let dy = nodes[j].y - nodes[i].y;
+                let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                let force = 800 / (dist * dist);
+                let fx = dx / dist * force;
+                let fy = dy / dist * force;
+                nodes[i].vx -= fx; nodes[i].vy -= fy;
+                nodes[j].vx += fx; nodes[j].vy += fy;
+            }
+        }
+        // 인력 (연결된 노드 쌍)
+        edges.forEach(e => {
+            const a = idToNode[e.from], b = idToNode[e.to];
+            if (!a || !b) return;
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            let force = (dist - 80) * 0.05;
+            let fx = dx / dist * force, fy = dy / dist * force;
+            a.vx += fx; a.vy += fy;
+            b.vx -= fx; b.vy -= fy;
+        });
+        // 중심 인력
+        nodes.forEach(n => {
+            n.vx += (W / 2 - n.x) * 0.001;
+            n.vy += (H / 2 - n.y) * 0.001;
+            n.x += n.vx * 0.3;
+            n.y += n.vy * 0.3;
+            n.vx *= 0.8;
+            n.vy *= 0.8;
+            n.x = Math.max(20, Math.min(W - 20, n.x));
+            n.y = Math.max(20, Math.min(H - 20, n.y));
+        });
+    }
+
+    drawNetwork(ctx, W, H);
+
+    // 통계
+    const stats = document.getElementById('network-stats');
+    if (stats) {
+        const totalNodes = nodes.length;
+        const totalEdges = edges.length;
+        const maxDepth = calcMaxDepth(nodes, edges, codeToId, idToNode);
+        const topReferrers = [...nodes].sort((a, b) => b.referral_count - a.referral_count).slice(0, 3);
+        stats.innerHTML = `총 ${totalNodes}명 · 추천 연결 ${totalEdges}건 · 최대 깊이 ${maxDepth}단계 ·
+            탑 추천인: ${topReferrers.map(n => `<b>${esc(n.name)}</b>(${n.referral_count}명)`).join(', ')}`;
+    }
+
+    // 클릭 이벤트
+    canvas.onclick = function(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left - _networkPan.x) / _networkScale;
+        const my = (e.clientY - rect.top - _networkPan.y) / _networkScale;
+        const tooltip = document.getElementById('network-tooltip');
+        let hit = null;
+        for (const n of nodes) {
+            const dist = Math.sqrt((n.x - mx) ** 2 + (n.y - my) ** 2);
+            if (dist <= n.r + 4) { hit = n; break; }
+        }
+        if (hit) {
+            const age = hit.created_at ? Math.floor((Date.now() - new Date(hit.created_at).getTime()) / 86400000) : '?';
+            const statusLabels = { approved: '활동 중', pending: '심사 대기', matched: '매칭됨', rejected: '거절', pending_reputation: '평판 대기' };
+            const children = nodes.filter(n => n.referred_by && codeToId[(n.referred_by || '').toUpperCase()] === hit.id);
+            tooltip.style.display = 'block';
+            tooltip.style.left = Math.min(e.clientX - rect.left + 10, W - 270) + 'px';
+            tooltip.style.top = Math.min(e.clientY - rect.top + 10, H - 150) + 'px';
+            tooltip.innerHTML = `
+                <div style="font-weight:800;font-size:1em;margin-bottom:6px;">${esc(hit.name)} <span style="font-size:.75em;color:${hit.color};">${hit.gender === 'male' ? '♂' : '♀'}</span></div>
+                <div style="font-size:.82em;color:var(--muted);line-height:1.7;">
+                    상태: <b style="color:${hit.color};">${statusLabels[hit.status] || hit.status}</b><br>
+                    추천 코드: <code>${esc(hit.referral_code || '-')}</code><br>
+                    추천한 수: <b>${children.length}</b>명<br>
+                    가입일: ${hit.created_at ? new Date(hit.created_at).toLocaleDateString('ko-KR') : '-'} (${age}일 전)
+                </div>
+                ${children.length > 0 ? `<div style="margin-top:6px;font-size:.78em;color:var(--muted);">추천한 사람: ${children.map(c => esc(c.name)).join(', ')}</div>` : ''}
+                <button class="btn btn-outline" onclick="openAdminDetail('${hit.id}');document.getElementById('network-tooltip').style.display='none';" style="margin-top:8px;font-size:.78em;width:100%;">상세 보기</button>
+            `;
+        } else {
+            tooltip.style.display = 'none';
+        }
+    };
+
+    // 드래그로 패닝
+    let dragStart = null;
+    canvas.onmousedown = canvas.ontouchstart = function(e) {
+        const t = e.touches ? e.touches[0] : e;
+        dragStart = { x: t.clientX - _networkPan.x, y: t.clientY - _networkPan.y };
+    };
+    canvas.onmousemove = canvas.ontouchmove = function(e) {
+        if (!dragStart) return;
+        const t = e.touches ? e.touches[0] : e;
+        _networkPan.x = t.clientX - dragStart.x;
+        _networkPan.y = t.clientY - dragStart.y;
+        drawNetwork(ctx, W, H);
+    };
+    canvas.onmouseup = canvas.ontouchend = function() { dragStart = null; };
+
+    // 스크롤 줌
+    canvas.onwheel = function(e) {
+        e.preventDefault();
+        _networkScale *= e.deltaY > 0 ? 0.9 : 1.1;
+        _networkScale = Math.max(0.3, Math.min(3, _networkScale));
+        drawNetwork(ctx, W, H);
+    };
+}
+
+function drawNetwork(ctx, W, H) {
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    ctx.translate(_networkPan.x, _networkPan.y);
+    ctx.scale(_networkScale, _networkScale);
+
+    // 엣지
+    _networkEdges.forEach(e => {
+        const a = _networkNodes.find(n => n.id === e.from);
+        const b = _networkNodes.find(n => n.id === e.to);
+        if (!a || !b) return;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // 화살표
+        const angle = Math.atan2(b.y - a.y, b.x - a.x);
+        const arrowX = b.x - Math.cos(angle) * (b.r + 4);
+        const arrowY = b.y - Math.sin(angle) * (b.r + 4);
+        ctx.beginPath();
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX - Math.cos(angle - 0.4) * 8, arrowY - Math.sin(angle - 0.4) * 8);
+        ctx.lineTo(arrowX - Math.cos(angle + 0.4) * 8, arrowY - Math.sin(angle + 0.4) * 8);
+        ctx.closePath();
+        ctx.fillStyle = '#d1d5db';
+        ctx.fill();
+    });
+
+    // 노드
+    _networkNodes.forEach(n => {
+        // 원
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = n.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // 이름
+        ctx.fillStyle = '#111';
+        ctx.font = `${Math.max(9, n.r * 0.7)}px 'Pretendard Variable', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(n.name, n.x, n.y + n.r + 3);
+    });
+
+    ctx.restore();
+}
+
+function calcMaxDepth(nodes, edges, codeToId, idToNode) {
+    const parentMap = {};
+    edges.forEach(e => { parentMap[e.to] = e.from; });
+    let max = 0;
+    nodes.forEach(n => {
+        let depth = 0, cur = n.id;
+        while (parentMap[cur]) { cur = parentMap[cur]; depth++; if (depth > 50) break; }
+        if (depth > max) max = depth;
+    });
+    return max;
+}
 
 document.getElementById('admin-login-overlay').addEventListener('click', function(e) { if(e.target===this) closeAdminModal(); });
 document.getElementById('admin-detail-overlay').addEventListener('click', function(e) { if(e.target===this) closeAdminDetail(); });

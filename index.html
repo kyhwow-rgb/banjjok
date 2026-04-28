@@ -469,6 +469,7 @@
         <button class="admin-tab" data-admin-tab="applicants" onclick="switchAdminTab('applicants')"><i class="fa-solid fa-users"></i> 신청자 <span class="admin-tab-badge" id="tab-badge-applicants" style="display:none;">0</span></button>
         <button class="admin-tab" data-admin-tab="matching" onclick="switchAdminTab('matching')"><i class="fa-solid fa-heart"></i> 매칭 <span class="admin-tab-badge" id="tab-badge-matching" style="display:none;">0</span></button>
         <button class="admin-tab" data-admin-tab="inquiries" onclick="switchAdminTab('inquiries')"><i class="fa-solid fa-comments"></i> 문의 <span class="admin-tab-badge" id="tab-badge-inquiries" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="network" onclick="switchAdminTab('network')"><i class="fa-solid fa-diagram-project"></i> 네트워크</button>
         <button class="admin-tab" data-admin-tab="settings" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> 설정</button>
     </div>
 
@@ -602,6 +603,27 @@
                     </div>
                 </div>
                 <div id="admin-inquiries-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- ══ 설정 탭 ══ -->
+        <!-- ══ 네트워크 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-network">
+            <div class="admin-section">
+                <div class="admin-section-title"><i class="fa-solid fa-diagram-project" style="color:var(--primary);"></i> 추천 인맥 네트워크</div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">유저 간 추천 관계를 시각화합니다. 노드를 클릭하면 상세 정보를 볼 수 있어요.</div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span> 승인</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> 대기</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#ec4899;display:inline-block;"></span> 매칭됨</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span> 거절</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;display:inline-block;"></span> 평판대기</div>
+                </div>
+                <div id="network-canvas-wrap" style="position:relative;width:100%;height:500px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fafafa;">
+                    <canvas id="network-canvas" style="width:100%;height:100%;"></canvas>
+                </div>
+                <div id="network-tooltip" style="display:none;position:absolute;z-index:200;background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 4px 16px rgba(0,0,0,.1);font-size:.85em;max-width:260px;"></div>
+                <div id="network-stats" style="margin-top:12px;font-size:.82em;color:var(--muted);"></div>
             </div>
         </div>
 
