@@ -105,6 +105,8 @@ function logout() {
     if (!confirm('로그아웃 하시겠습니까?')) return;
     db.auth.signOut();
     clearSession();
+    adminCache = [];
+    localStorage.removeItem('bj_signup_ref_code');
     showAuthView('invite');
     showScreen('login');
 }
@@ -2319,8 +2321,9 @@ async function openAdminDetail(id) {
         if (partner) actions.push(`<button class="btn btn-outline" onclick="openAdminDetail('${partner.id}');closeAdminDetail();"><i class="fa-solid fa-eye"></i> ${esc(partner.name)} 보기</button>`);
         actions.push(`<button class="btn btn-reject" onclick="unmatch('${a.id}')"><i class="fa-solid fa-heart-crack"></i> 매칭 취소</button>`);
     }
+    if (a.status === 'pending_reputation') actions.push(`<button class="btn btn-outline" style="border-color:#f59e0b;color:#b45309;" onclick="updateStatusFromDetail('${a.id}','pending')"><i class="fa-solid fa-forward"></i> 평판 면제 (심사로)</button>`);
     if (a.status !== 'approved' && a.status !== 'matched') actions.push(`<button class="btn btn-approve" onclick="updateStatusFromDetail('${a.id}','approved')"><i class="fa-solid fa-check"></i> 승인</button>`);
-    if (a.status === 'pending') actions.push(`<button class="btn btn-reject"  onclick="updateStatusFromDetail('${a.id}','rejected')"><i class="fa-solid fa-xmark"></i> 거절</button>`);
+    if (a.status === 'pending' || a.status === 'pending_reputation') actions.push(`<button class="btn btn-reject"  onclick="updateStatusFromDetail('${a.id}','rejected')"><i class="fa-solid fa-xmark"></i> 거절</button>`);
     if (a.status === 'approved') actions.push(`<button class="btn btn-match"  onclick="openMatchingView('${a.id}')"><i class="fa-solid fa-heart-circle-bolt"></i> 매칭 후보 보기</button>`);
     actions.push(`<button class="btn btn-outline" onclick="openEditForm('${a.id}')"><i class="fa-solid fa-pen"></i> 수정</button>`);
     actions.push(`<button class="btn btn-delete" onclick="deleteFromDetail('${a.id}')"><i class="fa-solid fa-trash"></i> 삭제</button>`);

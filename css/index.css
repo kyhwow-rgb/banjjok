@@ -169,7 +169,7 @@
         .form-row input[type="text"], .form-row input[type="number"] { width:100%; min-width:0; max-width:100%; box-sizing:border-box; }
 
         /* FOOTER */
-        .site-footer { text-align:center; padding:28px 16px 20px; color:#d1d5db; font-size:.7em; letter-spacing:.04em; font-weight:400; }
+        .site-footer { text-align:center; padding:28px 16px calc(20px + env(safe-area-inset-bottom, 0px)); color:#d1d5db; font-size:.7em; letter-spacing:.04em; font-weight:400; }
 
         /* PENDING PULSE */
 

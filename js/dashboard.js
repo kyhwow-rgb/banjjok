@@ -2087,9 +2087,11 @@ async function deleteAccount() {
                         db.from('reputations').delete().eq('target_applicant_id', myId),
                         db.from('push_subscriptions').delete().eq('user_id', user.id),
                         db.from('blocks').delete().eq('blocker_id', user.id),
+                        db.from('chat_messages').delete().eq('sender_id', user.id),
+                        db.from('chat_messages').delete().eq('receiver_id', user.id),
+                        db.from('reports').delete().eq('reporter_id', user.id),
+                        db.from('event_logs').delete().eq('user_id', user.id),
                     ]);
-                    // 채팅/보고서는 본인 기록이므로 보존. 신고된 내역만 삭제.
-                    await db.from('reports').delete().eq('reporter_id', user.id).then(() => {}, () => {});
                     await db.from('applicants').delete().eq('user_id', user.id);
                 }
                 await db.auth.signOut();
@@ -2116,9 +2118,17 @@ async function doLogout(silent) {
     openFeedbackModal('exit', {
         required: false,
         callback: async () => {
+            // 민감 데이터 메모리 정리
+            window._myProfile = null;
+            window._allCandidates = null;
+            window._favSet = null;
+            window._notifications = null;
+            window._blockedSet = null;
+            window._mutualSet = null;
             await db.auth.signOut();
             localStorage.removeItem('kj_role');
             localStorage.removeItem('kj_screen');
+            localStorage.removeItem('bj_signup_ref_code');
             window.location.href = 'index.html';
         }
     });
@@ -2430,6 +2440,25 @@ function applyWatermark() {
     wm.style.cssText = `position:fixed;inset:0;z-index:9998;pointer-events:none;background-image:url(${dataUrl});background-repeat:repeat;`;
     document.body.appendChild(wm);
 }
+
+// ── 오프라인 감지 ──
+function showOfflineBanner(offline) {
+    let banner = document.getElementById('offline-banner');
+    if (offline) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'offline-banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;text-align:center;padding:8px;font-size:.82em;font-weight:700;z-index:9999;';
+            banner.innerHTML = '<i class="fa-solid fa-wifi" style="opacity:.5;"></i> 오프라인 상태 — 인터넷 연결을 확인해주세요';
+            document.body.prepend(banner);
+        }
+    } else {
+        if (banner) banner.remove();
+    }
+}
+window.addEventListener('offline', () => showOfflineBanner(true));
+window.addEventListener('online', () => { showOfflineBanner(false); toast('연결됨!', 'success'); });
+if (!navigator.onLine) showOfflineBanner(true);
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 init();
