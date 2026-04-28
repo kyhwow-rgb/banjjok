@@ -605,6 +605,7 @@ async function submitApplication() {
     if (!document.getElementById('reg-smoking').value) missing.push('흡연');
     if (!document.getElementById('reg-drinking').value) missing.push('음주');
     if (!document.getElementById('reg-religion').value) missing.push('종교');
+    if (!contact) missing.push('연락처 (휴대폰)');
     if (!photoFiles.some(f => f !== null) && !(window._existingPhotos && window._existingPhotos.length > 0)) missing.push('사진');
     if (missing.length > 0) {
         toast('미입력: ' + missing.join(', '), 'warning');

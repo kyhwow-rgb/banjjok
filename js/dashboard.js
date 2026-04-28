@@ -1852,15 +1852,15 @@ function renderNotifList() {
         list.innerHTML = '<div class="notif-empty">아직 알림이 없어요</div>';
         return;
     }
-    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#7c3aed;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>' };
+    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', chat_message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#7c3aed;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>', announcement:'<i class="fa-solid fa-bullhorn" style="color:#6366f1;"></i>' };
     list.innerHTML = _notifications.map(n => {
         const icon = icons[n.type] || '<i class="fa-solid fa-bell" style="color:var(--muted);"></i>';
         const timeAgo = formatTimeAgo(n.created_at);
         return `<div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="readNotif(${n.id})">
             <div class="notif-icon">${icon}</div>
             <div class="notif-body">
-                <div class="notif-title">${esc(stripEmoji(n.title))}</div>
-                ${n.body ? `<div class="notif-desc">${esc(stripEmoji(n.body))}</div>` : ''}
+                <div class="notif-title">${esc(n.title || '')}</div>
+                ${n.body ? `<div class="notif-desc">${esc(n.body)}</div>` : ''}
                 <div class="notif-time">${timeAgo}</div>
             </div>
         </div>`;
@@ -2384,6 +2384,8 @@ async function init() {
     await loadNotifications();
     loadInquiries();
     logEvent('dashboard_open');
+    // 워터마크 생성 (스크린샷 유출 방지)
+    applyWatermark();
     setLoading(false);
     // URL 해시 → 해당 탭 (푸시 알림 클릭으로 진입한 경우)
     handleNavHash();
@@ -2396,6 +2398,37 @@ async function init() {
         setLoading(false);
         toast('데이터 로드 중 오류가 발생했어요. 새로고침해주세요.', 'error');
     }
+}
+
+// ── 워터마크 (스크린샷 유출 방지) ──
+function applyWatermark() {
+    const p = window._myProfile;
+    if (!p) return;
+    const phone = p.contact ? p.contact.replace(/-/g, '').slice(-4) : '****';
+    const now = new Date();
+    const ts = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const text = `${p.name} ${phone} ${ts}`;
+
+    // Canvas로 타일 패턴 생성
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '13px Pretendard Variable, sans-serif';
+    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(-25 * Math.PI / 180);
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+
+    const dataUrl = canvas.toDataURL();
+    const wm = document.createElement('div');
+    wm.id = 'watermark-overlay';
+    wm.style.cssText = `position:fixed;inset:0;z-index:9998;pointer-events:none;background-image:url(${dataUrl});background-repeat:repeat;`;
+    document.body.appendChild(wm);
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
