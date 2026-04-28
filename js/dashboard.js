@@ -720,8 +720,9 @@ function renderCardView(sec, favSet) {
     const photos = c.photos || [];
     const photoIdx = Math.min(_cardPhotoIdx, Math.max(0, photos.length - 1));
     const mainPhoto = photos[photoIdx];
+    const blurClass = _isActiveUser ? '' : ' card-photo-blurred';
     const photoHtml = mainPhoto
-        ? `<img loading="lazy" src="${mainPhoto}" alt="" id="card-main-photo">`
+        ? `<img loading="lazy" src="${mainPhoto}" alt="" id="card-main-photo" class="${blurClass}">`
         : `<div class="card-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
     const photoDotsHtml = photos.length > 1
         ? `<div class="photo-dots">${photos.map((_, i) => `<div class="photo-dot ${i === photoIdx ? 'active' : ''}"></div>`).join('')}</div>`
@@ -761,6 +762,7 @@ function renderCardView(sec, favSet) {
                     ${photoHtml}
                     ${photoDotsHtml}
                     ${photoTapsHtml}
+                    ${!_isActiveUser ? '<div class="card-blur-notice"><i class="fa-solid fa-lock"></i><div>승인 후 사진이 공개됩니다</div></div>' : ''}
                     <div class="card-top-badges">
                         <div>${seenBadge}</div>
                         <div>${scoreBadge}</div>

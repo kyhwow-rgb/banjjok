@@ -208,6 +208,9 @@
     .profile-card.swiping-right { transform:translateX(120%) rotate(15deg); opacity:0; }
     .card-photo-area { position:relative; width:100%; height:250px; background:linear-gradient(135deg,#ede9fe,#fce7f3); overflow:hidden; }
     .card-photo-area img { width:100%; height:100%; object-fit:cover; }
+    .card-photo-area img.card-photo-blurred { filter:blur(18px) brightness(.9); transform:scale(1.1); pointer-events:none; }
+    .card-blur-notice { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; z-index:3; color:white; font-size:.88em; font-weight:700; text-shadow:0 1px 4px rgba(0,0,0,.3); pointer-events:none; }
+    .card-blur-notice i { font-size:1.8em; }
     .card-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:72px; }
     .card-photo-overlay { position:absolute; bottom:0; left:0; right:0; padding:16px 20px; background:linear-gradient(transparent, rgba(0,0,0,.6)); color:white; }
     .card-age-badge { font-size:1.4em; font-weight:900; }
