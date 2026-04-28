@@ -1814,10 +1814,16 @@ async function approveMatchRequest(reqId, fromId, toId) {
         // 이 둘과 관련된 다른 pending 요청들 자동 거절
         await adminFetch('match_requests', 'PATCH', { status: 'rejected' },
             '?status=eq.pending&or=(from_applicant.eq.' + fromId + ',to_applicant.eq.' + fromId + ',from_applicant.eq.' + toId + ',to_applicant.eq.' + toId + ')');
-        // 양쪽에 매칭 푸시
+        // 양쪽에 매칭 알림 + 푸시
         const MATCH_URL = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
-        if (fromUser?.user_id) sendAdminPush(fromUser.user_id, '🎉 매칭 성사!', `${toUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
-        if (toUser?.user_id) sendAdminPush(toUser.user_id, '🎉 매칭 성사!', `${fromUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
+        try {
+            const notifRows = [];
+            if (fromUser?.user_id) notifRows.push({ user_id: fromUser.user_id, type: 'matched', title: '매칭 성사!', body: `${toUser?.name || '반쪽'}님과 매칭되었어요! 대화를 시작해보세요.` });
+            if (toUser?.user_id) notifRows.push({ user_id: toUser.user_id, type: 'matched', title: '매칭 성사!', body: `${fromUser?.name || '반쪽'}님과 매칭되었어요! 대화를 시작해보세요.` });
+            if (notifRows.length) await adminFetch('notifications', 'POST', notifRows);
+        } catch(e) {}
+        if (fromUser?.user_id) sendAdminPush(fromUser.user_id, '매칭 성사!', `${toUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'matched');
+        if (toUser?.user_id) sendAdminPush(toUser.user_id, '매칭 성사!', `${fromUser?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'matched');
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('매칭이 승인되었습니다!', 'success');
@@ -2605,12 +2611,18 @@ async function confirmMatch(maleId, femaleId) {
         // 관련 pending 매칭 요청 자동 거절
         await adminFetch('match_requests', 'PATCH', { status: 'rejected' },
             `?status=eq.pending&or=(from_applicant.eq.${maleId},to_applicant.eq.${maleId},from_applicant.eq.${femaleId},to_applicant.eq.${femaleId})`);
-        // 양쪽에 매칭 푸시 알림
+        // 양쪽에 매칭 알림 + 푸시
         const male = adminCache.find(a => a.id === maleId);
         const female = adminCache.find(a => a.id === femaleId);
         const MATCH_URL = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-my';
-        if (male?.user_id) sendAdminPush(male.user_id, '🎉 매칭 성사!', `${female?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
-        if (female?.user_id) sendAdminPush(female.user_id, '🎉 매칭 성사!', `${male?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'match');
+        try {
+            const notifRows = [];
+            if (male?.user_id) notifRows.push({ user_id: male.user_id, type: 'matched', title: '매칭 성사!', body: `${female?.name || '반쪽'}님과 매칭되었어요! 대화를 시작해보세요.` });
+            if (female?.user_id) notifRows.push({ user_id: female.user_id, type: 'matched', title: '매칭 성사!', body: `${male?.name || '반쪽'}님과 매칭되었어요! 대화를 시작해보세요.` });
+            if (notifRows.length) await adminFetch('notifications', 'POST', notifRows);
+        } catch(e) {}
+        if (male?.user_id) sendAdminPush(male.user_id, '매칭 성사!', `${female?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'matched');
+        if (female?.user_id) sendAdminPush(female.user_id, '매칭 성사!', `${male?.name || '반쪽'}님과 매칭되었어요. 대화를 시작해보세요!`, MATCH_URL, 'matched');
     } catch(e) { setLoading(false); toast('오류: ' + e.message); return; }
     setLoading(false);
     toast('매칭이 완료되었습니다!', 'success');

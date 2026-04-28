@@ -1207,10 +1207,10 @@ async function autoMatch(targetApplicantId, targetUserId, targetName) {
         // 양쪽에 알림
         const { data: { user } } = await db.auth.getUser();
         await db.from('notifications').insert([
-            { user_id: user.id, type: 'matched', title: '💑 매칭 성사!', body: `${targetName}님과 매칭되었어요! 대화를 시작해보세요.` },
-            { user_id: targetUserId, type: 'matched', title: '💑 매칭 성사!', body: `${window._myProfile.name}님과 매칭되었어요! 대화를 시작해보세요.` }
+            { user_id: user.id, type: 'matched', title: `${targetName}님과 매칭되었어요!`, body: '대화를 시작해보세요.' },
+            { user_id: targetUserId, type: 'matched', title: `${window._myProfile.name}님과 매칭되었어요!`, body: '대화를 시작해보세요.' }
         ]);
-        sendPushNotif(targetUserId, '💑 매칭 성사!', `${window._myProfile.name}님과 매칭되었어요!`, dashUrl('chat'), 'matched');
+        sendPushNotif(targetUserId, '매칭 성사!', `${window._myProfile.name}님과 매칭되었어요!`, dashUrl('chat'), 'matched');
         logEvent('auto_match', { matched_with: targetApplicantId });
         // 축하 모달 표시
         showMatchCelebrate(targetApplicantId, targetName, targetUserId);
@@ -1694,6 +1694,7 @@ function navigateByNotifType(type, relatedId) {
             }, 150);
             break;
         case 'matched':
+        case 'match':
             switchTab('interest');
             setTimeout(() => document.getElementById('match-result-card')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
@@ -1852,7 +1853,7 @@ function renderNotifList() {
         list.innerHTML = '<div class="notif-empty">아직 알림이 없어요</div>';
         return;
     }
-    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', chat_message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#7c3aed;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>', announcement:'<i class="fa-solid fa-bullhorn" style="color:#6366f1;"></i>' };
+    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', match:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', chat_message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#7c3aed;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>', announcement:'<i class="fa-solid fa-bullhorn" style="color:#6366f1;"></i>' };
     list.innerHTML = _notifications.map(n => {
         const icon = icons[n.type] || '<i class="fa-solid fa-bell" style="color:var(--muted);"></i>';
         const timeAgo = formatTimeAgo(n.created_at);
