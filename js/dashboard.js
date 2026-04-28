@@ -1274,6 +1274,7 @@ function renderMutualSection() {
     const candidates = window._allCandidates || [];
     const mutuals = candidates.filter(c => mutualSet.has(c.id));
 
+    sec.style.display = '';
     if (mutuals.length === 0) {
         document.getElementById('mutual-count').textContent = '';
         sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ede9fe;font-size:1.5em;display:block;"></i>서로 찜하면 여기에 표시돼요</div>';

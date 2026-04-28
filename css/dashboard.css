@@ -279,7 +279,7 @@
 
     @media(max-width:480px) {
         body { font-size:15px; }
-        .profile-grid { grid-template-columns:1fr; }
+        .profile-grid { grid-template-columns:1fr 1fr; }
         .page { padding:20px 14px 80px; }
         .section-body { padding:16px; }
         .btn { font-size:.95em; }
