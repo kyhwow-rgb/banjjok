@@ -207,7 +207,7 @@ async function deleteReputation() {
 function copyMyReferralCode() {
     const code = window._myProfile?.referral_code;
     if (!code) return;
-    const txt = `반쪽(Banjjok)에 초대할게!\n내 추천 코드: ${code}\n이 링크로 들어오면 자동 입력돼:\nhttps://kyhwow-rgb.github.io/banjjok/?ref=${code}`;
+    const txt = `반쪽(Banjjok)에 초대할게!\n내 추천 코드: ${code}\n가입 링크: https://kyhwow-rgb.github.io/banjjok/\n가입할 때 추천 코드를 직접 입력해줘!`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(txt).then(() => toast('추천 코드 복사 완료! 지인에게 보내주세요', 'success'));
     } else {
@@ -2111,6 +2111,7 @@ async function goHome() {
         await db.auth.signOut();
         localStorage.removeItem('kj_role');
         localStorage.removeItem('kj_screen');
+        localStorage.removeItem('bj_signup_role');
         window.location.href = 'index.html';
     }
 }
@@ -2131,6 +2132,7 @@ async function doLogout(silent) {
             localStorage.removeItem('kj_role');
             localStorage.removeItem('kj_screen');
             localStorage.removeItem('bj_signup_ref_code');
+            localStorage.removeItem('bj_signup_role');
             window.location.href = 'index.html';
         }
     });
@@ -2146,6 +2148,7 @@ function resetInactiveTimer() {
             await db.auth.signOut();
             localStorage.removeItem('kj_role');
             localStorage.removeItem('kj_screen');
+            localStorage.removeItem('bj_signup_role');
             window.location.href = 'index.html';
         }, 2000);
     }, 30 * 60 * 1000); // 30분
@@ -2554,8 +2557,7 @@ async function renderMatchmakerDashboard(profile) {
 function shareReferralLink() {
     const code = window._myProfile?.referral_code;
     if (!code) return;
-    const url = `https://kyhwow-rgb.github.io/banjjok/?ref=${code}`;
-    const text = `반쪽(Banjjok)에 초대할게!\n내 추천 코드: ${code}\n이 링크로 들어오면 자동 입력돼:\n${url}`;
+    const text = `반쪽(Banjjok)에 초대할게!\n내 추천 코드: ${code}\n가입 링크: https://kyhwow-rgb.github.io/banjjok/\n가입할 때 추천 코드를 직접 입력해줘!`;
     if (navigator.share) {
         navigator.share({ title: '반쪽 초대', text }).catch(() => {});
     } else {

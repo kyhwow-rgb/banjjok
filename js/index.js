@@ -76,12 +76,7 @@ function showScreen(name) {
         if (signupRef && el) {
             el.value = signupRef;
         }
-        // ?ref= URL 파라미터로 저장된 코드
-        const pendingRef = localStorage.getItem('bj_pending_ref_code');
-        if (pendingRef && el && !el.value) {
-            el.value = pendingRef;
-            localStorage.removeItem('bj_pending_ref_code');
-        }
+        // (추천 코드 자동 입력 제거 — 직접 입력만 허용)
         // 소개자 모드: 불필요한 필드 숨기기
         toggleMatchmakerFormFields();
     }
@@ -154,9 +149,9 @@ function showAuthView(view) {
     ['invite-error','signup-error','login-error'].forEach(id => {
         document.getElementById(id).style.display = 'none';
     });
-    // 회원가입 화면 진입 시 ?ref= 코드 자동 입력
+    // 회원가입 화면 진입 시 이전에 입력한 코드 복원
     if (view === 'signup') {
-        const ref = localStorage.getItem('bj_pending_ref_code') || localStorage.getItem('bj_signup_ref_code');
+        const ref = localStorage.getItem('bj_signup_ref_code');
         const el = document.getElementById('signup-referral-code');
         if (ref && el && !el.value) el.value = ref;
     }
@@ -3510,13 +3505,10 @@ function _doPrefill(p) {
 
 // ── 세션 복원 (새로고침) ──
 window.addEventListener('DOMContentLoaded', async () => {
-    // ?ref=CODE URL 파라미터 → 로컬스토리지에 임시 저장 → 신청서에 자동 prefill
+    // ?ref= URL 파라미터 무시 (추천 코드는 직접 입력만 허용)
     try {
         const urlParams = new URLSearchParams(location.search);
-        const refParam = urlParams.get('ref');
-        if (refParam) {
-            localStorage.setItem('bj_pending_ref_code', refParam.toUpperCase());
-            // URL cleanup
+        if (urlParams.has('ref')) {
             const cleanUrl = location.pathname + location.hash;
             history.replaceState({}, '', cleanUrl);
         }
