@@ -886,7 +886,7 @@ async function submitApplication() {
         }
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
-            status:  isMatchmaker ? 'approved' : (isSuperCode ? 'pending' : 'pending_reputation'), // 소개자 → 즉시 활성, 슈퍼코드 → 심사, 일반 → 평판
+            status:  (isMatchmaker || isSuperCode) ? 'pending' : 'pending_reputation', // 소개자/슈퍼코드 → 관리자 심사, 일반 → 평판 대기
             user_id: userId,
             referral_code: myCode,
             referred_by: referralCodeInput || null,
