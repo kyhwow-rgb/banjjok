@@ -136,8 +136,17 @@ function onReferralChange(sel) {
 }
 
 // ── Auth 뷰 전환 ──
+let _signupRole = 'participant'; // 'participant' | 'matchmaker'
+
+function selectSignupRole(role) {
+    _signupRole = role;
+    localStorage.setItem('bj_signup_role', role);
+    showAuthView('signup');
+}
+
 function showAuthView(view) {
     document.getElementById('auth-invite').style.display = view === 'invite' ? '' : 'none';
+    document.getElementById('auth-role-select').style.display = view === 'role-select' ? '' : 'none';
     document.getElementById('auth-signup').style.display = view === 'signup' ? '' : 'none';
     document.getElementById('auth-login').style.display  = view === 'login'  ? '' : 'none';
     // 에러 초기화
@@ -642,21 +651,25 @@ async function submitApplication() {
     const location_ = document.getElementById('reg-location').value.trim();
     const mbti     = document.getElementById('reg-mbti').value.trim();
     const ideal    = collectIdealData('ideal-chips', 'reg-ideal-memo');
+    const isMatchmaker = (localStorage.getItem('bj_signup_role') === 'matchmaker');
     const missing = [];
-    if (!selectedGender) missing.push('성별');
     if (!name)     missing.push('이름');
-    if (!isValidBirth(birth)) missing.push('생년월일 (예: 2000.01.15)');
-    if (!job)      missing.push('직업');
-    if (!height || parseInt(height) < 140 || parseInt(height) > 220) missing.push('키 (140~220)');
-    if (!location_) missing.push('거주지');
-    if (!mbti)     missing.push('MBTI');
-    if (!ideal)    missing.push('이상형');
-    if (!kakao)    missing.push('카카오 ID');
-    if (!document.getElementById('reg-smoking').value) missing.push('흡연');
-    if (!document.getElementById('reg-drinking').value) missing.push('음주');
-    if (!document.getElementById('reg-religion').value) missing.push('종교');
     if (!contact) missing.push('연락처 (휴대폰)');
-    if (!photoFiles.some(f => f !== null) && !(window._existingPhotos && window._existingPhotos.length > 0)) missing.push('사진');
+    if (!isMatchmaker) {
+        // 참여자 전용 필수 항목
+        if (!selectedGender) missing.push('성별');
+        if (!isValidBirth(birth)) missing.push('생년월일 (예: 2000.01.15)');
+        if (!job)      missing.push('직업');
+        if (!height || parseInt(height) < 140 || parseInt(height) > 220) missing.push('키 (140~220)');
+        if (!location_) missing.push('거주지');
+        if (!mbti)     missing.push('MBTI');
+        if (!ideal)    missing.push('이상형');
+        if (!kakao)    missing.push('카카오 ID');
+        if (!document.getElementById('reg-smoking').value) missing.push('흡연');
+        if (!document.getElementById('reg-drinking').value) missing.push('음주');
+        if (!document.getElementById('reg-religion').value) missing.push('종교');
+        if (!photoFiles.some(f => f !== null) && !(window._existingPhotos && window._existingPhotos.length > 0)) missing.push('사진');
+    }
     if (missing.length > 0) {
         toast('미입력: ' + missing.join(', '), 'warning');
         return;
@@ -684,8 +697,8 @@ async function submitApplication() {
         }
     }
 
-    // 신규 신청 시에만 사진 필수
-    if (!existingId && !photoFiles.some(f => f !== null)) {
+    // 신규 신청 시에만 사진 필수 (소개자 제외)
+    if (!isMatchmaker && !existingId && !photoFiles.some(f => f !== null)) {
         setLoading(false);
         btn.disabled = false;
         toast('사진을 최소 1장 업로드해주세요.');
@@ -752,6 +765,7 @@ async function submitApplication() {
         job_title: document.getElementById('reg-job-title').value.trim() || null,
         hobby:     document.getElementById('reg-hobby').value.trim() || null,
         icebreaker:    icebreaker,
+        role:      localStorage.getItem('bj_signup_role') || 'participant',
     };
 
     // 추천인 코드 처리
@@ -811,7 +825,7 @@ async function submitApplication() {
         }
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
-            status:  isSuperCode ? 'pending' : 'pending_reputation', // 슈퍼코드 → 바로 심사, 일반 → 평판 대기
+            status:  isMatchmaker ? 'approved' : (isSuperCode ? 'pending' : 'pending_reputation'), // 소개자 → 즉시 활성, 슈퍼코드 → 심사, 일반 → 평판
             user_id: userId,
             referral_code: myCode,
             referred_by: referralCodeInput || null,
@@ -2100,6 +2114,7 @@ function applicantRowHtml(a, idx=0) {
         matched:'<span class="badge badge-matched"><i class="fa-solid fa-heart"></i> 매칭</span>'
     }[a.status] || '';
     const photoBadge = a.photos && a.photos.length > 0 ? `<span class="badge" style="background:#f3f4f6;color:#6b7280;"><i class="fa-solid fa-image"></i> ${a.photos.length}</span>` : '';
+    const roleBadge = a.role === 'matchmaker' ? '<span class="badge" style="background:#ecfdf5;color:#059669;"><i class="fa-solid fa-handshake-angle"></i> 소개자</span>' : '';
 
     const avg = calcProfileQuality(a);
     const lS = a.look_score || 0;
@@ -2133,7 +2148,7 @@ function applicantRowHtml(a, idx=0) {
         <div class="applicant-row" onclick="openAdminDetail('${a.id}')" style="animation-delay:${idx * 30}ms;">
             <div class="applicant-row-icon">${icon}</div>
             <div class="applicant-info">
-                <div class="applicant-name">${esc(a.name)} ${gBadge} ${sBadge} ${photoBadge}</div>
+                <div class="applicant-name">${esc(a.name)} ${gBadge} ${sBadge} ${photoBadge} ${roleBadge}</div>
                 <div class="applicant-detail">${age}세 · ${esc(a.job)}${a.height ? ' · '+a.height+'cm' : ''}${a.location ? ' · '+esc(a.location) : ''}${a.mbti ? ' · '+esc(a.mbti) : ''}</div>
                 <div class="applicant-date">신청: ${formatDate(a.created_at)}${a.last_seen_at ? ' · 최근 접속: '+relTime(a.last_seen_at) : ''}</div>
                 ${miniBadges.length > 0 ? `<div class="applicant-badge-row">${miniBadges.join('')}</div>` : ''}

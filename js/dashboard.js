@@ -2273,13 +2273,25 @@ async function init() {
     const isMatched = profile && profile.status === 'matched';
     const isApproved = profile && profile.status === 'approved';
 
+    if (profile && profile.role === 'matchmaker') {
+        // ── 소개자 전용 대시보드 ──
+        renderMatchmakerDashboard(profile);
+        await loadNotifications();
+        applyWatermark();
+        setLoading(false);
+        handleNavHash();
+        return;
+    }
+
     if (profile) {
         // 이성 승인 참가자 로드 (온보딩에서도 숫자 필요)
         const oppGender = profile.gender === 'male' ? 'female' : 'male';
-        const { data: candidates } = await db.from('applicants')
-            .select('id,name,gender,birth,job,job_category,company,job_title,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id')
+        const { data: candidates_raw } = await db.from('applicants')
+            .select('id,name,gender,birth,job,job_category,company,job_title,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id,role')
             .eq('status', 'approved')
             .eq('gender', oppGender);
+        // 소개자(matchmaker)는 추천 대상에서 제외
+        const candidates = (candidates_raw || []).filter(c => c.role !== 'matchmaker');
         window._allCandidates = candidates || [];
 
         // 상태별 온보딩 화면
@@ -2413,6 +2425,144 @@ async function init() {
 }
 
 // ── 워터마크 (스크린샷 유출 방지) ──
+// ── 소개자(Matchmaker) 전용 대시보드 ──
+async function renderMatchmakerDashboard(profile) {
+    // 탭바를 소개자용으로 교체
+    const tabBar = document.getElementById('tab-bar');
+    tabBar.innerHTML = `
+        <div class="tab-item active" onclick="switchTab('referrals')" id="tab-btn-referrals">
+            <i class="fa-solid fa-users"></i><span>추천현황</span>
+        </div>
+        <div class="tab-item" onclick="switchTab('my')" id="tab-btn-my">
+            <i class="fa-solid fa-user"></i><span>MY</span>
+        </div>
+    `;
+
+    // 추천 현황 탭 콘텐츠 생성
+    const page = document.querySelector('.page');
+    // 기존 탭 숨기기
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+
+    // 소개자 전용 탭 추가
+    let refTab = document.getElementById('tab-referrals');
+    if (!refTab) {
+        refTab = document.createElement('div');
+        refTab.className = 'tab-content active';
+        refTab.id = 'tab-referrals';
+        page.prepend(refTab);
+    }
+    refTab.style.display = '';
+    refTab.classList.add('active');
+
+    // 추천한 사람들 조회
+    let referrals = [];
+    try {
+        const { data } = await db.from('applicants')
+            .select('id,name,gender,status,created_at,referral_code')
+            .eq('referred_by', profile.referral_code)
+            .order('created_at', { ascending: false });
+        referrals = data || [];
+    } catch(e) {}
+
+    // 평판 요청 (내가 평판 작성할 대상)
+    let pendingReps = [];
+    try {
+        const pendingRepIds = referrals.filter(r => r.status === 'pending_reputation').map(r => r.id);
+        if (pendingRepIds.length > 0) {
+            const { data: existingReps } = await db.from('reputations')
+                .select('target_applicant_id')
+                .eq('writer_applicant_id', profile.id);
+            const writtenSet = new Set((existingReps || []).map(r => r.target_applicant_id));
+            pendingReps = referrals.filter(r => r.status === 'pending_reputation' && !writtenSet.has(r.id));
+        }
+    } catch(e) {}
+
+    const statusLabels = { approved: '🟢 활동 중', pending: '🟠 심사 중', pending_reputation: '🟡 평판 대기', matched: '💕 매칭됨', rejected: '🔴 거절' };
+
+    refTab.innerHTML = `
+        <div class="section-card">
+            <div class="section-header" style="padding:14px 20px 12px;">
+                <div class="section-title"><i class="fa-solid fa-share-nodes" style="color:var(--primary);"></i> 내 추천 코드</div>
+            </div>
+            <div class="section-body" style="padding:14px 20px;">
+                <div style="display:flex;align-items:center;gap:10px;background:#f5f3ff;border-radius:12px;padding:16px;">
+                    <div style="flex:1;font-family:monospace;font-size:1.3em;font-weight:900;letter-spacing:.05em;color:var(--primary);">${esc(profile.referral_code || '')}</div>
+                    <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${esc(profile.referral_code)}');toast('복사됨!','success');" style="padding:8px 16px;font-size:.85em;"><i class="fa-solid fa-copy"></i> 복사</button>
+                </div>
+                <button class="btn btn-outline" onclick="shareReferralLink()" style="width:100%;margin-top:10px;"><i class="fa-solid fa-share"></i> 초대 링크 공유</button>
+                <div style="font-size:.75em;color:var(--muted);margin-top:8px;text-align:center;">이 코드를 지인에게 공유하면 소개팅에 참여할 수 있어요</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header" style="padding:14px 20px 12px;">
+                <div class="section-title"><i class="fa-solid fa-users" style="color:var(--primary);"></i> 추천한 친구 <span style="font-size:.85em;color:var(--primary);font-weight:700;">${referrals.length}명</span></div>
+            </div>
+            <div class="section-body" style="padding:14px 20px;">
+                ${referrals.length === 0
+                    ? '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-user-plus" style="font-size:2em;color:#e5e7eb;display:block;margin-bottom:10px;"></i>아직 추천한 친구가 없어요<br>추천 코드를 공유해보세요!</div>'
+                    : referrals.map(r => `
+                        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #f3f4f6;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:${r.gender==='male'?'#eff6ff':'#fdf2f8'};display:flex;align-items:center;justify-content:center;font-size:.85em;">
+                                ${r.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700;font-size:.9em;">${esc(r.name)}</div>
+                                <div style="font-size:.75em;color:var(--muted);">${new Date(r.created_at).toLocaleDateString('ko-KR')} 가입</div>
+                            </div>
+                            <div style="font-size:.78em;">${statusLabels[r.status] || r.status}</div>
+                        </div>
+                    `).join('')
+                }
+            </div>
+        </div>
+
+        ${pendingReps.length > 0 ? `
+        <div class="section-card" style="border:2px solid #fef3c7;">
+            <div class="section-header" style="padding:14px 20px 12px;background:#fffbeb;">
+                <div class="section-title"><i class="fa-solid fa-pen" style="color:#f59e0b;"></i> 평판 작성 요청 <span style="font-size:.85em;color:#b45309;font-weight:700;">${pendingReps.length}건</span></div>
+            </div>
+            <div class="section-body" style="padding:14px 20px;">
+                <div style="font-size:.82em;color:#92400e;margin-bottom:12px;">추천한 친구가 평판을 기다리고 있어요. 20자 이상 작성해주세요.</div>
+                ${pendingReps.map(r => `
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#fafafa;border-radius:10px;margin-bottom:8px;">
+                        <div style="flex:1;font-weight:700;font-size:.9em;">${esc(r.name)}</div>
+                        <button class="btn btn-primary" onclick="openReputationModal('${r.id}','${esc(r.name)}')" style="padding:6px 14px;font-size:.82em;"><i class="fa-solid fa-pen"></i> 작성</button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>` : ''}
+    `;
+
+    // MY 탭도 보이게
+    document.getElementById('tab-my').style.display = '';
+
+    // 프로필 렌더 (간소화)
+    const mySection = document.getElementById('my-profile-section');
+    if (mySection) {
+        mySection.innerHTML = `
+            <div style="text-align:center;padding:8px;">
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:4px;">소개자 계정</div>
+                <div style="font-size:1.1em;font-weight:800;">${esc(profile.name)}</div>
+                <div style="font-size:.82em;color:var(--muted);margin-top:4px;">추천 코드: <code style="color:var(--primary);font-weight:700;">${esc(profile.referral_code || '')}</code></div>
+                <div style="font-size:.82em;color:var(--muted);">추천한 친구: ${referrals.length}명</div>
+            </div>
+        `;
+    }
+}
+
+function shareReferralLink() {
+    const code = window._myProfile?.referral_code;
+    if (!code) return;
+    const url = `https://kyhwow-rgb.github.io/banjjok/?ref=${code}`;
+    const text = `반쪽(Banjjok)에 초대할게!\n내 추천 코드: ${code}\n이 링크로 들어오면 자동 입력돼:\n${url}`;
+    if (navigator.share) {
+        navigator.share({ title: '반쪽 초대', text }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(text).then(() => toast('초대 링크 복사 완료!', 'success'));
+    }
+}
+
 function applyWatermark() {
     const p = window._myProfile;
     if (!p) return;
