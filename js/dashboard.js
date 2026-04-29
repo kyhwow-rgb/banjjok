@@ -2259,16 +2259,7 @@ async function init() {
     renderProfile(profile);
     window._myProfile = profile;
 
-    // 워터마크 (스크린샷 방지)
-    if (profile?.name) {
-        const wm = document.createElement('div');
-        wm.className = 'watermark';
-        const now = new Date();
-        const ts = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-        const text = (`${profile.name} ${ts} · `).repeat(10);
-        wm.innerHTML = `<div class="watermark-inner">${Array(25).fill(`<div class="watermark-line">${esc(text)}</div>`).join('')}</div>`;
-        document.body.appendChild(wm);
-    }
+    // 워터마크 (applyWatermark에서 통합 처리)
 
     const isMatched = profile && profile.status === 'matched';
     const isApproved = profile && profile.status === 'approved';
@@ -2561,24 +2552,28 @@ function shareReferralLink() {
 function applyWatermark() {
     const p = window._myProfile;
     if (!p) return;
-    const phone = p.contact ? p.contact.replace(/-/g, '').slice(-4) : '****';
+    // 기존 워터마크 제거 (중복 방지)
+    document.getElementById('watermark-overlay')?.remove();
+
+    const phone = p.contact || '미등록';
     const now = new Date();
     const ts = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const text = `${p.name} ${phone} ${ts}`;
+    const text = `${p.name}  ${phone}  ${ts}`;
 
-    // Canvas로 타일 패턴 생성
+    // Canvas 타일 패턴 (촘촘하게)
     const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 180;
+    canvas.width = 360;
+    canvas.height = 120;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '13px Pretendard Variable, sans-serif';
-    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    ctx.font = '11px Pretendard Variable, sans-serif';
+    ctx.fillStyle = 'rgba(0,0,0,0.07)';
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(-25 * Math.PI / 180);
     ctx.textAlign = 'center';
-    ctx.fillText(text, 0, 0);
+    ctx.fillText(text, 0, -15);
+    ctx.fillText(text, 0, 15);
     ctx.restore();
 
     const dataUrl = canvas.toDataURL();
