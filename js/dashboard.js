@@ -167,10 +167,11 @@ async function saveReputation() {
                     });
                     sendPushNotif(target[0].user_id, '🤝 평판이 도착했어요', `${window._myProfile.name}님이 평판을 남겼어요`, dashUrl('my'), 'approved');
 
-                    // 평판 자동 전환: 2개 이상이면 pending_reputation → pending
+                    // 평판 자동 전환: 추천인 평판 1개면 pending으로 전환
                     if (target[0].status === 'pending_reputation') {
-                        const { count } = await db.from('reputations').select('id', { count: 'exact', head: true }).eq('target_applicant_id', _currentRepTargetId);
-                        if (count >= 2) {
+                        const { data: reps } = await db.from('reputations').select('is_referrer').eq('target_applicant_id', _currentRepTargetId);
+                        const hasReferrerRep = (reps || []).some(r => r.is_referrer);
+                        if (hasReferrerRep) {
                             await db.from('applicants').update({ status: 'pending' }).eq('id', _currentRepTargetId).eq('status', 'pending_reputation');
                             await db.from('notifications').insert({
                                 user_id: target[0].user_id,
@@ -237,7 +238,7 @@ function shareReputationRequestLink() {
 // ── 상태별 온보딩 화면 ──
 async function showOnboarding(status, candidateCount) {
     const overlay = document.getElementById('onboard-overlay');
-    // 평판 대기: 추천인 + 지인 1명 총 2개 평판 필요
+    // 평판 대기: 추천인 평판 1개 필요
     if (status === 'pending_reputation') {
         const profile = window._myProfile;
         let reps = [];
@@ -246,7 +247,6 @@ async function showOnboarding(status, candidateCount) {
             const { data } = await db.from('reputations').select('id,is_referrer,content,writer_applicant_id,created_at').eq('target_applicant_id', profile.id);
             reps = data || [];
         } catch(e) {}
-        // 추천인 이름 조회
         if (profile.referred_by) {
             try {
                 const { data: ref } = await db.from('applicants').select('name').eq('referral_code', profile.referred_by).limit(1);
@@ -254,33 +254,30 @@ async function showOnboarding(status, candidateCount) {
             } catch(e) {}
         }
         const hasReferrerRep = reps.some(r => r.is_referrer);
-        const totalCount = reps.length;
-        const progress = Math.min(100, (totalCount / 2) * 100);
+        const progress = hasReferrerRep ? 100 : 0;
 
         overlay.style.display = 'flex';
         overlay.innerHTML = `<div class="onboard-content">
             <div class="onboard-icon">🤝</div>
-            <div class="onboard-title">평판 수집 중</div>
+            <div class="onboard-title">추천인 평판 대기 중</div>
             <div class="onboard-sub">반쪽은 지인 추천제예요.<br><b>${esc(referrerName)}</b>님의 추천으로 가입하셨어요!</div>
             <div style="background:var(--bg);border-radius:16px;padding:18px;margin:20px 0;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-                    <span style="font-size:.88em;font-weight:800;">평판 진행</span>
-                    <span style="font-size:.88em;font-weight:800;color:var(--primary);">${totalCount} / 2</span>
+                    <span style="font-size:.88em;font-weight:800;">승인 진행</span>
+                    <span style="font-size:.88em;font-weight:800;color:var(--primary);">${hasReferrerRep ? '1' : '0'} / 1</span>
                 </div>
                 <div style="height:10px;background:#ede9fe;border-radius:10px;overflow:hidden;">
                     <div style="height:100%;width:${progress}%;background:linear-gradient(135deg,#7c3aed,#ec4899);transition:width .4s;"></div>
                 </div>
                 <div style="margin-top:14px;font-size:.82em;line-height:1.7;text-align:left;">
                     <div>${hasReferrerRep ? '✅' : '⏳'} 추천인 <b>${esc(referrerName)}</b>님의 평판</div>
-                    <div>${totalCount - (hasReferrerRep ? 1 : 0) >= 1 ? '✅' : '⏳'} 또 다른 지인의 평판</div>
                 </div>
             </div>
             <div style="background:linear-gradient(135deg,#f5f3ff,#fdf2f8);padding:14px;border-radius:12px;margin-bottom:20px;">
-                <div style="font-size:.82em;font-weight:700;margin-bottom:6px;">💡 평판 받는 방법</div>
+                <div style="font-size:.82em;font-weight:700;margin-bottom:6px;">💡 승인 절차</div>
                 <div style="font-size:.76em;color:var(--muted);line-height:1.6;text-align:left;">
-                    1. 내 추천 코드 <b style="color:var(--primary);">${esc(profile.referral_code || '')}</b>를 지인에게 공유<br>
-                    2. 지인이 가입 후 내 프로필 열어 "보증하기" 작성<br>
-                    3. 총 2개 모이면 자동으로 관리자 심사로 넘어가요
+                    1. 추천인 <b>${esc(referrerName)}</b>님이 평판을 작성<br>
+                    2. 관리자가 신청서를 검토 후 승인
                 </div>
             </div>
             <button class="btn btn-outline" onclick="copyMyReferralCode()" style="margin-bottom:8px;"><i class="fa-solid fa-copy"></i> 내 추천 코드 복사하기</button>

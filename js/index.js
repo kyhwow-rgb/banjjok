@@ -911,7 +911,7 @@ async function submitApplication() {
                     user_id: referrerApplicant.user_id,
                     type: 'reputation_request',
                     title: '지인이 당신 코드로 가입했어요!',
-                    body: `${name}님에게 평판을 남겨주세요. 최소 2개의 평판이 모여야 승인 심사로 넘어갑니다.`,
+                    body: `${name}님에게 평판을 남겨주세요. 추천인 평판이 있어야 관리자 심사로 넘어갑니다.`,
                     related_id: row.id
                 }).then(() => {}, () => {});
                 // 푸시
@@ -1538,7 +1538,7 @@ async function loadAdminTodoWidget() {
         const pendingRep = adminCache.filter(a => a.status === 'pending_reputation');
         if (pending.length > 0) items.push({
             icon: 'fa-user-clock', text: `관리자 승인 대기 ${pending.length}건`,
-            sub: pendingOld.length > 0 ? `${pendingOld.length}건은 3일 이상 경과 ⚠️` : '평판 2개 통과 · 승인 검토 필요',
+            sub: pendingOld.length > 0 ? `${pendingOld.length}건은 3일 이상 경과 ⚠️` : '추천인 평판 완료 · 승인 검토 필요',
             count: pending.length, action: "filterAdmin('pending')"
         });
         if (pendingRep.length > 0) items.push({
