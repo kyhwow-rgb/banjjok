@@ -799,8 +799,11 @@ async function submitApplication() {
     // 접속경로는 추천인 코드가 대신. 추천 받은 경우 "지인 추천 (코드)" 자동 표시
     const referralCodeInputCheck = document.getElementById('reg-referral-code').value.trim().toUpperCase();
     const rowData = {
-        gender:    selectedGender,
-        name, birth, job, kakao,
+        gender:    selectedGender || (isMatchmaker ? 'none' : 'male'),
+        name,
+        birth: birth || (isMatchmaker ? '2000-01-01' : null),
+        job: job || (isMatchmaker ? '소개자' : null),
+        kakao: kakao || (isMatchmaker ? '-' : null),
         contact:   contact   || null,
         height:    heightVal ? parseInt(heightVal) : null,
         education: document.getElementById('reg-education').value.trim() || null,
