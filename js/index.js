@@ -1346,6 +1346,7 @@ function updateAdminTabBadges() {
     set('sub-cnt-pending-rep', pendingRep);
     set('sub-cnt-male', byG('male'));
     set('sub-cnt-female', byG('female'));
+    set('sub-cnt-matchmaker', adminCache.filter(a => a.role === 'matchmaker').length);
 }
 
 // ── 공지사항 발송 ──
@@ -2109,8 +2110,8 @@ function filterAdmin(type, opts) {
         }
     }
 
-    const titles = { all:'전체 신청', pending_reputation:'평판 대기', pending:'관리자 승인 대기', male:'승인된 남성', female:'승인된 여성' };
-    const empty  = { all:'지원자가 없습니다.', pending_reputation:'평판 대기 중인 사람이 없어요.', pending:'승인 대기가 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.' };
+    const titles = { all:'전체 신청', pending_reputation:'평판 대기', pending:'관리자 승인 대기', male:'승인된 남성', female:'승인된 여성', matchmaker:'소개자', participant:'참여자' };
+    const empty  = { all:'지원자가 없습니다.', pending_reputation:'평판 대기 중인 사람이 없어요.', pending:'승인 대기가 없습니다.', male:'승인된 남성이 없습니다.', female:'승인된 여성이 없습니다.', matchmaker:'소개자가 없습니다.', participant:'참여자가 없습니다.' };
 
     // 신청자 탭 sub-nav 활성화
     document.querySelectorAll('.admin-subnav-btn').forEach(b => b.classList.toggle('active', b.dataset.sub === type));
@@ -2129,8 +2130,10 @@ function filterAdmin(type, opts) {
         if (type === 'all')     return true;
         if (type === 'pending_reputation') return a.status === 'pending_reputation';
         if (type === 'pending') return a.status === 'pending';
-        if (type === 'male')    return a.status === 'approved' && a.gender === 'male';
-        if (type === 'female')  return a.status === 'approved' && a.gender === 'female';
+        if (type === 'male')    return a.status === 'approved' && a.gender === 'male' && a.role !== 'matchmaker';
+        if (type === 'female')  return a.status === 'approved' && a.gender === 'female' && a.role !== 'matchmaker';
+        if (type === 'matchmaker') return a.role === 'matchmaker';
+        if (type === 'participant') return a.role !== 'matchmaker';
         return true;
     });
 
@@ -2213,6 +2216,20 @@ function applicantRowHtml(a, idx=0) {
     const completion = calcProfileCompletion(a);
     if (completion >= 90) miniBadges.push(`<span class="app-badge app-badge-complete">완성 ${completion}%</span>`);
     else if (completion < 60) miniBadges.push(`<span class="app-badge app-badge-nolook">미완성 ${completion}%</span>`);
+
+    // 소개자는 간소 표시
+    if (a.role === 'matchmaker') {
+        const refCount = adminCache.filter(x => x.referred_by === a.referral_code).length;
+        return `
+        <div class="applicant-row" onclick="openAdminDetail('${a.id}')" style="animation-delay:${idx * 30}ms;">
+            <div class="applicant-row-icon"><i class="fa-solid fa-handshake-angle" style="color:#059669;font-size:22px;"></i></div>
+            <div class="applicant-info">
+                <div class="applicant-name">${esc(a.name)} ${sBadge} ${roleBadge}</div>
+                <div class="applicant-detail">연락처: ${esc(a.contact || '-')} · 추천 ${refCount}명</div>
+                <div class="applicant-date">등록: ${formatDate(a.created_at)}</div>
+            </div>
+        </div>`;
+    }
 
     return `
         <div class="applicant-row" onclick="openAdminDetail('${a.id}')" style="animation-delay:${idx * 30}ms;">
@@ -2344,6 +2361,32 @@ async function openAdminDetail(id) {
                     <div style="font-size:.9em;font-weight:600;">${esc(ib.a)}</div>
                 </div>`;
         } catch {}
+    }
+
+    // 소개자 상세: 간소화
+    if (a.role === 'matchmaker') {
+        const refUsers = adminCache.filter(x => x.referred_by === a.referral_code);
+        document.getElementById('admin-detail-content').innerHTML = `
+            <div class="detail-header">
+                <div class="detail-avatar" style="background:#ecfdf5"><i class="fa-solid fa-handshake-angle" style="color:#059669;font-size:28px;"></i></div>
+                <div class="detail-name">${esc(a.name)} ${sBadge} <span class="badge" style="background:#ecfdf5;color:#059669;"><i class="fa-solid fa-handshake-angle"></i> 소개자</span></div>
+            </div>
+            ${a.contact ? `<div class="detail-row"><div class="detail-label"><i class="fa-solid fa-phone" style="color:var(--primary);"></i> 연락처</div><div class="detail-value">${esc(a.contact)}</div></div>` : ''}
+            <div class="detail-row"><div class="detail-label">추천 코드</div><div class="detail-value"><code style="color:var(--primary);font-weight:700;">${esc(a.referral_code || '-')}</code></div></div>
+            <div class="detail-row"><div class="detail-label">추천인</div><div class="detail-value">${referrer ? esc(referrer.name) + ' (' + esc(a.referred_by) + ')' : esc(a.referred_by || '-')}</div></div>
+            <div class="detail-row"><div class="detail-label">등록일</div><div class="detail-value">${formatDate(a.created_at)}</div></div>
+            <div class="detail-row"><div class="detail-label">추천한 사람</div><div class="detail-value"><b>${refUsers.length}명</b></div></div>
+            ${refUsers.length > 0 ? `<div style="padding:10px 0;font-size:.85em;">${refUsers.map(r => `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6;">${esc(r.name)} <span style="color:var(--muted);font-size:.82em;">${{approved:'🟢',pending:'🟠',pending_reputation:'🟡',matched:'💕',rejected:'🔴'}[r.status]||''} ${r.status}</span></div>`).join('')}</div>` : ''}
+        `;
+
+        const actions = [];
+        if (a.status !== 'approved' && a.status !== 'matched') actions.push(`<button class="btn btn-approve" onclick="updateStatusFromDetail('${a.id}','approved')"><i class="fa-solid fa-check"></i> 승인</button>`);
+        if (a.status === 'pending') actions.push(`<button class="btn btn-reject" onclick="updateStatusFromDetail('${a.id}','rejected')"><i class="fa-solid fa-xmark"></i> 거절</button>`);
+        actions.push(`<button class="btn btn-delete" onclick="deleteFromDetail('${a.id}')"><i class="fa-solid fa-trash"></i> 삭제</button>`);
+        actions.push(`<button class="btn btn-outline" onclick="closeAdminDetail()">닫기</button>`);
+        document.getElementById('admin-detail-actions').innerHTML = actions.join('');
+        document.getElementById('admin-detail-overlay').classList.add('open');
+        return;
     }
 
     document.getElementById('admin-detail-content').innerHTML = `
