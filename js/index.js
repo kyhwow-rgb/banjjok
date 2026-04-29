@@ -36,6 +36,7 @@ function clearSession() {
     localStorage.removeItem('kj_role');
     localStorage.removeItem('kj_screen');
     localStorage.removeItem('kj_filter');
+    localStorage.removeItem('bj_signup_role');
 }
 
 // ── 로딩 ──
@@ -144,6 +145,7 @@ function selectSignupRole(role) {
 }
 
 function showAuthView(view) {
+    if (view === 'invite') localStorage.removeItem('bj_signup_role');
     document.getElementById('auth-invite').style.display = view === 'invite' ? '' : 'none';
     document.getElementById('auth-role-select').style.display = view === 'role-select' ? '' : 'none';
     document.getElementById('auth-signup').style.display = view === 'signup' ? '' : 'none';
@@ -355,8 +357,8 @@ async function renderHome() {
     document.getElementById('home-female-count').innerHTML = '<div class="skeleton skeleton-text w60" style="height:40px;display:inline-block;width:60px;"></div>';
     let list = [];
     try {
-        const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker').eq('status', 'approved');
-        list = data || [];
+        const { data } = await db.from('applicants').select('gender,birth,job,location,mbti,photos,icebreaker,role').eq('status', 'approved');
+        list = (data || []).filter(a => a.role !== 'matchmaker' && (a.gender === 'male' || a.gender === 'female'));
     } catch(e) { console.log('renderHome error:', e.message); }
     // 정확한 숫자 대신 범위 표시
     const maleCount = list.filter(a => a.gender === 'male').length;
@@ -617,15 +619,14 @@ function toggleMatchmakerFormFields() {
     const isMatchmaker = localStorage.getItem('bj_signup_role') === 'matchmaker';
     const hide = isMatchmaker ? 'none' : '';
 
-    // form-row 단위로 숨기기 (각 input의 부모 form-row를 찾아서)
+    // input-group 단위로 숨기기. form-row를 숨기면 이름/연락처처럼 같은 행의 필수 필드까지 사라진다.
     const hideInputIds = ['reg-birth','reg-job','reg-height','reg-education','reg-location','reg-mbti','reg-kakao',
                      'reg-smoking','reg-drinking','reg-religion','reg-company','reg-job-title','reg-intro','reg-hobby'];
     const hiddenRows = new Set();
     hideInputIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        // form-row > input-group > input 구조
-        const row = el.closest('.form-row') || el.closest('.input-group');
+        const row = el.closest('.input-group');
         if (row && !hiddenRows.has(row)) {
             row.style.display = hide;
             hiddenRows.add(row);
@@ -781,7 +782,7 @@ async function submitApplication() {
         photoUrls = window._retainedPhotos || existingPhotos;
     }
     // 신규 신청인데 사진 처리 전부 실패한 경우 차단
-    if (!existingId && photoUrls.length === 0) {
+    if (!isMatchmaker && !existingId && photoUrls.length === 0) {
         setLoading(false);
         btn.disabled = false;
         btn.textContent = origText;
@@ -798,12 +799,21 @@ async function submitApplication() {
 
     // 접속경로는 추천인 코드가 대신. 추천 받은 경우 "지인 추천 (코드)" 자동 표시
     const referralCodeInputCheck = document.getElementById('reg-referral-code').value.trim().toUpperCase();
-    const rowData = {
-        gender:    selectedGender || (isMatchmaker ? 'none' : 'male'),
+    const rowData = isMatchmaker ? {
+        // 소개자: 최소 필드만
+        gender: 'none',
         name,
-        birth: birth || (isMatchmaker ? '2000-01-01' : null),
-        job: job || (isMatchmaker ? '소개자' : null),
-        kakao: kakao || (isMatchmaker ? '-' : null),
+        birth: '2000-01-01',
+        job: '소개자',
+        kakao: '-',
+        contact: contact || null,
+        photos: [],
+        profile_score: 0,
+        role: 'matchmaker',
+    } : {
+        // 참여자: 전체 필드
+        gender:    selectedGender,
+        name, birth, job, kakao,
         contact:   contact   || null,
         height:    heightVal ? parseInt(heightVal) : null,
         education: document.getElementById('reg-education').value.trim() || null,
@@ -821,7 +831,7 @@ async function submitApplication() {
         job_title: document.getElementById('reg-job-title').value.trim() || null,
         hobby:     document.getElementById('reg-hobby').value.trim() || null,
         icebreaker:    icebreaker,
-        role:      localStorage.getItem('bj_signup_role') || 'participant',
+        role:      'participant',
     };
 
     // 추천인 코드 처리
@@ -898,7 +908,7 @@ async function submitApplication() {
         error = insertError;
 
         // 추천인에게 평판 요청 푸시/알림
-        if (!insertError && referrerApplicant?.user_id) {
+        if (!isMatchmaker && !insertError && referrerApplicant?.user_id) {
             try {
                 const dashBase = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html';
                 // notifications 테이블 (인앱)
@@ -948,9 +958,12 @@ async function submitApplication() {
     btn.textContent = '제출 완료!';
     toast(existingId
         ? '신청서가 수정되었습니다!'
+        : isMatchmaker
+            ? '소개자 등록이 완료되었습니다! 추천 코드를 확인해보세요.'
         : isSuperCode
             ? '신청서가 제출되었습니다! 관리자 승인을 기다려주세요.'
             : '신청서가 제출되었습니다! 추천인과 지인 1명의 평판이 모이면 관리자 심사가 시작됩니다.', 'success');
+    localStorage.removeItem('bj_signup_role');
     setTimeout(() => window.location.href = 'dashboard.html', 2200);
 
     } catch(e) {
@@ -3437,6 +3450,7 @@ async function prefillRegisterForm(userId) {
 }
 
 function _doPrefill(p) {
+    localStorage.setItem('bj_signup_role', p.role === 'matchmaker' ? 'matchmaker' : 'participant');
     if (p.gender) selectGender(p.gender);
     const fields = [
         ['reg-name', p.name], ['reg-birth', p.birth ? p.birth.replace(/-/g, '.') : null], ['reg-job', normalizeJobCategory(p.job_category || p.job)],
