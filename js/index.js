@@ -81,6 +81,8 @@ function showScreen(name) {
             el.value = pendingRef;
             localStorage.removeItem('bj_pending_ref_code');
         }
+        // 소개자 모드: 불필요한 필드 숨기기
+        toggleMatchmakerFormFields();
     }
 
     if (!_historyNav) history.pushState({ screen: name }, '', location.pathname);
@@ -136,10 +138,7 @@ function onReferralChange(sel) {
 }
 
 // ── Auth 뷰 전환 ──
-let _signupRole = 'participant'; // 'participant' | 'matchmaker'
-
 function selectSignupRole(role) {
-    _signupRole = role;
     localStorage.setItem('bj_signup_role', role);
     showAuthView('signup');
 }
@@ -614,6 +613,60 @@ function selectGender(gender) {
     }
 }
 
+function toggleMatchmakerFormFields() {
+    const isMatchmaker = localStorage.getItem('bj_signup_role') === 'matchmaker';
+    const hide = isMatchmaker ? 'none' : '';
+
+    // form-row 단위로 숨기기 (각 input의 부모 form-row를 찾아서)
+    const hideInputIds = ['reg-birth','reg-job','reg-height','reg-education','reg-location','reg-mbti','reg-kakao',
+                     'reg-smoking','reg-drinking','reg-religion','reg-company','reg-job-title','reg-intro','reg-hobby'];
+    const hiddenRows = new Set();
+    hideInputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // form-row > input-group > input 구조
+        const row = el.closest('.form-row') || el.closest('.input-group');
+        if (row && !hiddenRows.has(row)) {
+            row.style.display = hide;
+            hiddenRows.add(row);
+        }
+    });
+
+    // 성별 선택 영역
+    const genderGroup = document.getElementById('gender-male')?.closest('.input-group');
+    if (genderGroup) genderGroup.style.display = hide;
+
+    // 사진 영역
+    const photoSec = document.getElementById('photo-upload-section');
+    if (photoSec) photoSec.style.display = hide;
+
+    // 이상형 영역 (ideal-chips의 부모)
+    const idealChips = document.getElementById('ideal-chips');
+    if (idealChips) {
+        const idealGroup = idealChips.closest('.input-group');
+        if (idealGroup) idealGroup.style.display = hide;
+    }
+
+    // 이상형 메모
+    const idealMemo = document.getElementById('reg-ideal-memo');
+    if (idealMemo) {
+        const memoGroup = idealMemo.closest('.input-group');
+        if (memoGroup) memoGroup.style.display = hide;
+    }
+
+    // 제출 버튼 텍스트
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.textContent = isMatchmaker ? '소개자 등록하기' : '신청서 제출';
+
+    // 폼 타이틀 변경
+    const formTitle = document.querySelector('.form-title');
+    if (formTitle) formTitle.textContent = isMatchmaker ? '소개자 등록' : '소개팅 신청서';
+    const formSub = document.querySelector('.form-sub');
+    if (formSub) formSub.textContent = isMatchmaker
+        ? '이름과 연락처만 입력하면 추천 코드가 발급됩니다.'
+        : '신청 후 관리자 승인을 거쳐 등록됩니다. 카카오 ID와 연락처는 관리자에게만 공개됩니다.';
+}
+
 function resetForm() {
     selectedGender = null;
     photoFiles = [null, null, null];
@@ -832,7 +885,13 @@ async function submitApplication() {
             referral: referralCodeInputCheck ? `지인 추천 (${referralCodeInputCheck})` : null,
             ...rowData,
         };
-        const { error: insertError } = await db.from('applicants').insert([row]);
+        let { error: insertError } = await db.from('applicants').insert([row]);
+        // role 컬럼이 없는 경우 폴백 (role 제거 후 재시도)
+        if (insertError && insertError.message && insertError.message.includes('role')) {
+            delete row.role;
+            const retry = await db.from('applicants').insert([row]);
+            insertError = retry.error;
+        }
         error = insertError;
 
         // 추천인에게 평판 요청 푸시/알림
