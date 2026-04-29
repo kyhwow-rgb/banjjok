@@ -2303,7 +2303,7 @@ async function init() {
         const isPending = profile.status === 'pending';
         const isPendingRep = profile.status === 'pending_reputation';
         const isNotActive = isPending || isPendingRep;
-        const showRecommendations = isApproved || isNotActive;
+        const showRecommendations = isApproved || isMatched || isNotActive;
         // (매칭 우선순위 UI 제거 — 이상형 설정의 기본 가중치 사용)
 
         // pending/pending_reputation 상단 배너
@@ -2386,10 +2386,6 @@ async function init() {
     if (!isMatched) {
         // 미매칭 상태 → 대화 불가 표시
         document.getElementById('chat-not-matched').style.display = '';
-    } else {
-        // 매칭된 후에는 찜 목록/추천 숨김
-        document.getElementById('match-ranking-card').style.display = 'none';
-        document.getElementById('mutual-card').style.display = 'none';
     }
     // 채팅방 목록 렌더
     renderChatRoomList();
