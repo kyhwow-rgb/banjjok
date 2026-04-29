@@ -885,7 +885,7 @@ async function submitApplication() {
         // 고유 추천 코드 생성 (이름 첫 글자 + 랜덤 5자리, 충돌 시 재생성)
         let myCode;
         for (let _retry = 0; _retry < 5; _retry++) {
-            myCode = (name.charAt(0) || 'B') + Math.random().toString(36).slice(2, 7).toUpperCase();
+            myCode = Math.random().toString(36).slice(2, 8).toUpperCase();
             const { data: dup } = await db.from('applicants').select('id').eq('referral_code', myCode).limit(1);
             if (!dup || dup.length === 0) break;
         }
