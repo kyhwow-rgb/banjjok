@@ -387,7 +387,7 @@ async function renderHome() {
         if (pick.icebreaker) {
             try {
                 const ib = JSON.parse(pick.icebreaker);
-                recIbHtml = `<div style="padding:8px 12px;font-size:.75em;background:#f5f3ff;border-top:1px solid #ede9fe;"><span style="color:var(--primary);font-weight:700;">💬 ${esc(ib.q)}</span><br><span style="font-weight:600;">${esc(ib.a)}</span></div>`;
+                recIbHtml = `<div style="padding:8px 12px;font-size:.75em;background:#FFF0F0;border-top:1px solid #FFF0F0;"><span style="color:var(--primary);font-weight:700;">💬 ${esc(ib.q)}</span><br><span style="font-weight:600;">${esc(ib.a)}</span></div>`;
             } catch {}
         }
         document.getElementById('rec-card-wrap').innerHTML = `
@@ -426,10 +426,10 @@ function updateScoreBar() {
     document.getElementById('score-bar-fill').style.width = pct + '%';
 
     const gem = document.getElementById('score-gem');
-    if (pct >= 96)      { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.add('max'); gem.style.filter = 'none'; gem.style.color = '#7c3aed'; }
-    else if (pct >= 70) { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#7c3aed'; }
-    else if (pct >= 45) { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#a78bfa'; }
-    else if (pct >= 20) { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#c4b5fd'; }
+    if (pct >= 96)      { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.add('max'); gem.style.filter = 'none'; gem.style.color = '#FF6B6B'; }
+    else if (pct >= 70) { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#FF6B6B'; }
+    else if (pct >= 45) { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#FF9B9B'; }
+    else if (pct >= 20) { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#FFBDBD'; }
     else                { gem.innerHTML = '<i class="fa-solid fa-gem"></i>'; gem.classList.remove('max'); gem.style.filter = 'none'; gem.style.color = '#d1d5db'; }
 
     const msgs = [
@@ -1475,8 +1475,8 @@ function renderAiMatchSuggestions() {
             <div style="flex:1;min-width:200px;">
                 <div style="font-size:.9em;font-weight:700;">
                     <i class="fa-solid fa-mars" style="color:#3b82f6;font-size:.9em;"></i> ${esc(m.name)} (${mAge}세)
-                    <span style="color:#ec4899;margin:0 4px;">💘</span>
-                    <i class="fa-solid fa-venus" style="color:#ec4899;font-size:.9em;"></i> ${esc(f.name)} (${fAge}세)
+                    <span style="color:#FF6B6B;margin:0 4px;">💘</span>
+                    <i class="fa-solid fa-venus" style="color:#FF6B6B;font-size:.9em;"></i> ${esc(f.name)} (${fAge}세)
                 </div>
                 <div style="font-size:.72em;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <span class="match-score-badge ${scoreCls}">🎯 ${compat.score}점</span>
@@ -1722,7 +1722,7 @@ async function loadAdminActivityFeed() {
                 const a = item.data;
                 icon = '<i class="fa-solid fa-user-plus" style="color:#059669;"></i>';
                 text = a.role === 'matchmaker'
-                    ? `<b>${esc(a.name)}</b> 가입 (<span style="color:#7c3aed;">소개자</span>)`
+                    ? `<b>${esc(a.name)}</b> 가입 (<span style="color:#FF6B6B;">소개자</span>)`
                     : `<b>${esc(a.name)}</b> 가입 (${a.gender==='male'?'男':'女'}${calcAge(a.birth)?', '+calcAge(a.birth)+'세':''})`;
             } else if (item.type === 'msg') {
                 icon = '<i class="fa-solid fa-comment" style="color:#3b82f6;"></i>';
@@ -1734,7 +1734,7 @@ async function loadAdminActivityFeed() {
                 switch(e.event_type) {
                     case 'card_like':
                         const likedName = adminCache.find(a => a.id === meta.liked)?.name;
-                        icon = '<i class="fa-solid fa-heart" style="color:#ec4899;"></i>';
+                        icon = '<i class="fa-solid fa-heart" style="color:#FF6B6B;"></i>';
                         text = `<b>${esc(who)}</b>${likedName ? ` → <b>${esc(likedName)}</b>` : ''} 찜`;
                         break;
                     case 'chat_send':
@@ -1882,7 +1882,7 @@ async function loadMatchRequests() {
                 <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;">
                     <span>${fIcon}</span>
                     <span style="font-weight:700;font-size:.9em;">${esc(from.name)}</span>
-                    <span style="color:#ec4899;font-size:1.1em;">💘</span>
+                    <span style="color:#FF6B6B;font-size:1.1em;">💘</span>
                     <span>${tIcon}</span>
                     <span style="font-weight:700;font-size:.9em;">${esc(to.name)}</span>
                     ${warning}
@@ -2368,7 +2368,7 @@ async function openAdminDetail(id) {
         try {
             const ib = JSON.parse(a.icebreaker);
             icebreakerHtml = `
-                <div style="background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:12px;padding:14px;margin:12px 0;">
+                <div style="background:linear-gradient(135deg,#FFF0F0,#FFF0F0);border-radius:12px;padding:14px;margin:12px 0;">
                     <div style="font-size:.75em;color:var(--primary);font-weight:700;margin-bottom:6px;">💬 ${esc(ib.q)}</div>
                     <div style="font-size:.9em;font-weight:600;">${esc(ib.a)}</div>
                 </div>`;
@@ -2441,7 +2441,7 @@ async function openAdminDetail(id) {
                 <div class="detail-value">${renderIdealDisplay(a.ideal)}</div>
             </div>` : ''}
         <div style="margin-top:16px;padding:14px;background:#faf5ff;border-radius:10px;">
-            <div style="font-size:.82em;font-weight:800;color:#7c3aed;margin-bottom:8px;">
+            <div style="font-size:.82em;font-weight:800;color:#FF6B6B;margin-bottom:8px;">
                 <i class="fa-solid fa-handshake"></i> 평판 & 추천인
             </div>
             <div style="font-size:.82em;color:#374151;margin-bottom:10px;">
@@ -2450,7 +2450,7 @@ async function openAdminDetail(id) {
             ${reputations.length === 0 ? '<div style="font-size:.78em;color:#9ca3af;">아직 평판 없음</div>' :
                 reputations.map(r => {
                     const writer = adminCache.find(x => x.id === r.writer_applicant_id);
-                    return `<div style="padding:10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #ede9fe;">
+                    return `<div style="padding:10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #FFF0F0;">
                         <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
                             <span style="font-size:.82em;font-weight:700;">${esc(writer?.name || '(알 수 없음)')}</span>
                             ${r.is_referrer ? '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#b45309;font-weight:700;">추천인</span>' : '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:#e0e7ff;color:#3730a3;font-weight:700;">지인</span>'}
@@ -2711,7 +2711,7 @@ function openMatchingView(id) {
             </div>`).join('');
 
     document.getElementById('matching-content').innerHTML = `
-        <div style="font-size:1.05em;font-weight:800;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> ${esc(a.name)}님의 매칭 후보</div>
+        <div style="font-size:1.05em;font-weight:800;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-bolt" style="color:#FF6B6B;"></i> ${esc(a.name)}님의 매칭 후보</div>
         <div class="matching-list-title">${oppIcon} 승인된 ${oppLabel} · ${candidates.length}명 — 후보를 선택하세요</div>
         ${listHtml}
     `;
@@ -2727,10 +2727,10 @@ function selectMatchCandidate(subjectId, candidateId) {
     const female = a.gender === 'female' ? a : c;
 
     document.getElementById('matching-content').innerHTML = `
-        <div style="font-size:1.05em;font-weight:800;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 매칭 확인</div>
+        <div style="font-size:1.05em;font-weight:800;margin-bottom:16px;"><i class="fa-solid fa-heart-circle-bolt" style="color:#FF6B6B;"></i> 매칭 확인</div>
         <div class="match-split">
             <div class="match-split-card selected">${profileMiniHtml(male)}</div>
-            <div class="match-split-divider"><i class="fa-solid fa-heart" style="color:#ec4899;"></i></div>
+            <div class="match-split-divider"><i class="fa-solid fa-heart" style="color:#FF6B6B;"></i></div>
             <div class="match-split-card selected">${profileMiniHtml(female)}</div>
         </div>
         <button class="btn btn-do-match" onclick="confirmMatch('${male.id}','${female.id}')"><i class="fa-solid fa-heart-pulse"></i> 매칭하기</button>
@@ -2802,7 +2802,7 @@ function coupleCardHtml(male, female) {
                     <div class="couple-profile-name">${mName}</div>
                     <div class="couple-profile-meta">${mMeta}</div>
                 </div>
-                <div class="couple-heart"><i class="fa-solid fa-heart" style="color:#ec4899;"></i></div>
+                <div class="couple-heart"><i class="fa-solid fa-heart" style="color:#FF6B6B;"></i></div>
                 <div class="couple-profile" onclick="openAdminDetail('${fId}')" style="cursor:pointer;">
                     <div class="couple-profile-icon"><i class="fa-solid fa-venus" style="color:var(--female);"></i></div>
                     <div class="couple-profile-name">${fName}</div>
@@ -3195,7 +3195,7 @@ function renderNetworkGraph() {
     });
 
     adminCache.forEach((a, i) => {
-        const statusColors = { approved: '#10b981', pending: '#f59e0b', matched: '#ec4899', rejected: '#ef4444', pending_reputation: '#9ca3af' };
+        const statusColors = { approved: '#10b981', pending: '#f59e0b', matched: '#FF6B6B', rejected: '#ef4444', pending_reputation: '#9ca3af' };
         const node = {
             id: a.id,
             name: a.name || '?',

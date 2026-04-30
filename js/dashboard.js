@@ -33,8 +33,8 @@ function getTierBadge(pct) {
 // (heightInRange, calcMatchScore → js/common.js)
 
 function gemIcon(pct) {
-    if (pct >= 96) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'max', color:'#7c3aed' };
-    if (pct >= 70) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#7c3aed' };
+    if (pct >= 96) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'max', color:'#FF6B6B' };
+    if (pct >= 70) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#FF6B6B' };
     if (pct >= 45) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#a78bfa' };
     if (pct >= 20) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#c4b5fd' };
     return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#d1d5db' };
@@ -60,7 +60,7 @@ async function loadMyReputations(myId) {
                 const w = writerMap[r.writer_applicant_id] || {};
                 const wPhoto = (w.photos && w.photos[0])
                     ? `<img loading="lazy" src="${esc(w.photos[0])}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
-                    : `<div style="width:32px;height:32px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.8em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+                    : `<div style="width:32px;height:32px;border-radius:50%;background:#FFF0F0;display:flex;align-items:center;justify-content:center;font-size:.8em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
                 return `<div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:10px;margin-bottom:6px;align-items:flex-start;">
                     ${wPhoto}
                     <div style="flex:1;min-width:0;">
@@ -266,14 +266,14 @@ async function showOnboarding(status, candidateCount) {
                     <span style="font-size:.88em;font-weight:800;">승인 진행</span>
                     <span style="font-size:.88em;font-weight:800;color:var(--primary);">${hasReferrerRep ? '1' : '0'} / 1</span>
                 </div>
-                <div style="height:10px;background:#ede9fe;border-radius:10px;overflow:hidden;">
-                    <div style="height:100%;width:${progress}%;background:linear-gradient(135deg,#7c3aed,#ec4899);transition:width .4s;"></div>
+                <div style="height:10px;background:#FFF0F0;border-radius:10px;overflow:hidden;">
+                    <div style="height:100%;width:${progress}%;background:linear-gradient(135deg,#FF6B6B,#FF6B6B);transition:width .4s;"></div>
                 </div>
                 <div style="margin-top:14px;font-size:.82em;line-height:1.7;text-align:left;">
                     <div>${hasReferrerRep ? '✅' : '⏳'} 추천인 <b>${esc(referrerName)}</b>님의 평판</div>
                 </div>
             </div>
-            <div style="background:linear-gradient(135deg,#f5f3ff,#fdf2f8);padding:14px;border-radius:12px;margin-bottom:20px;">
+            <div style="background:linear-gradient(135deg,#FFF0F0,#fdf2f8);padding:14px;border-radius:12px;margin-bottom:20px;">
                 <div style="font-size:.82em;font-weight:700;margin-bottom:6px;">💡 승인 절차</div>
                 <div style="font-size:.76em;color:var(--muted);line-height:1.6;text-align:left;">
                     1. 추천인 <b>${esc(referrerName)}</b>님이 평판을 작성<br>
@@ -358,7 +358,7 @@ async function showOnboarding(status, candidateCount) {
             <div class="onboard-title">신청서가 반려되었어요</div>
             <div class="onboard-sub">걱정 마세요! 신청서를 수정해서 다시 제출할 수 있어요.</div>
             <div style="margin-top:8px;">
-                <button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);" onclick="editMyProfile();">신청서 수정하기 ✏️</button>
+                <button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#FF6B6B);" onclick="editMyProfile();">신청서 수정하기 ✏️</button>
             </div>
             <div style="margin-top:16px;">
                 <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none'">닫기</button>
@@ -392,7 +392,7 @@ function renderProfile(p) {
     const myPhoto = p.photos && p.photos[0];
     const myPhotoHtml = myPhoto
         ? `<img loading="lazy" src="${esc(myPhoto)}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
-        : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
     sec.innerHTML = `
         ${window._popularityCount > 0 ? `<div style="margin-bottom:12px;"><span class="popularity-badge"><i class="fa-solid fa-fire"></i> ${window._popularityCount}명이 관심</span></div>` : ''}
         <div class="score-wrap">
@@ -427,7 +427,7 @@ function renderProfile(p) {
             </div>
         </div>` : ''}
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
-        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="#" onclick="event.preventDefault();editMyProfile();" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
+        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="#" onclick="event.preventDefault();editMyProfile();" style="color:#FF6B6B;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
         <div id="my-reputation-box" style="margin-top:16px;"></div>`;
     loadMyReputations(p.id);
     if (mySec) {
@@ -456,7 +456,7 @@ function renderFavorites(favApplicants) {
     const sec = document.getElementById('favorites-section');
     document.getElementById('fav-count').textContent = favApplicants.length ? `${favApplicants.length}명` : '';
     if (!favApplicants.length) {
-        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;"><i class="fa-solid fa-heart" style="color:#ede9fe;"></i></div>아직 찜한 사람이 없어요<br><span style="font-size:.8em;color:#d1d5db;">추천 탭에서 마음에 드는 반쪽을 찜해보세요</span></div>`;
+        sec.innerHTML = `<div class="fav-empty"><div style="font-size:2.5em;margin-bottom:10px;"><i class="fa-solid fa-heart" style="color:#FFF0F0;"></i></div>아직 찜한 사람이 없어요<br><span style="font-size:.8em;color:#d1d5db;">추천 탭에서 마음에 드는 반쪽을 찜해보세요</span></div>`;
         updateInterestEmptyState();
         return;
     }
@@ -465,7 +465,7 @@ function renderFavorites(favApplicants) {
         const photo = a.photos && a.photos[0];
         const photoHtml = photo
             ? `<div class="fav-photo"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
-            : `<div class="fav-photo">${a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+            : `<div class="fav-photo">${a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
         const tags = [age ? `${age}세` : null, a.job, a.location, a.mbti].filter(Boolean)
             .map(t => `<span class="fav-tag">${t}</span>`).join('');
         return `<div class="fav-item" style="cursor:pointer;" onclick="openProfileModal('${a.id}')">
@@ -689,7 +689,7 @@ function renderListView(sec, favSet) {
         const photo = c.photos && c.photos[0];
         const photoHtml = photo
             ? `<div class="match-photo"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
-            : `<div class="match-photo">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+            : `<div class="match-photo">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
         const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
         const mbtiLabel = c._mbtiCompat >= 80 ? '<i class="fa-solid fa-fire" style="color:#ef4444;font-size:.7em;"></i>' : c._mbtiCompat >= 65 ? '<i class="fa-solid fa-star" style="color:#f59e0b;font-size:.7em;"></i>' : '';
         const tags = [age ? `${age}세` : null, c.location, c.mbti ? c.mbti + mbtiLabel : null, c.job_category].filter(Boolean)
@@ -698,7 +698,7 @@ function renderListView(sec, favSet) {
         const isMutual = (window._mutualSet || new Set()).has(c.id);
         const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="font-size:.65em;padding:2px 6px;"><i class="fa-solid fa-fire"></i>${c._favCount}</span>` : '';
         const mutualHtml = isMutual ? `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>` : '';
-        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #ede9fe;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
+        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #FFF0F0;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
             <div class="match-rank">${rankIcon}</div>
             ${photoHtml}
             <div class="match-info">
@@ -715,7 +715,7 @@ function renderCardView(sec, favSet) {
     // 추천 대상 없음
     if (!_scoredCandidates || _scoredCandidates.length === 0) {
         sec.innerHTML = `<div style="text-align:center;padding:48px 20px;">
-            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#ede9fe;"></i></div>
+            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#FFF0F0;"></i></div>
             <div style="font-size:1em;font-weight:700;margin-bottom:6px;">추천할 반쪽이 없어요</div>
             <div style="font-size:.82em;color:var(--muted);">새로운 참가자가 등록되면 추천해드릴게요!</div>
         </div>`;
@@ -734,7 +734,7 @@ function renderCardView(sec, favSet) {
                     <i class="fa-solid fa-rotate"></i> 다시 보기
                 </div>
                 <br>
-                <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#f5f3ff,#fce7f3);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;margin-top:8px;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                <div onclick="switchTab('interest')" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);border-radius:14px;font-size:.85em;font-weight:700;color:var(--primary);cursor:pointer;transition:transform .15s;margin-top:8px;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                     <i class="fa-solid fa-gem"></i> 찜 목록 확인하기
                 </div>
             </div>`;
@@ -753,7 +753,7 @@ function renderCardView(sec, favSet) {
     const blurClass = _isActiveUser ? '' : ' card-photo-blurred';
     const photoHtml = mainPhoto
         ? `<img loading="lazy" src="${esc(mainPhoto)}" alt="" id="card-main-photo" class="${blurClass}">`
-        : `<div class="card-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        : `<div class="card-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
     const photoDotsHtml = photos.length > 1
         ? `<div class="photo-dots">${photos.map((_, i) => `<div class="photo-dot ${i === photoIdx ? 'active' : ''}"></div>`).join('')}</div>`
         : '';
@@ -806,7 +806,7 @@ function renderCardView(sec, favSet) {
                     ${mutualCardHtml}
                     ${popHtml}
                     <div class="card-tags">${tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>
-                    ${c.referred_by ? `<div style="font-size:.75em;color:#7c3aed;margin-top:6px;"><i class="fa-solid fa-handshake-angle"></i> 지인 추천으로 가입</div>` : ''}
+                    ${c.referred_by ? `<div style="font-size:.75em;color:#FF6B6B;margin-top:6px;"><i class="fa-solid fa-handshake-angle"></i> 지인 추천으로 가입</div>` : ''}
                     <div class="card-compat">
                         <div class="card-compat-bar" style="flex:1;"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
                         <span style="font-size:.72em;color:var(--muted);white-space:nowrap;">${mbtiLabel} ${mbtiCompat}%</span>
@@ -1149,7 +1149,7 @@ async function loadWhoLikedMe() {
         card.style.display = '';
         if (!data || data.length === 0) {
             document.getElementById('liked-me-count').textContent = '';
-            sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-eye" style="color:#ede9fe;font-size:1.5em;display:block;"></i>아직 나를 찜한 사람이 없어요</div>';
+            sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-eye" style="color:#FFF0F0;font-size:1.5em;display:block;"></i>아직 나를 찜한 사람이 없어요</div>';
             updateInterestEmptyState();
             return;
         }
@@ -1161,7 +1161,7 @@ async function loadWhoLikedMe() {
                 const photo = a.photos && a.photos[0];
                 const photoHtml = photo
                     ? '<div class="fav-photo"><img loading="lazy" src="' + photo + '" alt=""></div>'
-                    : '<div class="fav-photo">' + (a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>') + '</div>';
+                    : '<div class="fav-photo">' + (a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>') + '</div>';
                 const tags = [age ? age + '세' : null, a.job, a.location, a.mbti].filter(Boolean)
                     .map(t => '<span class="fav-tag">' + esc(t) + '</span>').join('');
                 return '<div class="fav-item" style="cursor:pointer;" onclick="openProfileModal(\'' + a.id + '\')">' + photoHtml + '<div class="fav-info"><div class="fav-tags">' + tags + '</div></div><span style="color:#f59e0b;font-size:1.1em;"><i class="fa-solid fa-heart"></i></span></div>';
@@ -1229,8 +1229,8 @@ function showMatchCelebrate(applicantId, name, partnerUserId) {
     const candidate = (window._allCandidates || []).find(c => c.id === applicantId);
     const photo = candidate?.photos?.[0];
     const photoHtml = photo
-        ? `<img src="${esc(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #ede9fe;">`
-        : `<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;"><i class="fa-solid fa-heart" style="color:#ec4899;"></i></div>`;
+        ? `<img src="${esc(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #FFF0F0;">`
+        : `<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;"><i class="fa-solid fa-heart" style="color:#FF6B6B;"></i></div>`;
     content.innerHTML = `
         <div style="font-size:3em;margin-bottom:12px;">💑</div>
         <div style="font-size:1.3em;font-weight:900;color:#111;margin-bottom:6px;">매칭 성사!</div>
@@ -1277,7 +1277,7 @@ function renderMutualSection() {
     sec.style.display = '';
     if (mutuals.length === 0) {
         document.getElementById('mutual-count').textContent = '';
-        sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#ede9fe;font-size:1.5em;display:block;"></i>서로 찜하면 여기에 표시돼요</div>';
+        sec.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-heart-circle-bolt" style="color:#FFF0F0;font-size:1.5em;display:block;"></i>서로 찜하면 여기에 표시돼요</div>';
         return;
     }
     document.getElementById('mutual-count').textContent = mutuals.length + '명';
@@ -1290,7 +1290,7 @@ function renderMutualSection() {
             const photo = c.photos && c.photos[0];
             const photoHtml = photo
                 ? `<div class="match-photo"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
-                : `<div class="match-photo">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+                : `<div class="match-photo">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
             const tags = [age ? age + '세' : null, c.location, c.mbti, c.job_category].filter(Boolean)
                 .map(t => `<span class="match-tag">${esc(t)}</span>`).join('');
             const matchedWithMe = window._myProfile && window._myProfile.matched_with === c.id;
@@ -1300,7 +1300,7 @@ function renderMutualSection() {
             } else {
                 actionHtml = `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>`;
             }
-            return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #ede9fe;' : ''}" onclick="openProfileModal('${c.id}')">
+            return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #FFF0F0;' : ''}" onclick="openProfileModal('${c.id}')">
                 ${photoHtml}
                 <div class="match-info" style="flex:1;">
                     <div style="display:flex;align-items:center;gap:6px;">
@@ -1349,7 +1349,7 @@ async function openProfileModal(applicantId) {
     const photo = photos[0];
     const photoHtml = photo
         ? `<img loading="lazy" src="${esc(photo)}" alt="" id="pm-main-photo">`
-        : `<div class="pm-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        : `<div class="pm-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
     // 다중 사진 네비 (2장 이상)
     const pmDotsHtml = photos.length > 1
         ? `<div class="photo-dots" style="position:absolute;top:8px;left:10px;right:10px;display:flex;gap:3px;z-index:5;">${photos.map((_, i) => `<div class="photo-dot ${i===0?'active':''}" style="flex:1;height:3px;background:rgba(255,255,255,${i===0?'.95':'.35'});border-radius:2px;"></div>`).join('')}</div>
@@ -1403,7 +1403,7 @@ async function openProfileModal(applicantId) {
             }
             const allChips = [...yearChips, ...chips];
             if (allChips.length > 0 || d.memo) {
-                idealHtml = `<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> 이런 사람을 찾고 있어요</div><div>${allChips.map(c => `<span class="pm-ideal-chip">${esc(c)}</span>`).join('')}</div>${d.memo ? `<div style="margin-top:8px;font-size:.82em;color:var(--muted);font-style:italic;">"${esc(d.memo)}"</div>` : ''}</div>`;
+                idealHtml = `<div class="pm-section"><div class="pm-section-title"><i class="fa-solid fa-heart" style="color:#FF6B6B;"></i> 이런 사람을 찾고 있어요</div><div>${allChips.map(c => `<span class="pm-ideal-chip">${esc(c)}</span>`).join('')}</div>${d.memo ? `<div style="margin-top:8px;font-size:.82em;color:var(--muted);font-style:italic;">"${esc(d.memo)}"</div>` : ''}</div>`;
             }
         } catch {}
     }
@@ -1438,7 +1438,7 @@ async function openProfileModal(applicantId) {
                 const w = writerMap[r.writer_applicant_id] || {};
                 const wPhoto = (w.photos && w.photos[0])
                     ? `<img loading="lazy" src="${esc(w.photos[0])}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
-                    : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.9em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+                    : `<div style="width:36px;height:36px;border-radius:50%;background:#FFF0F0;display:flex;align-items:center;justify-content:center;font-size:.9em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
                 return `<div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:10px;margin-bottom:6px;align-items:flex-start;">
                     ${wPhoto}
                     <div style="flex:1;min-width:0;">
@@ -1828,7 +1828,7 @@ async function togglePush() {
     const sw = document.getElementById('push-toggle-switch');
     const row = document.getElementById('push-toggle-row');
     if (sw) { sw.style.transform = 'scale(.75)'; setTimeout(() => sw.style.transform = '', 200); }
-    if (row) { row.style.background = '#ede9fe'; setTimeout(() => row.style.background = '#fafafa', 300); }
+    if (row) { row.style.background = '#FFF0F0'; setTimeout(() => row.style.background = '#fafafa', 300); }
     if (!('Notification' in window)) { toast('이 브라우저는 푸시 알림을 지원하지 않아요', 'info'); return; }
     if (Notification.permission === 'denied') {
         toast('브라우저 설정에서 알림을 허용해주세요', 'info');
@@ -1875,7 +1875,7 @@ function renderNotifList() {
         list.innerHTML = '<div class="notif-empty">아직 알림이 없어요</div>';
         return;
     }
-    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#7c3aed;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', match:'<i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', chat_message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#7c3aed;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>', announcement:'<i class="fa-solid fa-bullhorn" style="color:#6366f1;"></i>' };
+    const icons = { interest:'<i class="fa-solid fa-heart" style="color:#FF6B6B;"></i>', matched:'<i class="fa-solid fa-heart-pulse" style="color:#FF6B6B;"></i>', match:'<i class="fa-solid fa-heart-pulse" style="color:#FF6B6B;"></i>', approved:'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', mutual:'<i class="fa-solid fa-heart-circle-bolt" style="color:#FF6B6B;"></i>', rejected:'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>', message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', chat_message:'<i class="fa-regular fa-comment-dots" style="color:#3b82f6;"></i>', reputation_received:'<i class="fa-solid fa-handshake" style="color:#FF6B6B;"></i>', reputation_request:'<i class="fa-solid fa-user-plus" style="color:#f59e0b;"></i>', reputation_complete:'<i class="fa-solid fa-check-double" style="color:#10b981;"></i>', announcement:'<i class="fa-solid fa-bullhorn" style="color:#FF6B6B;"></i>' };
     list.innerHTML = _notifications.map(n => {
         const icon = icons[n.type] || '<i class="fa-solid fa-bell" style="color:var(--muted);"></i>';
         const timeAgo = formatTimeAgo(n.created_at);
@@ -2042,7 +2042,7 @@ async function loadProfileVisitors() {
             const photo = v.photos && v.photos[0];
             const photoHtml = photo
                 ? `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
-                : `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}" style="background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:22px;">${v.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+                : `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}" style="background:#FFF0F0;display:flex;align-items:center;justify-content:center;font-size:22px;">${v.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
             const tags = isLiked
                 ? [age ? age+'세' : null, v.job, v.location, v.mbti].filter(Boolean).map(t => `<span class="fav-tag">${esc(t)}</span>`).join('')
                 : '<span class="fav-tag" style="color:#d1d5db;">???</span>';
@@ -2183,7 +2183,7 @@ function showConfetti() {
     const container = document.createElement('div');
     container.className = 'confetti-container';
     document.body.appendChild(container);
-    const colors = ['#7c3aed','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444'];
+    const colors = ['#FF6B6B','#FF6B6B','#f59e0b','#10b981','#3b82f6','#ef4444'];
     for (let i = 0; i < 60; i++) {
         const c = document.createElement('div');
         c.className = 'confetti';
@@ -2209,7 +2209,7 @@ function renderMatchResult(partner) {
     const photo = partner.photos && partner.photos[0];
     const photoHtml = photo
         ? `<img loading="lazy" src="${esc(photo)}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
-        : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;">${partner.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);display:flex;align-items:center;justify-content:center;font-size:36px;">${partner.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
 
     // 매칭 상대 ID 저장 (프로필 모달용)
     window._matchedPartner = partner;
@@ -2238,7 +2238,7 @@ async function openMatchedProfile() {
     const photo = photos[0];
     const photoHtml = photo
         ? `<img loading="lazy" src="${esc(photo)}" alt="" style="width:100%;height:280px;object-fit:cover;">`
-        : `<div style="width:100%;height:280px;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:60px;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        : `<div style="width:100%;height:280px;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);display:flex;align-items:center;justify-content:center;font-size:60px;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
     const tags = [age ? `${age}세` : null, p.job, p.height ? p.height + 'cm' : null, p.location, p.mbti, p.education, p.religion, p.smoking, p.drinking, p.hobby].filter(Boolean);
 
     const content = document.getElementById('profile-modal-content');
@@ -2430,8 +2430,8 @@ async function init() {
             const myTab = document.getElementById('tab-my');
             if (myTab) {
                 const linkHtml = `<div class="section-card" style="margin-top:12px;">
-                    <a href="matchmaker.html" style="display:flex;align-items:center;gap:14px;padding:16px 20px;text-decoration:none;color:inherit;transition:background .15s;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background=''">
-                        <i class="fa-solid fa-handshake-angle" style="color:#7c3aed;font-size:1.2em;width:28px;text-align:center;"></i>
+                    <a href="matchmaker.html" style="display:flex;align-items:center;gap:14px;padding:16px 20px;text-decoration:none;color:inherit;transition:background .15s;" onmouseover="this.style.background='#FFF0F0'" onmouseout="this.style.background=''">
+                        <i class="fa-solid fa-handshake-angle" style="color:#FF6B6B;font-size:1.2em;width:28px;text-align:center;"></i>
                         <div><div style="font-weight:700;font-size:.9em;">주선자 대시보드</div><div style="font-size:.75em;color:var(--muted);margin-top:2px;">내가 소개한 사람들 관리</div></div>
                         <i class="fa-solid fa-chevron-right" style="color:#d1d5db;margin-left:auto;"></i>
                     </a>
@@ -2502,7 +2502,7 @@ async function loadPendingIntroductions(profile) {
         const photo = other.photos && other.photos.length > 0 ? other.photos[0] : null;
         const score = calcMatchScore(profile, other);
         const genderIcon = other.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>'
-            : other.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>' : '';
+            : other.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>' : '';
 
         const tierTags = [];
         if (matchmaker.intro_success_count > 0) tierTags.push(`성사 ${matchmaker.intro_success_count}회`);
@@ -2636,7 +2636,7 @@ async function renderMatchmakerDashboard(profile) {
                 <div class="section-title"><i class="fa-solid fa-share-nodes" style="color:var(--primary);"></i> 내 추천 코드</div>
             </div>
             <div class="section-body" style="padding:14px 20px;">
-                <div style="display:flex;align-items:center;gap:10px;background:#f5f3ff;border-radius:12px;padding:16px;">
+                <div style="display:flex;align-items:center;gap:10px;background:#FFF0F0;border-radius:12px;padding:16px;">
                     <div style="flex:1;font-family:monospace;font-size:1.3em;font-weight:900;letter-spacing:.05em;color:var(--primary);">${esc(profile.referral_code || '')}</div>
                     <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${esc(profile.referral_code)}');toast('복사됨!','success');" style="padding:8px 16px;font-size:.85em;"><i class="fa-solid fa-copy"></i> 복사</button>
                 </div>
@@ -2655,7 +2655,7 @@ async function renderMatchmakerDashboard(profile) {
                     : referrals.map(r => `
                         <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #f3f4f6;">
                             <div style="width:36px;height:36px;border-radius:50%;background:${r.gender==='male'?'#eff6ff':'#fdf2f8'};display:flex;align-items:center;justify-content:center;font-size:.85em;">
-                                ${r.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}
+                                ${r.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}
                             </div>
                             <div style="flex:1;">
                                 <div style="font-weight:700;font-size:.9em;">${esc(r.name)}</div>
@@ -2792,7 +2792,7 @@ function openFeedbackModal(type, options = {}) {
         const exitReasons = ['매칭이 안 돼서', '마음에 드는 사람이 없어서', '사용하기 불편해서', '개인정보가 걱정돼서', '다른 앱을 사용 중', '기타'];
         reasons.innerHTML = exitReasons.map(r =>
             `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:10px;font-size:.88em;cursor:pointer;border:1px solid #e5e7eb;transition:all .15s;">
-                <input type="radio" name="feedback-reason" value="${r}" style="accent-color:#e11d48;">
+                <input type="radio" name="feedback-reason" value="${r}" style="accent-color:#FF6B6B;">
                 <span>${r}</span>
             </label>`
         ).join('');
@@ -3011,7 +3011,7 @@ async function renderChatRoomList() {
             .is('read_at', null);
         const photoHtml = room.photo
             ? `<img class="chat-room-avatar" src="${esc(room.photo)}" alt="">`
-            : `<div class="chat-room-avatar-placeholder">${room.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+            : `<div class="chat-room-avatar-placeholder">${room.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
         const unreadHtml = count > 0 ? `<div class="chat-room-unread">${count > 99 ? '99+' : count}</div>` : '';
         html += `<div class="chat-room-item" onclick="openChatRoom('${room.userId}','${escJs(room.name)}','${escJs(room.photo || '')}','${room.gender}')">
             ${photoHtml}
@@ -3036,7 +3036,7 @@ async function openChatRoom(partnerUserId, partnerName, partnerPhoto, partnerGen
     const headerInfo = document.getElementById('chat-room-partner-info');
     const photoHtml = partnerPhoto
         ? `<img src="${esc(partnerPhoto)}" alt="">`
-        : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:14px;">${partnerGender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
+        : `<div style="width:36px;height:36px;border-radius:50%;background:#FFF0F0;display:flex;align-items:center;justify-content:center;font-size:14px;">${partnerGender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}</div>`;
     headerInfo.innerHTML = `<div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openMatchedProfile()">${photoHtml}<span class="chat-room-partner-name">${esc(partnerName)}</span></div>`;
     // 채팅 초기화
     await initChat(window._myProfile, partnerUserId, partnerName);

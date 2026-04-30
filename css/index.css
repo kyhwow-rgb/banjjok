@@ -125,8 +125,8 @@
         .bento-card.span-2 { grid-column:span 2; }
         .bento-card.span-full { grid-column:1 / -1; }
         .bento-card.no-hover:hover { transform:none; box-shadow:var(--shadow); }
-        .bento-card.accent-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-color:rgba(124,58,237,.1); }
-        .bento-card.accent-pink { background:linear-gradient(135deg,#fdf2f8,#fce7f3); border-color:rgba(236,72,153,.1); }
+        .bento-card.accent-purple { background:linear-gradient(135deg,#FFF0F0,#FFF0F0); border-color:rgba(124,58,237,.1); }
+        .bento-card.accent-pink { background:linear-gradient(135deg,#fdf2f8,#FFF0F0); border-color:rgba(236,72,153,.1); }
         .bento-card.accent-blue { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:rgba(59,130,246,.1); }
         @media (max-width:600px) {
             .bento-grid-2 { grid-template-columns:1fr 1fr; }
@@ -183,8 +183,8 @@
         @keyframes gemshine { from{transform:scale(1);} to{transform:scale(1.15) rotate(-5deg);} }
         .score-info { flex:1; }
         .score-pct-text { font-size:1.05em; font-weight:800; color:#111; }
-        .score-msg { font-size:.78em; color:#7c3aed; margin-top:1px; }
-        .score-bar-bg { height:10px; background:#ede9fe; border-radius:10px; overflow:hidden; }
+        .score-msg { font-size:.78em; color:#FF6B6B; margin-top:1px; }
+        .score-bar-bg { height:10px; background:#FFF0F0; border-radius:10px; overflow:hidden; }
         .score-bar-fill { height:100%; border-radius:10px; background:#111; transition:width .35s cubic-bezier(.4,0,.2,1); }
 
         /* 추천 반쪽 */
@@ -194,7 +194,7 @@
         .rec-card:hover { transform:translateY(-3px); }
         .rec-photo-wrap { position:relative; width:200px; height:220px; overflow:hidden; background:#f3e8ff; }
         .rec-photo { width:100%; height:100%; object-fit:cover; filter:blur(14px) brightness(.85); transform:scale(1.08); }
-        .rec-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:60px; background:linear-gradient(135deg,#ede9fe,#fce7f3); }
+        .rec-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:60px; background:linear-gradient(135deg,#FFF0F0,#FFF0F0); }
         .rec-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
         .rec-age-badge { background:rgba(124,58,237,.85); color:white; font-size:.82em; font-weight:800; padding:5px 14px; border-radius:20px; }
         .rec-hint { font-size:.68em; color:rgba(255,255,255,.85); }
@@ -406,7 +406,7 @@
 
         .ratio-bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; display:flex; margin-top:8px; }
         .ratio-male { background:#3b82f6; }
-        .ratio-female { background:#ec4899; }
+        .ratio-female { background:#FF6B6B; }
 
         .activity-feed { max-height:320px; overflow-y:auto; }
         .activity-item { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:.82em; }
@@ -469,7 +469,7 @@
         .badge-matched  { background:#f5f5f5; color:#111; }
 
         /* COUPLE CARD */
-        .couple-card { border:2px solid #ede9fe; border-radius:14px; padding:16px; margin-bottom:10px; background:white; }
+        .couple-card { border:2px solid #FFF0F0; border-radius:14px; padding:16px; margin-bottom:10px; background:white; }
         .couple-profiles { display:grid; grid-template-columns:1fr 32px 1fr; gap:8px; align-items:center; margin-bottom:10px; }
         .couple-profile { background:#f9fafb; border-radius:10px; padding:12px 10px; text-align:center; }
         .couple-profile-icon { font-size:26px; margin-bottom:4px; }

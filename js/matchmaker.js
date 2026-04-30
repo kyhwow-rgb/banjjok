@@ -109,7 +109,7 @@ async function loadParticipants() {
             'rejected': '<span class="badge badge-red">거절됨</span>',
         }[p.status] || '';
         const genderIcon = p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>'
-            : p.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>' : '';
+            : p.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>' : '';
 
         return `<div class="participant-row">
             <div class="participant-photo">${photo ? `<img src="${esc(photo)}" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.2em;"></i>'}</div>
@@ -413,7 +413,7 @@ async function loadHistory() {
             <div class="history-pair">
                 <span class="history-name">${esc(a.name || '?')}</span>
                 ${aStatus}
-                <i class="fa-solid ${isMatched ? 'fa-heart' : 'fa-arrows-left-right'}" style="color:${isMatched ? '#ec4899' : '#d1d5db'};font-size:.7em;margin:0 4px;"></i>
+                <i class="fa-solid ${isMatched ? 'fa-heart' : 'fa-arrows-left-right'}" style="color:${isMatched ? '#FF6B6B' : '#d1d5db'};font-size:.7em;margin:0 4px;"></i>
                 ${bStatus}
                 <span class="history-name">${esc(b.name || '?')}</span>
             </div>
@@ -457,7 +457,7 @@ function renderMyTab() {
                 ${tierBadge}
             </div>
             ${successCount > 0 ? `<div style="font-size:.85em;color:var(--muted);">소개 성사: <strong>${successCount}쌍</strong>${totalIntros > 0 ? ` (성공률 ${successRate}%)` : ''}</div>` : ''}
-            ${nextTier && remaining > 0 ? `<div style="font-size:.78em;color:#7c3aed;">${nextTier.name} 주선자까지 ${remaining}회 성사 남음</div>` : ''}
+            ${nextTier && remaining > 0 ? `<div style="font-size:.78em;color:#FF6B6B;">${nextTier.name} 주선자까지 ${remaining}회 성사 남음</div>` : ''}
             <div style="font-size:.85em;color:var(--muted);">추천 코드: <strong>${esc(myProfile.referral_code)}</strong></div>
             <div style="font-size:.85em;color:var(--muted);">추천한 참가자: <strong>${myParticipants.length}명</strong></div>
             <div style="font-size:.78em;color:var(--muted);">일일 소개: 인당 ${myProfile.intro_daily_limit || 1}회 · 추천 후보 ${myProfile.intro_rec_count || 3}명</div>

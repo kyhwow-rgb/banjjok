@@ -69,7 +69,7 @@ body { font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSyst
 .notif-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
 .notif-item { padding:14px 18px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
 .notif-item:hover { background:#f9fafb; }
-.notif-item.unread { background:#f5f3ff; }
+.notif-item.unread { background:#FFF0F0; }
 
 /* PARTICIPANT ROW */
 .participant-row { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
@@ -88,7 +88,7 @@ body { font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSyst
 .badge-gray { background:#f3f4f6; color:#6b7280; }
 .badge-pink { background:#fdf2f8; color:#db2777; }
 .badge-red { background:#fef2f2; color:#dc2626; }
-.badge-purple { background:#f5f3ff; color:#7c3aed; }
+.badge-purple { background:#FFF0F0; color:#FF6B6B; }
 
 /* INTRODUCE FORM */
 .intro-pick { display:flex; flex-direction:column; gap:4px; }

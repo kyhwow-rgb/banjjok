@@ -275,7 +275,7 @@
 
             <!-- 성별 (단순 버튼) -->
             <div class="input-group">
-                <label>성별 <span style="color:#e11d48;">*</span></label>
+                <label>성별 <span style="color:#FF6B6B;">*</span></label>
                 <div class="gender-select" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <button type="button" class="gender-option" id="gender-male" onclick="selectGender('male')" style="padding:12px;border:2px solid var(--border);background:#fff;border-radius:12px;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;">남성</button>
                     <button type="button" class="gender-option" id="gender-female" onclick="selectGender('female')" style="padding:12px;border:2px solid var(--border);background:#fff;border-radius:12px;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;">여성</button>
@@ -284,18 +284,18 @@
 
             <div class="form-row">
                 <div class="input-group">
-                    <label>이름 <span style="color:#e11d48;">*</span></label>
+                    <label>이름 <span style="color:#FF6B6B;">*</span></label>
                     <input type="text" id="reg-name">
                 </div>
                 <div class="input-group">
-                    <label>생년월일 <span style="color:#e11d48;">*</span></label>
+                    <label>생년월일 <span style="color:#FF6B6B;">*</span></label>
                     <input type="text" id="reg-birth" placeholder="2000.01.15" maxlength="10" inputmode="numeric">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="input-group">
-                    <label>직업 <span style="color:#e11d48;">*</span></label>
+                    <label>직업 <span style="color:#FF6B6B;">*</span></label>
                     <select id="reg-job">
                         <option value="">선택해주세요</option>
                         <option value="전문직">전문직 (의사/변호사/회계사/약사 등)</option>
@@ -309,7 +309,7 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>키 (cm) <span style="color:#e11d48;">*</span></label>
+                    <label>키 (cm) <span style="color:#FF6B6B;">*</span></label>
                     <input type="number" id="reg-height" min="140" max="220">
                 </div>
             </div>
@@ -336,14 +336,14 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>거주지 <span style="color:#e11d48;">*</span></label>
+                    <label>거주지 <span style="color:#FF6B6B;">*</span></label>
                     <input type="text" id="reg-location">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="input-group">
-                    <label>MBTI <span style="color:#e11d48;">*</span></label>
+                    <label>MBTI <span style="color:#FF6B6B;">*</span></label>
                     <select id="reg-mbti">
                         <option value="">선택해주세요</option>
                         <option value="ENFP">ENFP</option>
@@ -365,13 +365,13 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>카카오 ID <span style="color:#e11d48;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
+                    <label>카카오 ID <span style="color:#FF6B6B;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
                     <input type="text" id="reg-kakao">
                 </div>
             </div>
             <div class="form-row">
                 <div class="input-group">
-                    <label>흡연 <span style="color:#e11d48;">*</span></label>
+                    <label>흡연 <span style="color:#FF6B6B;">*</span></label>
                     <select id="reg-smoking">
                         <option value="">선택해주세요</option>
                         <option value="비흡연">비흡연</option>
@@ -380,7 +380,7 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>음주 <span style="color:#e11d48;">*</span></label>
+                    <label>음주 <span style="color:#FF6B6B;">*</span></label>
                     <select id="reg-drinking">
                         <option value="">선택해주세요</option>
                         <option value="안 마심">안 마심</option>
@@ -391,7 +391,7 @@
             </div>
             <div class="form-row">
                 <div class="input-group">
-                    <label>종교 <span style="color:#e11d48;">*</span></label>
+                    <label>종교 <span style="color:#FF6B6B;">*</span></label>
                     <select id="reg-religion">
                         <option value="">선택해주세요</option>
                         <option value="무교">무교</option>
@@ -402,7 +402,7 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>연락처 (휴대폰) <span style="color:#e11d48;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
+                    <label>연락처 (휴대폰) <span style="color:#FF6B6B;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
                     <input type="tel" id="reg-contact" placeholder="010-0000-0000">
                 </div>
             </div>
@@ -424,15 +424,15 @@
             <input type="hidden" id="reg-icebreaker-a" value="">
 
             <div class="input-group">
-                <label>이상형 <span style="color:#e11d48;">*</span></label>
+                <label>이상형 <span style="color:#FF6B6B;">*</span></label>
                 <div id="ideal-chips"></div>
                 <textarea id="reg-ideal-memo" class="ideal-memo" placeholder="원하는 이상형을 자유롭게 적어주세요..."></textarea>
             </div>
 
             <!-- 사진 업로드 (최대 3장) -->
             <div class="input-group" id="photo-upload-section">
-                <label>사진 <span style="color:#e11d48;">*</span> (최대 3장)</label>
-                <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;padding:10px 12px;background:#f5f3ff;border-radius:10px;line-height:1.5;">
+                <label>사진 <span style="color:#FF6B6B;">*</span> (최대 3장)</label>
+                <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;padding:10px 12px;background:#FFF0F0;border-radius:10px;line-height:1.5;">
                     <i class="fa-solid fa-camera-retro" style="color:var(--primary);"></i> <b>사진 팁:</b> 밝은 조명의 정면 사진이 가장 좋아요!<br>
                     <i class="fa-solid fa-check" style="color:#10b981;"></i> 얼굴이 잘 보이는 사진 &nbsp; <i class="fa-solid fa-check" style="color:#10b981;"></i> 자연스러운 미소<br>
                     <i class="fa-solid fa-xmark" style="color:#ef4444;"></i> 선글라스/마스크 &nbsp; <i class="fa-solid fa-xmark" style="color:#ef4444;"></i> 단체사진 &nbsp; <i class="fa-solid fa-xmark" style="color:#ef4444;"></i> 과한 필터
@@ -641,7 +641,7 @@
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                     <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span> 승인</div>
                     <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> 대기</div>
-                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#ec4899;display:inline-block;"></span> 매칭됨</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#FF6B6B;display:inline-block;"></span> 매칭됨</div>
                     <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span> 거절</div>
                     <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;display:inline-block;"></span> 평판대기</div>
                 </div>

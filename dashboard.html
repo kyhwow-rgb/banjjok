@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#7c3aed">
+<meta name="theme-color" content="#111111">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -66,7 +66,7 @@
         <!-- 매칭 결과 (관심 탭 상단) -->
         <div class="section-card" id="match-result-card" style="display:none;">
             <div class="section-header" style="padding:14px 20px 12px;">
-                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#ec4899;"></i> 매칭 성사</div>
+                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#FF6B6B;"></i> 매칭 성사</div>
             </div>
             <div class="section-body" id="match-result-section" style="padding:14px 20px;"></div>
         </div>
@@ -74,7 +74,7 @@
         <!-- 상호 관심 -->
         <div class="section-card" id="mutual-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
-                <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#ec4899;"></i> 상호 관심 <span id="mutual-count" style="font-size:.85em;color:var(--primary);font-weight:700;margin-left:4px;"></span></div>
+                <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#FF6B6B;"></i> 상호 관심 <span id="mutual-count" style="font-size:.85em;color:var(--primary);font-weight:700;margin-left:4px;"></span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
             <div class="section-body" id="mutual-section" style="display:none;padding:14px 20px;">
@@ -85,7 +85,7 @@
         <!-- 내가 찜한 사람 -->
         <div class="section-card">
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
-                <div class="section-title"><i class="fa-solid fa-heart" style="color:#7c3aed;"></i> 내가 찜한 사람 <span id="fav-count" style="font-size:.85em;color:var(--muted);font-weight:600;margin-left:4px;"></span></div>
+                <div class="section-title"><i class="fa-solid fa-heart" style="color:#FF6B6B;"></i> 내가 찜한 사람 <span id="fav-count" style="font-size:.85em;color:var(--muted);font-weight:600;margin-left:4px;"></span></div>
                 <span style="font-size:.78em;color:var(--muted);">▾</span>
             </div>
             <div class="section-body" id="favorites-section" style="display:none;padding:14px 20px;"></div>
@@ -111,7 +111,7 @@
 
         <!-- 아무것도 없을 때 빈 상태 -->
         <div id="interest-empty" style="text-align:center;padding:48px 20px;display:none;">
-            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#ede9fe;"></i></div>
+            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#FFF0F0;"></i></div>
             <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 관심 활동이 없어요</div>
             <div style="font-size:.82em;color:var(--muted);">추천 탭에서 마음에 드는 반쪽을 찜해보세요!</div>
         </div>
@@ -258,7 +258,7 @@
             <div style="font-size:1.05em;font-weight:800;"><i class="fa-solid fa-handshake" style="color:var(--primary);"></i> 평판 작성</div>
             <button class="btn btn-nav" onclick="closeReputationModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div id="reputation-target-info" style="padding:12px;background:#f5f3ff;border-radius:10px;margin-bottom:14px;font-size:.85em;"></div>
+        <div id="reputation-target-info" style="padding:12px;background:#FFF0F0;border-radius:10px;margin-bottom:14px;font-size:.85em;"></div>
         <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;line-height:1.5;">
             이 사람을 얼마나 잘 아는지, 어떤 사람인지 솔직하게 남겨주세요.<br>
             평판은 이 사람 프로필에 공개됩니다.
