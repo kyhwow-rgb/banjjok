@@ -8,7 +8,7 @@
 - **배포 URL**: https://kyhwow-rgb.github.io/banjjok/
 - **GitHub**: https://github.com/kyhwow-rgb/banjjok
 - **개발 기간**: 2026-04-09 ~
-- **현재 버전**: SW v55
+- **현재 버전**: SW v56
 
 ## 기술 스택
 
@@ -67,7 +67,7 @@ xcrun simctl openurl booted http://localhost:8080
 ## 참고사항
 
 - Supabase anon key는 `js/common.js`에 하드코딩되어 있음 (RLS로 보호)
-- Service Worker 캐시 버전은 `sw.js`의 `CACHE` 상수로 관리 (현재 `banjjok-v27`)
+- Service Worker 캐시 버전은 `sw.js`의 `CACHE` 상수로 관리 (현재 `banjjok-v56`)
 - GitHub Pages 배포이므로 `start_url`, `scope` 등이 `/banjjok/` 경로 기준
 
 ## Skill routing
