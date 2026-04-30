@@ -69,3 +69,21 @@ xcrun simctl openurl booted http://localhost:8080
 - Supabase anon key는 `js/common.js`에 하드코딩되어 있음 (RLS로 보호)
 - Service Worker 캐시 버전은 `sw.js`의 `CACHE` 상수로 관리 (현재 `banjjok-v27`)
 - GitHub Pages 배포이므로 `start_url`, `scope` 등이 `/banjjok/` 경로 기준
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
