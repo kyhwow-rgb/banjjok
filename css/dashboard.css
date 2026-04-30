@@ -34,12 +34,12 @@
 
     /* MATCH ITEM — fade in */
     .match-item { animation:matchItemIn .3s ease both; transition:all .15s; }
-    .match-item:hover { background:#faf5ff; transform:translateX(3px); }
+    .match-item:hover { background:#FFF8F8; transform:translateX(3px); }
     @keyframes matchItemIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
     /* FAV ITEM — animation */
     .fav-item { animation:matchItemIn .3s ease both; transition:background .15s; }
-    .fav-item:hover { background:#faf5ff; }
+    .fav-item:hover { background:#FFF8F8; }
 
     /* TOAST */
     .toast {
@@ -187,8 +187,8 @@
 
     /* TIER BADGE (Bumble 스타일) */
     .tier-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:20px; font-size:.78em; font-weight:800; letter-spacing:.02em; }
-    .tier-diamond  { background:linear-gradient(135deg,#dbeafe,#FFF0F0); color:#FF6B6B; }
-    .tier-sapphire { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#2563eb; }
+    .tier-diamond  { background:linear-gradient(135deg,#FFF0F0,#FFF0F0); color:#FF6B6B; }
+    .tier-sapphire { background:linear-gradient(135deg,#FFF0F0,#bfdbfe); color:#2563eb; }
     .tier-emerald  { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#059669; }
     .tier-ruby     { background:linear-gradient(135deg,#FFF0F0,#fecdd3); color:var(--accent); }
     .tier-bronze   { background:#f3f4f6; color:#9ca3af; }
@@ -247,7 +247,7 @@
     .btn-match-request:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(236,72,153,.3); }
     .btn-match-request:disabled { opacity:.6; cursor:not-allowed; transform:none; }
     .btn-match-requested { padding:6px 14px; border-radius:10px; border:2px solid #d1d5db; background:white; font-size:.78em; font-weight:700; color:#9ca3af; cursor:default; font-family:inherit; }
-    .mutual-section { background:linear-gradient(135deg,#faf5ff,#fdf2f8); border-radius:16px; padding:18px; margin-bottom:20px; border:2px solid #FFF0F0; }
+    .mutual-section { background:linear-gradient(135deg,#FFF8F8,#FFF0F0); border-radius:16px; padding:18px; margin-bottom:20px; border:2px solid #FFF0F0; }
     .mutual-title { font-size:.88em; font-weight:800; color:var(--primary); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
     .mutual-item { display:flex; align-items:center; gap:12px; padding:10px; background:white; border-radius:12px; margin-bottom:8px; box-shadow:0 2px 8px rgba(124,58,237,.08); }
 
@@ -363,7 +363,7 @@
     @keyframes notifSlide { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
     .notif-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:white; }
     .notif-item { padding:14px 20px; border-bottom:1px solid #f3f4f6; display:flex; gap:12px; align-items:flex-start; cursor:pointer; transition:background .15s; }
-    .notif-item:hover { background:#faf5ff; }
+    .notif-item:hover { background:#FFF8F8; }
     .notif-item.unread { background:#FFF0F0; }
     .notif-icon { font-size:1.4em; flex-shrink:0; margin-top:2px; }
     .notif-body { flex:1; }

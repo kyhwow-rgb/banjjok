@@ -35,8 +35,8 @@ function getTierBadge(pct) {
 function gemIcon(pct) {
     if (pct >= 96) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'max', color:'#FF6B6B' };
     if (pct >= 70) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#FF6B6B' };
-    if (pct >= 45) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#a78bfa' };
-    if (pct >= 20) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#c4b5fd' };
+    if (pct >= 45) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#FF9B9B' };
+    if (pct >= 20) return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#FFBDBD' };
     return { icon:'<i class="fa-solid fa-gem"></i>', filter:'none', cls:'', color:'#d1d5db' };
 }
 
@@ -273,7 +273,7 @@ async function showOnboarding(status, candidateCount) {
                     <div>${hasReferrerRep ? '✅' : '⏳'} 추천인 <b>${esc(referrerName)}</b>님의 평판</div>
                 </div>
             </div>
-            <div style="background:linear-gradient(135deg,#FFF0F0,#fdf2f8);padding:14px;border-radius:12px;margin-bottom:20px;">
+            <div style="background:linear-gradient(135deg,#FFF0F0,#FFF0F0);padding:14px;border-radius:12px;margin-bottom:20px;">
                 <div style="font-size:.82em;font-weight:700;margin-bottom:6px;">💡 승인 절차</div>
                 <div style="font-size:.76em;color:var(--muted);line-height:1.6;text-align:left;">
                     1. 추천인 <b>${esc(referrerName)}</b>님이 평판을 작성<br>
@@ -698,7 +698,7 @@ function renderListView(sec, favSet) {
         const isMutual = (window._mutualSet || new Set()).has(c.id);
         const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="font-size:.65em;padding:2px 6px;"><i class="fa-solid fa-fire"></i>${c._favCount}</span>` : '';
         const mutualHtml = isMutual ? `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>` : '';
-        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #FFF0F0;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
+        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border:1px solid #FFF0F0;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
             <div class="match-rank">${rankIcon}</div>
             ${photoHtml}
             <div class="match-info">
@@ -783,7 +783,7 @@ function renderCardView(sec, favSet) {
     }
 
     const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="margin-bottom:12px;"><i class="fa-solid fa-fire"></i> ${c._favCount}명이 관심을 보이고 있어요</span>` : '';
-    const mutualCardHtml = isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#faf5ff,#fdf2f8);border-radius:12px;margin-bottom:12px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 이 사람도 당신에게 관심이 있어요!</span></div>` : '';
+    const mutualCardHtml = isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border-radius:12px;margin-bottom:12px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 이 사람도 당신에게 관심이 있어요!</span></div>` : '';
 
     sec.innerHTML = `
         <div class="card-view">
@@ -1300,7 +1300,7 @@ function renderMutualSection() {
             } else {
                 actionHtml = `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>`;
             }
-            return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#faf5ff,#fdf2f8);border:1px solid #FFF0F0;' : ''}" onclick="openProfileModal('${c.id}')">
+            return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border:1px solid #FFF0F0;' : ''}" onclick="openProfileModal('${c.id}')">
                 ${photoHtml}
                 <div class="match-info" style="flex:1;">
                     <div style="display:flex;align-items:center;gap:6px;">
@@ -1477,7 +1477,7 @@ async function openProfileModal(applicantId) {
             </div>
         </div>
         <div class="pm-body">
-            ${isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#faf5ff,#fdf2f8);border-radius:12px;margin-bottom:14px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 서로 관심을 보냈어요!</span></div>` : ''}
+            ${isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border-radius:12px;margin-bottom:14px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 서로 관심을 보냈어요!</span></div>` : ''}
             ${popCount > 0 ? `<div style="margin-bottom:12px;"><span class="popularity-badge"><i class="fa-solid fa-fire"></i> ${popCount}명이 관심</span></div>` : ''}
             <div class="pm-section">
                 <div class="pm-tags">${tags.map(t => `<span class="pm-tag">${esc(t)}</span>`).join('')}</div>
@@ -2654,7 +2654,7 @@ async function renderMatchmakerDashboard(profile) {
                     ? '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.88em;"><i class="fa-solid fa-user-plus" style="font-size:2em;color:#e5e7eb;display:block;margin-bottom:10px;"></i>아직 추천한 친구가 없어요<br>추천 코드를 공유해보세요!</div>'
                     : referrals.map(r => `
                         <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #f3f4f6;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:${r.gender==='male'?'#eff6ff':'#fdf2f8'};display:flex;align-items:center;justify-content:center;font-size:.85em;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:${r.gender==='male'?'#eff6ff':'#FFF0F0'};display:flex;align-items:center;justify-content:center;font-size:.85em;">
                                 ${r.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>'}
                             </div>
                             <div style="flex:1;">

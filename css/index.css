@@ -126,8 +126,8 @@
         .bento-card.span-full { grid-column:1 / -1; }
         .bento-card.no-hover:hover { transform:none; box-shadow:var(--shadow); }
         .bento-card.accent-purple { background:linear-gradient(135deg,#FFF0F0,#FFF0F0); border-color:rgba(124,58,237,.1); }
-        .bento-card.accent-pink { background:linear-gradient(135deg,#fdf2f8,#FFF0F0); border-color:rgba(236,72,153,.1); }
-        .bento-card.accent-blue { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:rgba(59,130,246,.1); }
+        .bento-card.accent-pink { background:linear-gradient(135deg,#FFF0F0,#FFF0F0); border-color:rgba(236,72,153,.1); }
+        .bento-card.accent-blue { background:linear-gradient(135deg,#eff6ff,#FFF0F0); border-color:rgba(59,130,246,.1); }
         @media (max-width:600px) {
             .bento-grid-2 { grid-template-columns:1fr 1fr; }
             .bento-grid-3 { grid-template-columns:1fr 1fr 1fr; gap:10px; }
@@ -429,7 +429,7 @@
         .app-badge-nolook { background:#fffbeb; color:#d97706; }
         .app-badge-online { background:#ecfdf5; color:#059669; }
         .app-badge-idle { background:#f3f4f6; color:#6b7280; }
-        .app-badge-pop { background:#fdf2f8; color:#db2777; }
+        .app-badge-pop { background:#FFF0F0; color:#db2777; }
         .app-badge-complete { background:#eff6ff; color:#2563eb; }
 
         .admin-quickfilter { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
@@ -449,7 +449,7 @@
             margin-bottom:10px; cursor:pointer; transition:all .2s ease;
             animation:rowFadeIn .35s ease both;
         }
-        .applicant-row:hover { background:#faf5ff; transform:translateX(4px); box-shadow:0 2px 12px rgba(124,58,237,.08); }
+        .applicant-row:hover { background:#FFF8F8; transform:translateX(4px); box-shadow:0 2px 12px rgba(124,58,237,.08); }
         @keyframes rowFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .applicant-row-icon { font-size:26px; flex-shrink:0; margin-top:2px; }
         .applicant-info { flex:1; min-width:0; }
@@ -504,7 +504,7 @@
         .detail-row:last-child { border-bottom:none; }
         .detail-label { width:80px; flex-shrink:0; font-size:.78em; color:var(--muted); padding-top:2px; }
         .detail-value { font-size:.88em; font-weight:500; line-height:1.6; word-break:break-word; }
-        .detail-contact { background:#faf5ff; margin:8px 0; padding:12px 16px; border-radius:10px; border-left:3px solid var(--primary); }
+        .detail-contact { background:#FFF8F8; margin:8px 0; padding:12px 16px; border-radius:10px; border-left:3px solid var(--primary); }
         .detail-contact .detail-label { color:var(--primary); font-weight:700; }
         .detail-contact .detail-value { color:var(--primary); font-weight:700; font-size:.95em; }
 
