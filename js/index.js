@@ -372,7 +372,7 @@ async function renderHome() {
         const age  = calcAge(pick.birth);
         const photo = pick.photos && pick.photos.length > 0 ? pick.photos[0] : null;
         const photoHtml = photo
-            ? `<img class="rec-photo" loading="lazy" src="${photo}" alt="">`
+            ? `<img class="rec-photo" loading="lazy" src="${esc(photo)}" alt="">`
             : `<div class="rec-photo-placeholder">${pick.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);"></i>'}</div>`;
         const tags = [
             age ? `${age}세` : null,

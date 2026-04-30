@@ -59,7 +59,7 @@ async function loadMyReputations(myId) {
             ${reps.map(r => {
                 const w = writerMap[r.writer_applicant_id] || {};
                 const wPhoto = (w.photos && w.photos[0])
-                    ? `<img loading="lazy" src="${w.photos[0]}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
+                    ? `<img loading="lazy" src="${esc(w.photos[0])}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
                     : `<div style="width:32px;height:32px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.8em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
                 return `<div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:10px;margin-bottom:6px;align-items:flex-start;">
                     ${wPhoto}
@@ -391,7 +391,7 @@ function renderProfile(p) {
     const scoreMsg = pct >= 96 ? '완벽한 보석이에요! ✨' : pct >= 70 ? '멋진 보석이에요!' : pct >= 45 ? '조금만 더 채워봐요' : '정보를 더 입력해보세요';
     const myPhoto = p.photos && p.photos[0];
     const myPhotoHtml = myPhoto
-        ? `<img loading="lazy" src="${myPhoto}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+        ? `<img loading="lazy" src="${esc(myPhoto)}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
         : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
     sec.innerHTML = `
         ${window._popularityCount > 0 ? `<div style="margin-bottom:12px;"><span class="popularity-badge"><i class="fa-solid fa-fire"></i> ${window._popularityCount}명이 관심</span></div>` : ''}
@@ -464,7 +464,7 @@ function renderFavorites(favApplicants) {
         const age = calcAge(a.birth);
         const photo = a.photos && a.photos[0];
         const photoHtml = photo
-            ? `<div class="fav-photo"><img loading="lazy" src="${photo}" alt=""></div>`
+            ? `<div class="fav-photo"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
             : `<div class="fav-photo">${a.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
         const tags = [age ? `${age}세` : null, a.job, a.location, a.mbti].filter(Boolean)
             .map(t => `<span class="fav-tag">${t}</span>`).join('');
@@ -688,7 +688,7 @@ function renderListView(sec, favSet) {
         const age = calcAge(c.birth);
         const photo = c.photos && c.photos[0];
         const photoHtml = photo
-            ? `<div class="match-photo"><img loading="lazy" src="${photo}" alt=""></div>`
+            ? `<div class="match-photo"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
             : `<div class="match-photo">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
         const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
         const mbtiLabel = c._mbtiCompat >= 80 ? '<i class="fa-solid fa-fire" style="color:#ef4444;font-size:.7em;"></i>' : c._mbtiCompat >= 65 ? '<i class="fa-solid fa-star" style="color:#f59e0b;font-size:.7em;"></i>' : '';
@@ -752,7 +752,7 @@ function renderCardView(sec, favSet) {
     const mainPhoto = photos[photoIdx];
     const blurClass = _isActiveUser ? '' : ' card-photo-blurred';
     const photoHtml = mainPhoto
-        ? `<img loading="lazy" src="${mainPhoto}" alt="" id="card-main-photo" class="${blurClass}">`
+        ? `<img loading="lazy" src="${esc(mainPhoto)}" alt="" id="card-main-photo" class="${blurClass}">`
         : `<div class="card-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
     const photoDotsHtml = photos.length > 1
         ? `<div class="photo-dots">${photos.map((_, i) => `<div class="photo-dot ${i === photoIdx ? 'active' : ''}"></div>`).join('')}</div>`
@@ -1229,7 +1229,7 @@ function showMatchCelebrate(applicantId, name, partnerUserId) {
     const candidate = (window._allCandidates || []).find(c => c.id === applicantId);
     const photo = candidate?.photos?.[0];
     const photoHtml = photo
-        ? `<img src="${photo}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #ede9fe;">`
+        ? `<img src="${esc(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #ede9fe;">`
         : `<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;"><i class="fa-solid fa-heart" style="color:#ec4899;"></i></div>`;
     content.innerHTML = `
         <div style="font-size:3em;margin-bottom:12px;">💑</div>
@@ -1289,7 +1289,7 @@ function renderMutualSection() {
             const age = calcAge(c.birth);
             const photo = c.photos && c.photos[0];
             const photoHtml = photo
-                ? `<div class="match-photo"><img loading="lazy" src="${photo}" alt=""></div>`
+                ? `<div class="match-photo"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
                 : `<div class="match-photo">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
             const tags = [age ? age + '세' : null, c.location, c.mbti, c.job_category].filter(Boolean)
                 .map(t => `<span class="match-tag">${esc(t)}</span>`).join('');
@@ -1348,7 +1348,7 @@ async function openProfileModal(applicantId) {
     const photos = c.photos || [];
     const photo = photos[0];
     const photoHtml = photo
-        ? `<img loading="lazy" src="${photo}" alt="" id="pm-main-photo">`
+        ? `<img loading="lazy" src="${esc(photo)}" alt="" id="pm-main-photo">`
         : `<div class="pm-photo-placeholder">${c.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
     // 다중 사진 네비 (2장 이상)
     const pmDotsHtml = photos.length > 1
@@ -1437,7 +1437,7 @@ async function openProfileModal(applicantId) {
             ${reputations.map(r => {
                 const w = writerMap[r.writer_applicant_id] || {};
                 const wPhoto = (w.photos && w.photos[0])
-                    ? `<img loading="lazy" src="${w.photos[0]}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
+                    ? `<img loading="lazy" src="${esc(w.photos[0])}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
                     : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.9em;">${w.gender==='male'?'<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
                 return `<div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:10px;margin-bottom:6px;align-items:flex-start;">
                     ${wPhoto}
@@ -2041,7 +2041,7 @@ async function loadProfileVisitors() {
             const age = calcAge(v.birth);
             const photo = v.photos && v.photos[0];
             const photoHtml = photo
-                ? `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}"><img loading="lazy" src="${photo}" alt=""></div>`
+                ? `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}"><img loading="lazy" src="${esc(photo)}" alt=""></div>`
                 : `<div class="fav-photo ${isLiked ? '' : 'visitor-blurred'}" style="background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:22px;">${v.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
             const tags = isLiked
                 ? [age ? age+'세' : null, v.job, v.location, v.mbti].filter(Boolean).map(t => `<span class="fav-tag">${esc(t)}</span>`).join('')
@@ -2208,7 +2208,7 @@ function renderMatchResult(partner) {
     const age = calcAge(partner.birth);
     const photo = partner.photos && partner.photos[0];
     const photoHtml = photo
-        ? `<img loading="lazy" src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
+        ? `<img loading="lazy" src="${esc(photo)}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
         : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:36px;">${partner.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
 
     // 매칭 상대 ID 저장 (프로필 모달용)
@@ -2236,7 +2236,7 @@ async function openMatchedProfile() {
     const photos = p.photos || [];
     const photo = photos[0];
     const photoHtml = photo
-        ? `<img loading="lazy" src="${photo}" alt="" style="width:100%;height:280px;object-fit:cover;">`
+        ? `<img loading="lazy" src="${esc(photo)}" alt="" style="width:100%;height:280px;object-fit:cover;">`
         : `<div style="width:100%;height:280px;background:linear-gradient(135deg,#ede9fe,#fce7f3);display:flex;align-items:center;justify-content:center;font-size:60px;">${p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
     const tags = [age ? `${age}세` : null, p.job, p.height ? p.height + 'cm' : null, p.location, p.mbti, p.education, p.religion, p.smoking, p.drinking, p.hobby].filter(Boolean);
 
@@ -2984,7 +2984,7 @@ async function renderChatRoomList() {
             .eq('receiver_id', session.user.id)
             .is('read_at', null);
         const photoHtml = room.photo
-            ? `<img class="chat-room-avatar" src="${room.photo}" alt="">`
+            ? `<img class="chat-room-avatar" src="${esc(room.photo)}" alt="">`
             : `<div class="chat-room-avatar-placeholder">${room.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
         const unreadHtml = count > 0 ? `<div class="chat-room-unread">${count > 99 ? '99+' : count}</div>` : '';
         html += `<div class="chat-room-item" onclick="openChatRoom('${room.userId}','${escJs(room.name)}','${escJs(room.photo || '')}','${room.gender}')">
@@ -3009,7 +3009,7 @@ async function openChatRoom(partnerUserId, partnerName, partnerPhoto, partnerGen
     // 헤더 설정
     const headerInfo = document.getElementById('chat-room-partner-info');
     const photoHtml = partnerPhoto
-        ? `<img src="${partnerPhoto}" alt="">`
+        ? `<img src="${esc(partnerPhoto)}" alt="">`
         : `<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:14px;">${partnerGender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>' : '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'}</div>`;
     headerInfo.innerHTML = `<div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openMatchedProfile()">${photoHtml}<span class="chat-room-partner-name">${esc(partnerName)}</span></div>`;
     // 채팅 초기화

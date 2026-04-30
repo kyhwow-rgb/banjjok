@@ -290,7 +290,8 @@ BEGIN
 END;
 $$;
 
--- 5. auto_match_if_mutual 리팩터 (동성 제한 제거 + 소개 정리)
+-- 5. 기존 auto_match_if_mutual 제거 후 재생성 (동성 제한 제거 + 소개 정리)
+DROP FUNCTION IF EXISTS auto_match_if_mutual(text);
 CREATE OR REPLACE FUNCTION auto_match_if_mutual(p_target_applicant_id TEXT)
 RETURNS boolean
 LANGUAGE plpgsql
