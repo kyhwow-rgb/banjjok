@@ -1187,17 +1187,11 @@ async function autoMatch(targetApplicantId, targetUserId, targetName) {
     if (window._myProfile.status === 'matched') return;
     try {
         const myId = window._myProfile.id;
-        // 양쪽 applicants를 matched 상태로 업데이트
-        const { error: e1 } = await db.from('applicants').update({
-            status: 'matched',
-            matched_with: targetApplicantId
-        }).eq('id', myId);
-        if (e1) throw e1;
-        const { error: e2 } = await db.from('applicants').update({
-            status: 'matched',
-            matched_with: myId
-        }).eq('id', targetApplicantId);
-        if (e2) throw e2;
+        const { data: matched, error } = await db.rpc('auto_match_if_mutual', {
+            p_target_applicant_id: targetApplicantId
+        });
+        if (error) throw error;
+        if (!matched) return;
         // 내 프로필 상태 업데이트
         window._myProfile.status = 'matched';
         window._myProfile.matched_with = targetApplicantId;

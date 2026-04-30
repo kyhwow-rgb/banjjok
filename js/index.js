@@ -1188,11 +1188,14 @@ async function sendAdminPush(userId, title, body, url, type) {
             if (prefs && prefs[type] === false) return;
         }
         const { data: { session } } = await db.auth.getSession();
-        const token = session ? session.access_token : SUPABASE_KEY;
+        if (!session) {
+            console.warn('admin push skipped: no authenticated session');
+            return;
+        }
         await fetch(SUPABASE_URL + '/functions/v1/send-push', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + token,
+                'Authorization': 'Bearer ' + session.access_token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ user_id: userId, title, body: body || '', url: url || 'https://kyhwow-rgb.github.io/banjjok/dashboard.html' })
@@ -2729,19 +2732,11 @@ function selectMatchCandidate(subjectId, candidateId) {
 async function confirmMatch(maleId, femaleId) {
     setLoading(true);
     try {
-        // 매칭 전 상태 재확인 (동시성 충돌 방지)
-        const checkM = await adminFetch('applicants', 'GET', null, `?id=eq.${maleId}&select=status`);
-        const checkF = await adminFetch('applicants', 'GET', null, `?id=eq.${femaleId}&select=status`);
-        if (!checkM?.[0] || !checkF?.[0] || checkM[0].status === 'matched' || checkF[0].status === 'matched') {
-            setLoading(false);
-            toast('이미 매칭된 사용자가 포함되어 있어요. 새로고침합니다.');
-            await renderAdmin(); return;
-        }
-        await adminFetch('applicants', 'PATCH', { status: 'matched', matched_with: femaleId }, `?id=eq.${maleId}`);
-        await adminFetch('applicants', 'PATCH', { status: 'matched', matched_with: maleId }, `?id=eq.${femaleId}`);
-        // 관련 pending 매칭 요청 자동 거절
-        await adminFetch('match_requests', 'PATCH', { status: 'rejected' },
-            `?status=eq.pending&or=(from_applicant.eq.${maleId},to_applicant.eq.${maleId},from_applicant.eq.${femaleId},to_applicant.eq.${femaleId})`);
+        const { error: matchError } = await db.rpc('admin_match_applicants', {
+            p_male_id: maleId,
+            p_female_id: femaleId
+        });
+        if (matchError) throw matchError;
         // 양쪽에 매칭 알림 + 푸시
         const male = adminCache.find(a => a.id === maleId);
         const female = adminCache.find(a => a.id === femaleId);
@@ -3116,20 +3111,7 @@ async function deleteInquiryAdmin(id) {
 }
 
 async function savePasswords() {
-    const vPw = document.getElementById('new-viewer-pw').value.trim();
-    const aPw = document.getElementById('new-admin-pw').value.trim();
-    if (!vPw && !aPw) { toast('변경할 비밀번호를 입력해주세요.'); return; }
-    if ((vPw && vPw.length < 4) || (aPw && aPw.length < 4)) { toast('비밀번호는 4자 이상이어야 합니다.', 'warning'); return; }
-    const upserts = [];
-    if (vPw) upserts.push({ key: 'viewer_password', value: vPw });
-    if (aPw) upserts.push({ key: 'admin_password',  value: aPw });
-    setLoading(true);
-    const { error } = await db.from('settings').upsert(upserts);
-    setLoading(false);
-    if (error) { toast('오류: ' + error.message); return; }
-    document.getElementById('new-viewer-pw').value = '';
-    document.getElementById('new-admin-pw').value  = '';
-    toast('비밀번호가 변경되었습니다.');
+    toast('보안상 비밀번호 저장 기능은 비활성화되었습니다. Supabase Auth와 admin_users 권한으로 관리하세요.', 'warning');
 }
 
 // ── 라이트박스 ──
