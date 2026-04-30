@@ -31,3 +31,4 @@ build/
 seed-test-data.sql
 *.dump
 *.backup
+.gstack/

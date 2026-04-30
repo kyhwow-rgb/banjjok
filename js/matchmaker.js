@@ -7,6 +7,7 @@
 let myProfile = null;
 let myParticipants = [];
 let myIntroductions = [];
+let allApproved = [];
 
 // ── 탭 전환 ──
 function switchTab(tab) {
@@ -115,72 +116,126 @@ async function loadParticipants() {
 }
 
 // ── 소개하기 탭 ──
+let todayIntroducedIds = new Set(); // 오늘 이미 소개한 참가자 ID
+
 async function loadIntroduceTab() {
-    // 승인된 참가자만 소개 가능
-    const approved = myParticipants.filter(p => p.status === 'approved');
-    const selectA = document.getElementById('pick-person-a');
-    const selectB = document.getElementById('pick-person-b');
+    const myApproved = myParticipants.filter(p => p.status === 'approved' && p.role !== 'matchmaker');
 
-    const options = '<option value="">선택...</option>' +
-        approved.map(p => {
-            const age = calcAge(p.birth);
-            const gLabel = p.gender === 'male' ? '남' : p.gender === 'female' ? '여' : '';
-            return `<option value="${p.id}">${esc(p.name)} (${gLabel}${age ? ', ' + age + '세' : ''})</option>`;
-        }).join('');
+    // 전체 approved 참가자 로드 (기본정보 + 사진)
+    const { data: allData } = await db.from('applicants')
+        .select('id,name,gender,birth,photos,job,location,mbti,height,referred_by,user_id')
+        .eq('status', 'approved')
+        .neq('role', 'matchmaker')
+        .neq('id', myProfile.id);
+    allApproved = allData || [];
 
-    selectA.innerHTML = options;
-    selectB.innerHTML = options;
-
-    // 일일 사용량
-    const { count } = await db.from('introductions')
-        .select('id', { count: 'exact', head: true })
+    // 오늘 이미 소개한 참가자 확인
+    const todayStart = new Date(new Date().setHours(0,0,0,0)).toISOString();
+    const { data: todayIntros } = await db.from('introductions')
+        .select('person_a_id,person_b_id')
         .eq('matchmaker_id', myProfile.id)
-        .gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString());
-    document.getElementById('daily-limit').textContent = `오늘 ${count || 0}/10 소개 사용`;
+        .gte('created_at', todayStart);
+    todayIntroducedIds = new Set();
+    (todayIntros || []).forEach(i => { todayIntroducedIds.add(i.person_a_id); todayIntroducedIds.add(i.person_b_id); });
 
-    updateMatchPreview();
+    // 드롭다운: 내 풀 approved 참가자만
+    const selectA = document.getElementById('pick-person-a');
+    selectA.innerHTML = '<option value="">선택...</option>' + myApproved.map(p => {
+        const age = calcAge(p.birth);
+        const g = p.gender === 'male' ? '남' : p.gender === 'female' ? '여' : '';
+        const done = todayIntroducedIds.has(p.id);
+        return `<option value="${p.id}" ${done ? 'disabled' : ''}>${esc(p.name)} (${g}${age ? ', ' + age + '세' : ''})${done ? ' - 오늘 소개완료' : ''}</option>`;
+    }).join('');
+
+    // 일일 현황
+    const usedCount = (todayIntros || []).length;
+    const maxCount = myApproved.length;
+    document.getElementById('daily-limit').textContent = `오늘 ${usedCount}/${maxCount}명 소개 (참가자 인당 1회/일)`;
+
+    // 추천 영역 초기화
+    document.getElementById('recommendations').innerHTML = '';
+    document.getElementById('intro-note-area').style.display = 'none';
 }
 
-// ── 매칭 점수 미리보기 ──
-function updateMatchPreview() {
+// ── 추천 상대 3명 표시 ──
+function showRecommendations() {
     const aId = document.getElementById('pick-person-a').value;
-    const bId = document.getElementById('pick-person-b').value;
-    const preview = document.getElementById('match-preview');
-    const btn = document.getElementById('propose-btn');
+    const recsEl = document.getElementById('recommendations');
+    const noteArea = document.getElementById('intro-note-area');
 
-    if (!aId || !bId || aId === bId) {
-        preview.style.display = 'none';
-        btn.disabled = true;
+    if (!aId) {
+        recsEl.innerHTML = '';
+        noteArea.style.display = 'none';
         return;
     }
 
-    const a = myParticipants.find(p => p.id === aId);
-    const b = myParticipants.find(p => p.id === bId);
-    if (!a || !b) { preview.style.display = 'none'; btn.disabled = true; return; }
+    const personA = myParticipants.find(p => p.id === aId);
+    if (!personA) return;
 
-    const score = calcMatchScore(a, b);
-    const reverseScore = calcMatchScore(b, a);
-    const avg = Math.round((score + reverseScore) / 2);
+    // 오늘 이미 소개한 참가자면 차단
+    if (todayIntroducedIds.has(aId)) {
+        recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">오늘 이미 이 참가자를 소개했습니다.</div>';
+        noteArea.style.display = 'none';
+        return;
+    }
 
-    document.getElementById('match-preview-score').textContent = avg + '%';
-    preview.style.display = '';
-    btn.disabled = false;
+    const oppositeGender = personA.gender === 'male' ? 'female' : 'male';
+
+    // 이성 필터 + 점수 계산 + 정렬 → 상위 3명
+    const candidates = allApproved
+        .filter(c => c.gender === oppositeGender && c.id !== aId)
+        .map(c => {
+            const s1 = calcMatchScore(personA, c);
+            const s2 = calcMatchScore(c, personA);
+            return { ...c, _score: Math.round((s1 + s2) / 2) };
+        })
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 3);
+
+    if (candidates.length === 0) {
+        recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">추천할 이성 참가자가 없습니다.</div>';
+        noteArea.style.display = 'none';
+        return;
+    }
+
+    // 카드 렌더링
+    recsEl.innerHTML = '<div style="font-size:.8em;color:var(--muted);margin-bottom:10px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> ' + esc(personA.name) + '님에게 어울리는 상대</div>'
+        + candidates.map((c, i) => {
+            const age = calcAge(c.birth);
+            const photo = c.photos && c.photos.length > 0 ? c.photos[0] : null;
+            const rank = ['🥇', '🥈', '🥉'][i] || '';
+            return `<div class="rec-card" style="display:flex;align-items:center;gap:14px;padding:14px;border:1.5px solid #e5e7eb;border-radius:14px;margin-bottom:10px;transition:border-color .15s;cursor:pointer;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='#e5e7eb'">
+                <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
+                    ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.2em;"></i>'}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:.9em;">${rank} ${esc(c.name)}</div>
+                    <div style="font-size:.78em;color:var(--muted);margin-top:2px;">${age ? age + '세' : ''} ${c.job ? '· ' + esc(c.job) : ''} ${c.location ? '· ' + esc(c.location) : ''}</div>
+                    <div style="font-size:.72em;color:#9ca3af;margin-top:1px;">${c.mbti || ''} ${c.height ? '· ' + c.height + 'cm' : ''}</div>
+                </div>
+                <div style="text-align:center;flex-shrink:0;">
+                    <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${c._score}%</div>
+                    <button class="btn btn-primary" style="font-size:.72em;padding:6px 14px;margin-top:4px;border-radius:20px;" onclick="event.stopPropagation();proposeIntroduction('${aId}','${c.id}')">
+                        <i class="fa-solid fa-paper-plane"></i> 소개하기
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+
+    noteArea.style.display = '';
 }
 
 // ── 소개 제안 ──
-async function proposeIntroduction() {
-    const aId = document.getElementById('pick-person-a').value;
-    const bId = document.getElementById('pick-person-b').value;
+async function proposeIntroduction(aId, bId) {
     const note = document.getElementById('intro-note').value.trim() || null;
 
-    if (!aId || !bId || aId === bId) {
-        toast('두 사람을 선택해주세요.');
+    if (!aId || !bId) {
+        toast('소개할 참가자를 선택해주세요.');
         return;
     }
 
-    const btn = document.getElementById('propose-btn');
-    btn.disabled = true;
-    btn.textContent = '제안 중...';
+    // 모든 소개하기 버튼 비활성화
+    document.querySelectorAll('.rec-card button').forEach(b => { b.disabled = true; b.textContent = '제안 중...'; });
 
     try {
         const { data: introId, error } = await db.rpc('propose_introduction', {
@@ -192,8 +247,8 @@ async function proposeIntroduction() {
         if (error) throw error;
 
         // 양쪽에 알림 발송
-        const a = myParticipants.find(p => p.id === aId);
-        const b = myParticipants.find(p => p.id === bId);
+        const a = allApproved.find(p => p.id === aId);
+        const b = allApproved.find(p => p.id === bId);
         const dashUrl = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-interest';
 
         const notifRows = [];
@@ -215,7 +270,6 @@ async function proposeIntroduction() {
             await db.from('notifications').insert(notifRows);
         }
 
-        // 푸시 알림 (가능한 경우)
         try {
             if (a?.user_id) await sendPushNotifSimple(a.user_id, '소개가 도착했어요!', `${myProfile.name}님이 소개를 제안했어요.`, dashUrl);
             if (b?.user_id) await sendPushNotifSimple(b.user_id, '소개가 도착했어요!', `${myProfile.name}님이 소개를 제안했어요.`, dashUrl);
@@ -223,21 +277,20 @@ async function proposeIntroduction() {
 
         toast('소개를 제안했습니다!', 'success');
         document.getElementById('pick-person-a').value = '';
-        document.getElementById('pick-person-b').value = '';
         document.getElementById('intro-note').value = '';
-        updateMatchPreview();
+        document.getElementById('recommendations').innerHTML = '';
+        document.getElementById('intro-note-area').style.display = 'none';
         loadIntroduceTab();
     } catch (e) {
         console.error('proposeIntroduction:', e);
         const msg = e.message || '소개 제안 실패';
-        if (msg.includes('daily proposal limit')) toast('오늘 소개 제안 한도(10건)를 초과했습니다.', 'warning');
+        if (msg.includes('already introduced')) toast('오늘 이미 이 참가자를 소개했습니다.', 'warning');
         else if (msg.includes('active introduction')) toast('이미 활성 소개가 있는 쌍입니다.', 'warning');
-        else if (msg.includes('not in your referral')) toast('내 추천 네트워크의 참가자만 소개할 수 있습니다.', 'warning');
+        else if (msg.includes('not in your referral') || msg.includes('at least one participant')) toast('최소 1명은 내 네트워크 참가자여야 합니다.', 'warning');
         else if (msg.includes('already matched')) toast('이미 매칭된 참가자입니다.', 'warning');
         else toast(msg, 'error');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 소개 제안하기';
+        document.querySelectorAll('.rec-card button').forEach(b => { b.disabled = false; b.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 소개하기'; });
     }
 }
 

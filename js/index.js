@@ -1721,7 +1721,9 @@ async function loadAdminActivityFeed() {
             if (item.type === 'signup') {
                 const a = item.data;
                 icon = '<i class="fa-solid fa-user-plus" style="color:#059669;"></i>';
-                text = `<b>${esc(a.name)}</b> 가입 (${a.gender==='male'?'男':'女'}${calcAge(a.birth)?', '+calcAge(a.birth)+'세':''})`;
+                text = a.role === 'matchmaker'
+                    ? `<b>${esc(a.name)}</b> 가입 (<span style="color:#7c3aed;">소개자</span>)`
+                    : `<b>${esc(a.name)}</b> 가입 (${a.gender==='male'?'男':'女'}${calcAge(a.birth)?', '+calcAge(a.birth)+'세':''})`;
             } else if (item.type === 'msg') {
                 icon = '<i class="fa-solid fa-comment" style="color:#3b82f6;"></i>';
                 text = `<b>${esc(nameOf(item.data.sender_id))}</b> → <b>${esc(nameOf(item.data.receiver_id))}</b> 메시지`;

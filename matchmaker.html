@@ -79,43 +79,27 @@
             </div>
             <div class="section-body" style="padding:14px 20px;">
                 <div id="intro-form">
-                    <p style="font-size:.85em;color:var(--muted);margin-bottom:14px;">두 사람을 선택하고 소개를 제안해보세요. 양쪽 모두에게 동시에 알림이 갑니다.</p>
+                    <p style="font-size:.85em;color:var(--muted);margin-bottom:14px;">내 네트워크에서 소개할 참가자를 선택하면, 어울릴 만한 상대 3명을 추천해드려요.</p>
 
-                    <!-- Person A 선택 -->
+                    <!-- 소개할 참가자 선택 (내 풀) -->
                     <div class="intro-pick">
-                        <label style="font-weight:700;font-size:.88em;">Person A</label>
-                        <select id="pick-person-a" class="form-select" onchange="updateMatchPreview()">
+                        <label style="font-weight:700;font-size:.88em;"><i class="fa-solid fa-user" style="color:var(--primary);"></i> 소개할 참가자</label>
+                        <select id="pick-person-a" class="form-select" onchange="showRecommendations()">
                             <option value="">선택...</option>
                         </select>
                     </div>
 
-                    <!-- Person B 선택 -->
-                    <div class="intro-pick" style="margin-top:10px;">
-                        <label style="font-weight:700;font-size:.88em;">Person B</label>
-                        <select id="pick-person-b" class="form-select" onchange="updateMatchPreview()">
-                            <option value="">선택...</option>
-                        </select>
-                    </div>
+                    <!-- 추천 상대 3명 카드 -->
+                    <div id="recommendations" style="margin-top:16px;"></div>
 
-                    <!-- 매칭 점수 미리보기 -->
-                    <div id="match-preview" style="display:none;margin-top:14px;padding:14px;background:#f5f3ff;border-radius:12px;">
-                        <div style="text-align:center;font-size:.85em;color:var(--muted);">예상 궁합</div>
-                        <div id="match-preview-score" style="text-align:center;font-size:2em;font-weight:900;color:var(--primary);"></div>
-                    </div>
-
-                    <!-- 소개 메모 -->
-                    <div style="margin-top:14px;">
+                    <!-- 소개 메모 (추천 선택 후 표시) -->
+                    <div id="intro-note-area" style="display:none;margin-top:14px;">
                         <label style="font-weight:700;font-size:.88em;">소개 메모 (선택)</label>
                         <textarea id="intro-note" placeholder="두 사람에게 전달할 메모..." rows="2" maxlength="200" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px;font-size:.85em;font-family:inherit;resize:vertical;margin-top:6px;"></textarea>
                     </div>
 
-                    <!-- 제안 버튼 -->
-                    <button class="btn btn-primary" id="propose-btn" onclick="proposeIntroduction()" style="width:100%;margin-top:14px;padding:12px;" disabled>
-                        <i class="fa-solid fa-paper-plane"></i> 소개 제안하기
-                    </button>
-
                     <!-- 일일 제한 표시 -->
-                    <div id="daily-limit" style="font-size:.75em;color:var(--muted);text-align:center;margin-top:8px;"></div>
+                    <div id="daily-limit" style="font-size:.75em;color:var(--muted);text-align:center;margin-top:12px;"></div>
                 </div>
             </div>
         </div>
