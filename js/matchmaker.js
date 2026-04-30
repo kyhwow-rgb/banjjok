@@ -326,6 +326,32 @@ async function loadHistory() {
         return;
     }
 
+    // 통계 요약
+    const matched = myIntroductions.filter(i => i.status === 'matched').length;
+    const declined = myIntroductions.filter(i => i.status === 'declined').length;
+    const pending = myIntroductions.filter(i => i.status === 'proposed').length;
+    const expired = myIntroductions.filter(i => i.status === 'expired').length;
+    const rate = myIntroductions.length > 0 ? Math.round((matched / myIntroductions.length) * 100) : 0;
+
+    container.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#ecfdf5;border-radius:var(--radius);">
+            <div style="font-size:1.3em;font-weight:900;color:#059669;">${matched}</div>
+            <div style="font-size:.7em;color:#065f46;">성사</div>
+        </div>
+        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#fffbeb;border-radius:var(--radius);">
+            <div style="font-size:1.3em;font-weight:900;color:#d97706;">${pending}</div>
+            <div style="font-size:.7em;color:#92400e;">대기중</div>
+        </div>
+        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#fef2f2;border-radius:var(--radius);">
+            <div style="font-size:1.3em;font-weight:900;color:#dc2626;">${declined + expired}</div>
+            <div style="font-size:.7em;color:#991b1b;">불발</div>
+        </div>
+        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#f5f3ff;border-radius:var(--radius);">
+            <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${rate}%</div>
+            <div style="font-size:.7em;color:#5b21b6;">성공률</div>
+        </div>
+    </div>` + '';
+
     // 참가자 이름 조회
     const personIds = [...new Set(myIntroductions.flatMap(i => [i.person_a_id, i.person_b_id]))];
     const { data: persons } = await db.from('applicants')
@@ -334,7 +360,7 @@ async function loadHistory() {
     const personMap = {};
     (persons || []).forEach(p => personMap[p.id] = p);
 
-    container.innerHTML = myIntroductions.map(intro => {
+    container.innerHTML += myIntroductions.map(intro => {
         const a = personMap[intro.person_a_id] || {};
         const b = personMap[intro.person_b_id] || {};
         const statusInfo = {
@@ -353,11 +379,12 @@ async function loadHistory() {
 
         const dateStr = new Date(intro.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 
-        return `<div class="history-row">
+        const isMatched = intro.status === 'matched';
+        return `<div class="history-row" style="${isMatched ? 'background:#f0fdf4;border-radius:var(--radius);padding:12px;margin:-2px -4px;' : ''}">
             <div class="history-pair">
                 <span class="history-name">${esc(a.name || '?')}</span>
                 ${aStatus}
-                <i class="fa-solid fa-arrows-left-right" style="color:#d1d5db;font-size:.7em;margin:0 4px;"></i>
+                <i class="fa-solid ${isMatched ? 'fa-heart' : 'fa-arrows-left-right'}" style="color:${isMatched ? '#ec4899' : '#d1d5db'};font-size:.7em;margin:0 4px;"></i>
                 ${bStatus}
                 <span class="history-name">${esc(b.name || '?')}</span>
             </div>

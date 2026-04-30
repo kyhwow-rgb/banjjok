@@ -2217,6 +2217,7 @@ function renderMatchResult(partner) {
     sec.innerHTML = `
         <div style="text-align:center;padding:8px 0;">
             <div style="font-size:1.1em;font-weight:800;color:var(--primary);margin-bottom:16px;">축하합니다! 반쪽을 찾았어요</div>
+            ${partner._introducedBy ? `<div style="font-size:.78em;color:#7c3aed;margin-bottom:12px;"><i class="fa-solid fa-handshake-angle"></i> ${esc(partner._introducedBy.name)}님의 소개로 만났어요${partner._introducedBy.matchmaker_tier === 'golden' ? ' <span style="color:#b45309;">👑</span>' : ''}</div>` : ''}
             <div style="display:flex;justify-content:center;margin-bottom:16px;cursor:pointer;" onclick="openMatchedProfile()">${photoHtml}</div>
             <div style="font-size:1em;font-weight:700;margin-bottom:4px;cursor:pointer;" onclick="openMatchedProfile()">${esc(partner.name)}</div>
             <div style="font-size:.72em;color:var(--accent);margin-bottom:12px;cursor:pointer;" onclick="openMatchedProfile()">프로필 보기 <i class="fa-solid fa-chevron-right" style="font-size:.6em;"></i></div>
@@ -2374,6 +2375,18 @@ async function init() {
                     .select('id,name,gender,birth,job,company,job_title,height,location,mbti,education,smoking,drinking,religion,hobby,intro,photos,user_id')
                     .eq('id', profile.matched_with).limit(1);
                 if (partners && partners[0]) {
+                    // 소개를 통한 매칭인지 확인
+                    try {
+                        const { data: introMatch } = await db.from('introductions')
+                            .select('matchmaker_id')
+                            .eq('status', 'matched')
+                            .or(`and(person_a_id.eq.${profile.id},person_b_id.eq.${profile.matched_with}),and(person_a_id.eq.${profile.matched_with},person_b_id.eq.${profile.id})`)
+                            .limit(1);
+                        if (introMatch && introMatch[0]) {
+                            const { data: mm } = await db.from('applicants').select('name,matchmaker_tier').eq('id', introMatch[0].matchmaker_id).limit(1);
+                            if (mm && mm[0]) partners[0]._introducedBy = mm[0];
+                        }
+                    } catch(e) {}
                     renderMatchResult(partners[0]);
                     // 채팅방 목록에 추가
                     if (partners[0].user_id) {
@@ -2494,6 +2507,7 @@ async function loadPendingIntroductions(profile) {
         return `<div class="section-card" style="border:2px solid #ede9fe;">
             <div class="section-header" style="background:#f5f3ff;padding:14px 20px 12px;">
                 <div class="section-title"><i class="fa-solid fa-handshake-angle" style="color:#7c3aed;"></i> ${esc(matchmaker.name || '주선자')}님의 소개${matchmaker.matchmaker_tier === 'golden' ? ' <span class="badge" style="background:#fef3c7;color:#b45309;font-size:.65em;"><i class="fa-solid fa-crown"></i> 골든</span>' : matchmaker.matchmaker_tier === 'skilled' ? ' <span class="badge badge-purple" style="font-size:.65em;"><i class="fa-solid fa-star"></i> 실력파</span>' : ''}</div>
+                ${matchmaker.intro_success_count > 0 ? `<div style="font-size:.7em;color:#7c3aed;margin-top:2px;">${matchmaker.intro_success_count}쌍 매칭 성사한 주선자</div>` : ''}
             </div>
             <div class="section-body" style="padding:16px 20px;">
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
