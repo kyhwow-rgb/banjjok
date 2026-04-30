@@ -52,7 +52,7 @@ body { font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSyst
 
 /* TAB BAR */
 .tab-bar { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid var(--border); display:flex; z-index:100; padding-bottom:env(safe-area-inset-bottom, 0px); }
-.tab-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 0 8px; font-size:.68em; font-weight:600; color:#bbb; cursor:pointer; transition:color .15s; }
+.tab-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 0 8px; min-height:44px; font-size:.68em; font-weight:600; color:#bbb; cursor:pointer; transition:color .15s; }
 .tab-item.active { color:var(--primary); }
 .tab-item i { font-size:1.3em; }
 .tab-content { display:none; }
@@ -109,11 +109,33 @@ body { font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSyst
 /* HISTORY */
 .history-row { padding:14px 0; border-bottom:1px solid var(--border); }
 .history-row:last-child { border-bottom:none; }
+.history-row--matched { background:#f0fdf4; border-radius:var(--radius); padding:12px 14px; }
 .history-pair { display:flex; align-items:center; gap:6px; font-size:.9em; }
 .history-name { font-weight:700; }
 .history-meta { display:flex; align-items:center; justify-content:space-between; margin-top:6px; }
 .history-status { font-size:.82em; font-weight:600; display:flex; align-items:center; gap:4px; }
 .history-note { font-size:.78em; color:var(--muted); margin-top:6px; padding:8px 12px; background:#f9fafb; border-radius:8px; }
+
+/* STATS CARDS */
+.stat-cards { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.stat-card { flex:1; min-width:70px; text-align:center; padding:10px; border-radius:var(--radius); }
+.stat-card-value { font-size:1.3em; font-weight:900; }
+.stat-card-label { font-size:.7em; }
+.stat-card--success { background:#ecfdf5; }
+.stat-card--success .stat-card-value { color:#059669; }
+.stat-card--success .stat-card-label { color:#065f46; }
+.stat-card--pending { background:#fffbeb; }
+.stat-card--pending .stat-card-value { color:#d97706; }
+.stat-card--pending .stat-card-label { color:#92400e; }
+.stat-card--failed { background:#fef2f2; }
+.stat-card--failed .stat-card-value { color:#dc2626; }
+.stat-card--failed .stat-card-label { color:#991b1b; }
+.stat-card--rate { background:#f5f3ff; }
+.stat-card--rate .stat-card-value { color:var(--primary); }
+.stat-card--rate .stat-card-label { color:#5b21b6; }
+
+/* BADGES (additional) */
+.badge-gold { background:#fef3c7; color:#b45309; }
 
 /* EMPTY STATE */
 .empty-state { text-align:center; padding:30px; color:var(--muted); font-size:.88em; line-height:1.6; }

@@ -8,6 +8,7 @@ let myProfile = null;
 let myParticipants = [];
 let myIntroductions = [];
 let allApproved = [];
+let proposing = false; // double-submit guard
 
 // ── 탭 전환 ──
 function switchTab(tab) {
@@ -58,6 +59,12 @@ async function init() {
         }
 
         await loadParticipants();
+        // MY탭 데이터를 위해 소개 이력 미리 로드 (렌더링 없이)
+        const { data: introData } = await db.from('introductions')
+            .select('*')
+            .eq('matchmaker_id', myProfile.id)
+            .order('created_at', { ascending: false });
+        myIntroductions = introData || [];
         loadNotifications();
     } catch (e) {
         console.error('init error:', e);
@@ -121,9 +128,26 @@ let todayIntroducedIds = new Set(); // 오늘 이미 소개한 참가자 ID
 async function loadIntroduceTab() {
     const myApproved = myParticipants.filter(p => p.status === 'approved' && p.role !== 'matchmaker');
 
+    // 승인된 참가자가 없으면 안내 메시지 표시
+    if (myApproved.length === 0) {
+        document.getElementById('recommendations').innerHTML = '';
+        document.getElementById('intro-note-area').style.display = 'none';
+        document.getElementById('daily-limit').textContent = '';
+        document.getElementById('pick-person-a').innerHTML = '<option value="">선택...</option>';
+        document.getElementById('intro-form').insertAdjacentHTML('afterbegin',
+            '<div class="empty-state" id="no-approved-msg">아직 소개할 수 있는 참가자가 없습니다.<br>추천한 참가자가 승인되면 소개를 시작할 수 있어요.</div>');
+        return;
+    }
+    // 기존 안내 메시지 제거
+    const oldMsg = document.getElementById('no-approved-msg');
+    if (oldMsg) oldMsg.remove();
+
+    // 로딩 표시
+    document.getElementById('recommendations').innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner"></div></div>';
+
     // 전체 approved 참가자 로드 (기본정보 + 사진)
     const { data: allData } = await db.from('applicants')
-        .select('id,name,gender,birth,photos,job,location,mbti,height,referred_by,user_id')
+        .select('id,name,gender,birth,photos,job,location,mbti,height,referred_by,user_id,ideal,ideal_weights,look_score,job_category,religion')
         .eq('status', 'approved')
         .neq('role', 'matchmaker')
         .neq('id', myProfile.id);
@@ -240,10 +264,14 @@ function showRecommendations() {
 
 // ── 소개 제안 ──
 async function proposeIntroduction(aId, bId) {
+    if (proposing) return; // double-submit guard
+    proposing = true;
+
     const note = document.getElementById('intro-note').value.trim() || null;
 
     if (!aId || !bId) {
         toast('소개할 참가자를 선택해주세요.');
+        proposing = false;
         return;
     }
 
@@ -303,6 +331,7 @@ async function proposeIntroduction(aId, bId) {
         else if (msg.includes('already matched')) toast('이미 매칭된 참가자입니다.', 'warning');
         else toast(msg, 'error');
     } finally {
+        proposing = false;
         document.querySelectorAll('.rec-card button').forEach(b => { b.disabled = false; b.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 소개하기'; });
     }
 }
@@ -333,22 +362,22 @@ async function loadHistory() {
     const expired = myIntroductions.filter(i => i.status === 'expired').length;
     const rate = myIntroductions.length > 0 ? Math.round((matched / myIntroductions.length) * 100) : 0;
 
-    const statsHtml = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#ecfdf5;border-radius:var(--radius);">
-            <div style="font-size:1.3em;font-weight:900;color:#059669;">${matched}</div>
-            <div style="font-size:.7em;color:#065f46;">성사</div>
+    const statsHtml = `<div class="stat-cards">
+        <div class="stat-card stat-card--success">
+            <div class="stat-card-value">${matched}</div>
+            <div class="stat-card-label">성사</div>
         </div>
-        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#fffbeb;border-radius:var(--radius);">
-            <div style="font-size:1.3em;font-weight:900;color:#d97706;">${pending}</div>
-            <div style="font-size:.7em;color:#92400e;">대기중</div>
+        <div class="stat-card stat-card--pending">
+            <div class="stat-card-value">${pending}</div>
+            <div class="stat-card-label">대기중</div>
         </div>
-        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#fef2f2;border-radius:var(--radius);">
-            <div style="font-size:1.3em;font-weight:900;color:#dc2626;">${declined + expired}</div>
-            <div style="font-size:.7em;color:#991b1b;">불발</div>
+        <div class="stat-card stat-card--failed">
+            <div class="stat-card-value">${declined + expired}</div>
+            <div class="stat-card-label">불발</div>
         </div>
-        <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#f5f3ff;border-radius:var(--radius);">
-            <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${rate}%</div>
-            <div style="font-size:.7em;color:#5b21b6;">성공률</div>
+        <div class="stat-card stat-card--rate">
+            <div class="stat-card-value">${rate}%</div>
+            <div class="stat-card-label">성공률</div>
         </div>
     </div>`;
 
@@ -380,7 +409,7 @@ async function loadHistory() {
         const dateStr = new Date(intro.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 
         const isMatched = intro.status === 'matched';
-        return `<div class="history-row" style="${isMatched ? 'background:#f0fdf4;border-radius:var(--radius);padding:12px;margin:-2px -4px;' : ''}">
+        return `<div class="history-row${isMatched ? ' history-row--matched' : ''}">
             <div class="history-pair">
                 <span class="history-name">${esc(a.name || '?')}</span>
                 ${aStatus}
@@ -405,7 +434,7 @@ function renderMyTab() {
     const tier = myProfile.matchmaker_tier;
     const successCount = myProfile.intro_success_count || 0;
     const tierBadge = tier === 'golden'
-        ? '<span class="badge" style="background:#fef3c7;color:#b45309;"><i class="fa-solid fa-crown"></i> 골든 주선자</span>'
+        ? '<span class="badge badge-gold"><i class="fa-solid fa-crown"></i> 골든 주선자</span>'
         : tier === 'skilled'
         ? '<span class="badge badge-purple"><i class="fa-solid fa-star"></i> 실력파 주선자</span>'
         : tier === 'beginner'

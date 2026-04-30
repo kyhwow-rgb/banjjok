@@ -96,21 +96,23 @@ BEGIN
         RAISE EXCEPTION 'both participants must be approved';
     END IF;
 
-    -- A, B가 호출자의 추천 네트워크 내인지 확인
-    IF v_a.referred_by <> v_caller.referral_code THEN
-        RAISE EXCEPTION 'person_a is not in your referral network';
-    END IF;
-    IF v_b.referred_by <> v_caller.referral_code THEN
-        RAISE EXCEPTION 'person_b is not in your referral network';
+    -- 크로스 네트워크 소개: 최소 1명은 자기 풀에 있어야 함
+    IF v_a.referred_by <> v_caller.referral_code
+       AND v_b.referred_by <> v_caller.referral_code THEN
+        RAISE EXCEPTION 'at least one participant must be in your referral network';
     END IF;
 
-    -- 일일 제한: 10건/일
+    -- 일일 제한: tier별 인당 제한 (intro_daily_limit 컬럼 기반)
     SELECT COUNT(*) INTO v_today_count
     FROM introductions
     WHERE matchmaker_id = v_caller.id
       AND created_at >= CURRENT_DATE;
-    IF v_today_count >= 10 THEN
-        RAISE EXCEPTION 'daily proposal limit reached (10/day)';
+    IF v_today_count >= COALESCE(v_caller.intro_daily_limit, 1) * (
+        SELECT COUNT(*) FROM applicants
+        WHERE referred_by = v_caller.referral_code
+          AND status = 'approved' AND role <> 'matchmaker'
+    ) THEN
+        RAISE EXCEPTION 'daily proposal limit reached';
     END IF;
 
     -- 중복 활성 소개 방지 (같은 쌍, 어느 방향이든)
@@ -210,6 +212,25 @@ BEGIN
 
     -- 둘 다 수락 → matched
     IF v_intro.a_response = 'yes' AND v_intro.b_response = 'yes' THEN
+        -- 참가자 행 잠금 (race condition 방지: 동시 매칭 차단)
+        PERFORM 1 FROM applicants
+        WHERE id IN (v_intro.person_a_id, v_intro.person_b_id)
+        ORDER BY id
+        FOR UPDATE;
+
+        -- 잠금 후 재확인: 이미 매칭된 경우 중단
+        IF NOT EXISTS (
+            SELECT 1 FROM applicants
+            WHERE id = v_intro.person_a_id AND status = 'approved'
+        ) OR NOT EXISTS (
+            SELECT 1 FROM applicants
+            WHERE id = v_intro.person_b_id AND status = 'approved'
+        ) THEN
+            UPDATE introductions SET status = 'declined', updated_at = now()
+            WHERE id = p_intro_id;
+            RETURN 'declined';
+        END IF;
+
         -- 매칭 생성
         UPDATE applicants SET status = 'matched', matched_with = v_intro.person_b_id
         WHERE id = v_intro.person_a_id AND status = 'approved';
@@ -220,6 +241,28 @@ BEGIN
         -- 소개 상태 업데이트
         UPDATE introductions SET status = 'matched', updated_at = now()
         WHERE id = p_intro_id;
+
+        -- 주선자 보상: intro_success_count 증가 + tier 재계산
+        UPDATE applicants SET
+            intro_success_count = COALESCE(intro_success_count, 0) + 1,
+            matchmaker_tier = CASE
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 5 THEN 'golden'
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 3 THEN 'skilled'
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 1 THEN 'beginner'
+                ELSE NULL
+            END,
+            intro_daily_limit = CASE
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 5 THEN 3
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 3 THEN 2
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 1 THEN 2
+                ELSE 1
+            END,
+            intro_rec_count = CASE
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 5 THEN 7
+                WHEN COALESCE(intro_success_count, 0) + 1 >= 3 THEN 5
+                ELSE 3
+            END
+        WHERE id = v_intro.matchmaker_id;
 
         -- 이 두 사람과 관련된 다른 활성 소개도 정리
         UPDATE introductions SET status = 'declined', updated_at = now()
@@ -282,9 +325,17 @@ BEGIN
       AND (from_applicant IN (p_person_a_id, p_person_b_id)
         OR to_applicant IN (p_person_a_id, p_person_b_id));
 
-    -- 관련 활성 소개 정리
+    -- 이 쌍의 활성 소개가 있으면 matched로 표시
     UPDATE introductions SET status = 'matched', updated_at = now()
     WHERE status = 'proposed'
+      AND ((person_a_id = p_person_a_id AND person_b_id = p_person_b_id)
+        OR (person_a_id = p_person_b_id AND person_b_id = p_person_a_id));
+
+    -- 다른 활성 소개는 declined로 정리 (unrelated intros)
+    UPDATE introductions SET status = 'declined', updated_at = now()
+    WHERE status = 'proposed'
+      AND NOT ((person_a_id = p_person_a_id AND person_b_id = p_person_b_id)
+            OR (person_a_id = p_person_b_id AND person_b_id = p_person_a_id))
       AND (person_a_id IN (p_person_a_id, p_person_b_id)
         OR person_b_id IN (p_person_a_id, p_person_b_id));
 END;
@@ -339,12 +390,25 @@ BEGIN
     UPDATE applicants SET status = 'matched', matched_with = v_me.id
     WHERE id = v_target.id;
 
-    -- 관련 활성 소개 정리
+    -- 이 쌍의 활성 소개가 있으면 matched로 표시
     UPDATE introductions SET status = 'matched', updated_at = now()
     WHERE status = 'proposed'
+      AND ((person_a_id = v_me.id AND person_b_id = v_target.id)
+        OR (person_a_id = v_target.id AND person_b_id = v_me.id));
+
+    -- 다른 활성 소개는 declined로 정리
+    UPDATE introductions SET status = 'declined', updated_at = now()
+    WHERE status = 'proposed'
+      AND NOT ((person_a_id = v_me.id AND person_b_id = v_target.id)
+            OR (person_a_id = v_target.id AND person_b_id = v_me.id))
       AND (person_a_id IN (v_me.id, v_target.id)
         OR person_b_id IN (v_me.id, v_target.id));
 
     RETURN true;
 END;
 $$;
+
+-- 6. 중복 소개 방지 부분 유니크 인덱스 (race condition 방지)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_intro_unique_active_pair
+ON introductions (LEAST(person_a_id, person_b_id), GREATEST(person_a_id, person_b_id))
+WHERE status = 'proposed';
