@@ -199,23 +199,23 @@ function showRecommendations() {
     }
 
     // 카드 렌더링
-    recsEl.innerHTML = '<div style="font-size:.8em;color:var(--muted);margin-bottom:10px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> ' + esc(personA.name) + '님에게 어울리는 상대</div>'
+    recsEl.innerHTML = '<div class="rec-header"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> ' + esc(personA.name) + '님에게 어울리는 상대</div>'
         + candidates.map((c, i) => {
             const age = calcAge(c.birth);
             const photo = c.photos && c.photos.length > 0 ? c.photos[0] : null;
             const rank = ['🥇', '🥈', '🥉'][i] || '';
-            return `<div class="rec-card" style="display:flex;align-items:center;gap:14px;padding:14px;border:1.5px solid #e5e7eb;border-radius:14px;margin-bottom:10px;transition:border-color .15s;cursor:pointer;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='#e5e7eb'">
-                <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
-                    ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.2em;"></i>'}
+            return `<div class="rec-card">
+                <div class="rec-card-photo">
+                    ${photo ? `<img src="${esc(photo)}" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.2em;"></i>'}
                 </div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;font-size:.9em;">${rank} ${esc(c.name)}</div>
-                    <div style="font-size:.78em;color:var(--muted);margin-top:2px;">${age ? age + '세' : ''} ${c.job ? '· ' + esc(c.job) : ''} ${c.location ? '· ' + esc(c.location) : ''}</div>
-                    <div style="font-size:.72em;color:#9ca3af;margin-top:1px;">${c.mbti || ''} ${c.height ? '· ' + c.height + 'cm' : ''}</div>
+                <div class="rec-card-info">
+                    <div class="rec-card-name">${rank} ${esc(c.name)}</div>
+                    <div class="rec-card-detail">${age ? age + '세' : ''} ${c.job ? '· ' + esc(c.job) : ''} ${c.location ? '· ' + esc(c.location) : ''}</div>
+                    <div class="rec-card-sub">${c.mbti || ''} ${c.height ? '· ' + c.height + 'cm' : ''}</div>
                 </div>
-                <div style="text-align:center;flex-shrink:0;">
-                    <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${c._score}%</div>
-                    <button class="btn btn-primary" style="font-size:.72em;padding:6px 14px;margin-top:4px;border-radius:20px;" onclick="event.stopPropagation();proposeIntroduction('${aId}','${c.id}')">
+                <div class="rec-card-action">
+                    <div class="rec-card-score">${c._score}%</div>
+                    <button class="btn btn-primary rec-card-btn" onclick="event.stopPropagation();proposeIntroduction('${aId}','${c.id}')">
                         <i class="fa-solid fa-paper-plane"></i> 소개하기
                     </button>
                 </div>

@@ -90,7 +90,21 @@ body { font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSyst
 
 /* INTRODUCE FORM */
 .intro-pick { display:flex; flex-direction:column; gap:4px; }
-.form-select { width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:10px; font-size:.88em; font-family:inherit; background:white; }
+.form-select { width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:var(--radius); font-size:.88em; font-family:inherit; background:white; }
+
+/* RECOMMENDATION CARDS */
+.rec-header { font-size:.8em; color:var(--muted); margin-bottom:10px; }
+.rec-card { display:flex; align-items:center; gap:14px; padding:14px; border:1.5px solid var(--border); border-radius:var(--radius); margin-bottom:10px; transition:border-color .15s; }
+.rec-card:hover { border-color:var(--primary); }
+.rec-card-photo { width:48px; height:48px; border-radius:12px; overflow:hidden; flex-shrink:0; background:#f3f4f6; display:flex; align-items:center; justify-content:center; }
+.rec-card-photo img { width:100%; height:100%; object-fit:cover; }
+.rec-card-info { flex:1; min-width:0; }
+.rec-card-name { font-weight:700; font-size:.9em; }
+.rec-card-detail { font-size:.78em; color:var(--muted); margin-top:2px; }
+.rec-card-sub { font-size:.72em; color:#9ca3af; margin-top:1px; }
+.rec-card-action { text-align:center; flex-shrink:0; }
+.rec-card-score { font-size:1.3em; font-weight:900; color:var(--primary); }
+.rec-card-btn { font-size:.72em; padding:6px 14px; margin-top:4px; border-radius:var(--radius); }
 
 /* HISTORY */
 .history-row { padding:14px 0; border-bottom:1px solid var(--border); }
