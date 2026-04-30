@@ -806,6 +806,7 @@ function renderCardView(sec, favSet) {
                     ${mutualCardHtml}
                     ${popHtml}
                     <div class="card-tags">${tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>
+                    ${c.referred_by ? `<div style="font-size:.75em;color:#7c3aed;margin-top:6px;"><i class="fa-solid fa-handshake-angle"></i> 지인 추천으로 가입</div>` : ''}
                     <div class="card-compat">
                         <div class="card-compat-bar" style="flex:1;"><div class="card-compat-fill" style="width:${c._score}%"></div></div>
                         <span style="font-size:.72em;color:var(--muted);white-space:nowrap;">${mbtiLabel} ${mbtiCompat}%</span>
@@ -2287,12 +2288,8 @@ async function init() {
     const isApproved = profile && profile.status === 'approved';
 
     if (profile && profile.role === 'matchmaker') {
-        // ── 소개자 전용 대시보드 ──
-        renderMatchmakerDashboard(profile);
-        await loadNotifications();
-        applyWatermark();
-        setLoading(false);
-        handleNavHash();
+        // 소개자는 전용 대시보드로 리다이렉트
+        window.location.href = 'matchmaker.html';
         return;
     }
 
@@ -2300,7 +2297,7 @@ async function init() {
         // 이성 승인 참가자 로드 (온보딩에서도 숫자 필요)
         const oppGender = profile.gender === 'male' ? 'female' : 'male';
         const { data: candidates_raw } = await db.from('applicants')
-            .select('id,name,gender,birth,job,job_category,company,job_title,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id,role')
+            .select('id,name,gender,birth,job,job_category,company,job_title,height,education,look_score,location,mbti,photos,icebreaker,ideal,ideal_weights,smoking,drinking,religion,hobby,last_seen_at,user_id,role,referred_by')
             .eq('status', 'approved')
             .eq('gender', oppGender);
         // 소개자(matchmaker)는 추천 대상에서 제외
@@ -2413,6 +2410,27 @@ async function init() {
             window._blockedSet = new Set((blockData || []).map(b => b.blocked_applicant_id));
         } catch(e) { window._blockedSet = new Set(); }
     }
+    // 주선자 대시보드 링크 (참가자가 추천인이 있는 경우)
+    try {
+        const hasIntroAccess = await canManageIntros(profile);
+        if (hasIntroAccess) {
+            const myTab = document.getElementById('tab-my');
+            if (myTab) {
+                const linkHtml = `<div class="section-card" style="margin-top:12px;">
+                    <a href="matchmaker.html" style="display:flex;align-items:center;gap:14px;padding:16px 20px;text-decoration:none;color:inherit;transition:background .15s;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background=''">
+                        <i class="fa-solid fa-handshake-angle" style="color:#7c3aed;font-size:1.2em;width:28px;text-align:center;"></i>
+                        <div><div style="font-weight:700;font-size:.9em;">주선자 대시보드</div><div style="font-size:.75em;color:var(--muted);margin-top:2px;">내가 소개한 사람들 관리</div></div>
+                        <i class="fa-solid fa-chevron-right" style="color:#d1d5db;margin-left:auto;"></i>
+                    </a>
+                </div>`;
+                myTab.insertAdjacentHTML('beforeend', linkHtml);
+            }
+        }
+    } catch(e) { console.log('matchmaker link check:', e.message); }
+
+    // 소개 응답 대기 중인 항목 로드
+    try { await loadPendingIntroductions(profile); } catch(e) { console.log('intro load:', e.message); }
+
     // 알림 로드
     await loadNotifications();
     loadInquiries();
@@ -2434,7 +2452,105 @@ async function init() {
 }
 
 // ── 워터마크 (스크린샷 유출 방지) ──
-// ── 소개자(Matchmaker) 전용 대시보드 ──
+// ── 소개 응답 UI (참가자가 받은 소개 제안) ──
+async function loadPendingIntroductions(profile) {
+    const { data, error } = await db.from('introductions')
+        .select('*')
+        .eq('status', 'proposed')
+        .or(`person_a_id.eq.${profile.id},person_b_id.eq.${profile.id}`);
+
+    if (error || !data || data.length === 0) return;
+
+    // 아직 응답하지 않은 소개만 필터
+    const pending = data.filter(intro => {
+        if (intro.person_a_id === profile.id && intro.a_response === null) return true;
+        if (intro.person_b_id === profile.id && intro.b_response === null) return true;
+        return false;
+    });
+    if (pending.length === 0) return;
+
+    // 상대방 + 주선자 정보 조회
+    const relatedIds = [...new Set(pending.flatMap(i => [i.person_a_id, i.person_b_id, i.matchmaker_id]))];
+    const { data: persons } = await db.from('applicants')
+        .select('id,name,gender,birth,job,location,photos,mbti,height')
+        .in('id', relatedIds);
+    const pMap = {};
+    (persons || []).forEach(p => pMap[p.id] = p);
+
+    // 관심 탭 상단에 소개 카드 삽입
+    const interestTab = document.getElementById('tab-interest');
+    if (!interestTab) return;
+
+    const introHtml = pending.map(intro => {
+        const otherId = intro.person_a_id === profile.id ? intro.person_b_id : intro.person_a_id;
+        const other = pMap[otherId] || {};
+        const matchmaker = pMap[intro.matchmaker_id] || {};
+        const age = calcAge(other.birth);
+        const photo = other.photos && other.photos.length > 0 ? other.photos[0] : null;
+        const score = calcMatchScore(profile, other);
+        const genderIcon = other.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>'
+            : other.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>' : '';
+
+        return `<div class="section-card" style="border:2px solid #ede9fe;">
+            <div class="section-header" style="background:#f5f3ff;padding:14px 20px 12px;">
+                <div class="section-title"><i class="fa-solid fa-handshake-angle" style="color:#7c3aed;"></i> ${esc(matchmaker.name || '주선자')}님의 소개</div>
+            </div>
+            <div class="section-body" style="padding:16px 20px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+                    <div style="width:60px;height:60px;border-radius:14px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                        ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.5em;"></i>'}
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:800;font-size:1em;">${esc(other.name || '?')} ${genderIcon} ${age ? `<span style="color:var(--muted);font-size:.82em;">${age}세</span>` : ''}</div>
+                        <div style="font-size:.82em;color:var(--muted);margin-top:2px;">${esc(other.job || '')} ${other.location ? '· ' + esc(other.location) : ''}</div>
+                        <div style="font-size:.82em;color:var(--muted);">${other.mbti || ''} ${other.height ? '· ' + other.height + 'cm' : ''}</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:.72em;color:var(--muted);">궁합</div>
+                        <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${score}%</div>
+                    </div>
+                </div>
+                ${intro.matchmaker_note ? `<div style="padding:10px 14px;background:#f9fafb;border-radius:10px;font-size:.82em;color:#555;margin-bottom:14px;">"${esc(intro.matchmaker_note)}"</div>` : ''}
+                <div style="display:flex;gap:10px;">
+                    <button class="btn btn-outline" onclick="respondToIntro('${intro.id}', false)" style="flex:1;padding:12px;color:#ef4444;border-color:#fecaca;">괜찮아요</button>
+                    <button class="btn btn-primary" onclick="respondToIntro('${intro.id}', true)" style="flex:1;padding:12px;background:#7c3aed;">좋아요!</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    interestTab.insertAdjacentHTML('afterbegin', introHtml);
+}
+
+async function respondToIntro(introId, accept) {
+    try {
+        const { data: result, error } = await db.rpc('respond_to_introduction', {
+            p_intro_id: introId,
+            p_accept: accept
+        });
+        if (error) throw error;
+
+        if (result === 'matched') {
+            toast('매칭이 성사되었습니다! 대화를 시작해보세요.', 'success');
+        } else if (result === 'declined') {
+            toast('소개를 정중히 거절했습니다.', 'info');
+        } else if (result === 'waiting') {
+            toast('응답이 기록되었습니다. 상대방의 응답을 기다려주세요.', 'info');
+        }
+
+        // 새로고침
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+        console.error('respondToIntro:', e);
+        if (e.message && e.message.includes('expired')) {
+            toast('만료된 소개입니다.', 'warning');
+        } else {
+            toast('응답 처리 중 오류: ' + (e.message || ''), 'error');
+        }
+    }
+}
+
+// ── 소개자(Matchmaker) 전용 대시보드 (레거시, matchmaker.html로 이동됨) ──
 async function renderMatchmakerDashboard(profile) {
     // 탭바를 소개자용으로 교체
     const tabBar = document.getElementById('tab-bar');

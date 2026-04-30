@@ -616,8 +616,8 @@ function selectGender(gender) {
 }
 
 function toggleMatchmakerFormFields() {
-    const isMatchmaker = localStorage.getItem('bj_signup_role') === 'matchmaker';
-    const hide = isMatchmaker ? 'none' : '';
+    const isMatchmakerSignup = localStorage.getItem('bj_signup_role') === 'matchmaker';
+    const hide = isMatchmakerSignup ? 'none' : '';
 
     // input-group 단위로 숨기기. form-row를 숨기면 이름/연락처처럼 같은 행의 필수 필드까지 사라진다.
     const hideInputIds = ['reg-birth','reg-job','reg-height','reg-education','reg-location','reg-mbti','reg-kakao',
@@ -657,13 +657,13 @@ function toggleMatchmakerFormFields() {
 
     // 제출 버튼 텍스트
     const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) submitBtn.textContent = isMatchmaker ? '소개자 등록하기' : '신청서 제출';
+    if (submitBtn) submitBtn.textContent = isMatchmakerSignup ? '소개자 등록하기' : '신청서 제출';
 
     // 폼 타이틀 변경
     const formTitle = document.querySelector('.form-title');
-    if (formTitle) formTitle.textContent = isMatchmaker ? '소개자 등록' : '소개팅 신청서';
+    if (formTitle) formTitle.textContent = isMatchmakerSignup ? '소개자 등록' : '소개팅 신청서';
     const formSub = document.querySelector('.form-sub');
-    if (formSub) formSub.textContent = isMatchmaker
+    if (formSub) formSub.textContent = isMatchmakerSignup
         ? '이름과 연락처만 입력하면 추천 코드가 발급됩니다.'
         : '신청 후 관리자 승인을 거쳐 등록됩니다. 카카오 ID와 연락처는 관리자에게만 공개됩니다.';
 }
@@ -705,11 +705,11 @@ async function submitApplication() {
     const location_ = document.getElementById('reg-location').value.trim();
     const mbti     = document.getElementById('reg-mbti').value.trim();
     const ideal    = collectIdealData('ideal-chips', 'reg-ideal-memo');
-    const isMatchmaker = (localStorage.getItem('bj_signup_role') === 'matchmaker');
+    const isMatchmakerSignup = (localStorage.getItem('bj_signup_role') === 'matchmaker');
     const missing = [];
     if (!name)     missing.push('이름');
     if (!contact) missing.push('연락처 (휴대폰)');
-    if (!isMatchmaker) {
+    if (!isMatchmakerSignup) {
         // 참여자 전용 필수 항목
         if (!selectedGender) missing.push('성별');
         if (!isValidBirth(birth)) missing.push('생년월일 (예: 2000.01.15)');
@@ -752,7 +752,7 @@ async function submitApplication() {
     }
 
     // 신규 신청 시에만 사진 필수 (소개자 제외)
-    if (!isMatchmaker && !existingId && !photoFiles.some(f => f !== null)) {
+    if (!isMatchmakerSignup && !existingId && !photoFiles.some(f => f !== null)) {
         setLoading(false);
         btn.disabled = false;
         toast('사진을 최소 1장 업로드해주세요.');
@@ -782,7 +782,7 @@ async function submitApplication() {
         photoUrls = window._retainedPhotos || existingPhotos;
     }
     // 신규 신청인데 사진 처리 전부 실패한 경우 차단
-    if (!isMatchmaker && !existingId && photoUrls.length === 0) {
+    if (!isMatchmakerSignup && !existingId && photoUrls.length === 0) {
         setLoading(false);
         btn.disabled = false;
         btn.textContent = origText;
@@ -799,7 +799,7 @@ async function submitApplication() {
 
     // 접속경로는 추천인 코드가 대신. 추천 받은 경우 "지인 추천 (코드)" 자동 표시
     const referralCodeInputCheck = document.getElementById('reg-referral-code').value.trim().toUpperCase();
-    const rowData = isMatchmaker ? {
+    const rowData = isMatchmakerSignup ? {
         // 소개자: 최소 필드만
         gender: 'none',
         name,
@@ -891,7 +891,7 @@ async function submitApplication() {
         }
         const row = {
             id:      (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,10)),
-            status:  (isMatchmaker || isSuperCode) ? 'pending' : 'pending_reputation', // 소개자/슈퍼코드 → 관리자 심사, 일반 → 평판 대기
+            status:  (isMatchmakerSignup || isSuperCode) ? 'pending' : 'pending_reputation', // 소개자/슈퍼코드 → 관리자 심사, 일반 → 평판 대기
             user_id: userId,
             referral_code: myCode,
             referred_by: referralCodeInput || null,
@@ -908,7 +908,7 @@ async function submitApplication() {
         error = insertError;
 
         // 추천인에게 평판 요청 푸시/알림
-        if (!isMatchmaker && !insertError && referrerApplicant?.user_id) {
+        if (!isMatchmakerSignup && !insertError && referrerApplicant?.user_id) {
             try {
                 const dashBase = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html';
                 // notifications 테이블 (인앱)
@@ -958,13 +958,13 @@ async function submitApplication() {
     btn.textContent = '제출 완료!';
     toast(existingId
         ? '신청서가 수정되었습니다!'
-        : isMatchmaker
+        : isMatchmakerSignup
             ? '소개자 등록이 완료되었습니다! 추천 코드를 확인해보세요.'
         : isSuperCode
             ? '신청서가 제출되었습니다! 관리자 승인을 기다려주세요.'
             : '신청서가 제출되었습니다! 추천인과 지인 1명의 평판이 모이면 관리자 심사가 시작됩니다.', 'success');
     localStorage.removeItem('bj_signup_role');
-    setTimeout(() => window.location.href = 'dashboard.html', 2200);
+    setTimeout(() => window.location.href = isMatchmakerSignup ? 'matchmaker.html' : 'dashboard.html', 2200);
 
     } catch(e) {
         console.error('submitApplication error:', e);
@@ -2738,8 +2738,8 @@ async function confirmMatch(maleId, femaleId) {
     setLoading(true);
     try {
         const { error: matchError } = await db.rpc('admin_match_applicants', {
-            p_male_id: maleId,
-            p_female_id: femaleId
+            p_person_a_id: maleId,
+            p_person_b_id: femaleId
         });
         if (matchError) throw matchError;
         // 양쪽에 매칭 알림 + 푸시

@@ -8,7 +8,7 @@
 - **배포 URL**: https://kyhwow-rgb.github.io/banjjok/
 - **GitHub**: https://github.com/kyhwow-rgb/banjjok
 - **개발 기간**: 2026-04-09 ~
-- **현재 버전**: SW v27
+- **현재 버전**: SW v55
 
 ## 기술 스택
 

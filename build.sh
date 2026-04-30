@@ -10,10 +10,11 @@ echo "  JS 압축 중..."
 npx terser js/common.js -o js/common.min.js -c -m 2>/dev/null
 npx terser js/index.js -o js/index.min.js -c -m 2>/dev/null
 npx terser js/dashboard.js -o js/dashboard.min.js -c -m 2>/dev/null
+npx terser js/matchmaker.js -o js/matchmaker.min.js -c -m 2>/dev/null
 
 # CSS 미니파이 (간단한 공백/주석 제거)
 echo "  CSS 압축 중..."
-for f in css/index.css css/dashboard.css; do
+for f in css/index.css css/dashboard.css css/matchmaker.css; do
     out="${f%.css}.min.css"
     # 주석 제거 → 불필요한 공백 제거
     sed 's|/\*[^*]*\*+([^/*][^*]*\*+)*/||g' "$f" | tr -s ' \n' ' ' > "$out"
@@ -22,13 +23,13 @@ done
 # 크기 비교
 echo ""
 echo "📊 크기 비교:"
-for f in js/common js/index js/dashboard; do
+for f in js/common js/index js/dashboard js/matchmaker; do
     orig=$(wc -c < "${f}.js" | tr -d ' ')
     mini=$(wc -c < "${f}.min.js" | tr -d ' ')
     pct=$((100 - mini * 100 / orig))
     echo "  ${f}.js: ${orig}B → ${mini}B (-${pct}%)"
 done
-for f in css/index css/dashboard; do
+for f in css/index css/dashboard css/matchmaker; do
     orig=$(wc -c < "${f}.css" | tr -d ' ')
     mini=$(wc -c < "${f}.min.css" | tr -d ' ')
     pct=$((100 - mini * 100 / orig))

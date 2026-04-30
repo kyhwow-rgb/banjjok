@@ -21,6 +21,16 @@ async function checkIsAdmin() {
     return !!(data && data.length > 0);
 }
 
+// ── 주선 권한 확인 (matchmaker이거나 추천인이 있는 participant) ──
+async function canManageIntros(profile) {
+    if (profile.role === 'matchmaker') return true;
+    if (!profile.referral_code) return false;
+    const { count } = await db.from('applicants')
+        .select('id', { count: 'exact', head: true })
+        .eq('referred_by', profile.referral_code);
+    return count > 0;
+}
+
 // ── HTML 이스케이프 ──
 function esc(str) {
     if (str == null) return '';
