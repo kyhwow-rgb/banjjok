@@ -2472,7 +2472,7 @@ async function loadPendingIntroductions(profile) {
     // 상대방 + 주선자 정보 조회
     const relatedIds = [...new Set(pending.flatMap(i => [i.person_a_id, i.person_b_id, i.matchmaker_id]))];
     const { data: persons } = await db.from('applicants')
-        .select('id,name,gender,birth,job,location,photos,mbti,height')
+        .select('id,name,gender,birth,job,location,photos,mbti,height,matchmaker_tier,intro_success_count')
         .in('id', relatedIds);
     const pMap = {};
     (persons || []).forEach(p => pMap[p.id] = p);
@@ -2493,7 +2493,7 @@ async function loadPendingIntroductions(profile) {
 
         return `<div class="section-card" style="border:2px solid #ede9fe;">
             <div class="section-header" style="background:#f5f3ff;padding:14px 20px 12px;">
-                <div class="section-title"><i class="fa-solid fa-handshake-angle" style="color:#7c3aed;"></i> ${esc(matchmaker.name || '주선자')}님의 소개</div>
+                <div class="section-title"><i class="fa-solid fa-handshake-angle" style="color:#7c3aed;"></i> ${esc(matchmaker.name || '주선자')}님의 소개${matchmaker.matchmaker_tier === 'golden' ? ' <span class="badge" style="background:#fef3c7;color:#b45309;font-size:.65em;"><i class="fa-solid fa-crown"></i> 골든</span>' : matchmaker.matchmaker_tier === 'skilled' ? ' <span class="badge badge-purple" style="font-size:.65em;"><i class="fa-solid fa-star"></i> 실력파</span>' : ''}</div>
             </div>
             <div class="section-body" style="padding:16px 20px;">
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">

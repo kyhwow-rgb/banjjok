@@ -135,22 +135,33 @@ async function loadIntroduceTab() {
         .select('person_a_id,person_b_id')
         .eq('matchmaker_id', myProfile.id)
         .gte('created_at', todayStart);
+    // 인당 오늘 소개 횟수 카운트
     todayIntroducedIds = new Set();
-    (todayIntros || []).forEach(i => { todayIntroducedIds.add(i.person_a_id); todayIntroducedIds.add(i.person_b_id); });
+    todayIntroducedIds._counts = {};
+    (todayIntros || []).forEach(i => {
+        todayIntroducedIds.add(i.person_a_id);
+        todayIntroducedIds.add(i.person_b_id);
+        todayIntroducedIds._counts[i.person_a_id] = (todayIntroducedIds._counts[i.person_a_id] || 0) + 1;
+        todayIntroducedIds._counts[i.person_b_id] = (todayIntroducedIds._counts[i.person_b_id] || 0) + 1;
+    });
 
-    // 드롭다운: 내 풀 approved 참가자만
+    // 드롭다운: 내 풀 approved 참가자만 (인당 제한 초과 시 disabled)
+    const dailyLimitVal = myProfile.intro_daily_limit || 1;
     const selectA = document.getElementById('pick-person-a');
     selectA.innerHTML = '<option value="">선택...</option>' + myApproved.map(p => {
         const age = calcAge(p.birth);
         const g = p.gender === 'male' ? '남' : p.gender === 'female' ? '여' : '';
-        const done = todayIntroducedIds.has(p.id);
-        return `<option value="${p.id}" ${done ? 'disabled' : ''}>${esc(p.name)} (${g}${age ? ', ' + age + '세' : ''})${done ? ' - 오늘 소개완료' : ''}</option>`;
+        const cnt = todayIntroducedIds._counts[p.id] || 0;
+        const done = cnt >= dailyLimitVal;
+        return `<option value="${p.id}" ${done ? 'disabled' : ''}>${esc(p.name)} (${g}${age ? ', ' + age + '세' : ''})${done ? ' - 오늘 ' + cnt + '/' + dailyLimitVal + '완료' : ''}</option>`;
     }).join('');
 
-    // 일일 현황
+    // 일일 현황 (tier별 인당 제한 반영)
+    const dailyLimit = myProfile.intro_daily_limit || 1;
     const usedCount = (todayIntros || []).length;
-    const maxCount = myApproved.length;
-    document.getElementById('daily-limit').textContent = `오늘 ${usedCount}/${maxCount}명 소개 (참가자 인당 1회/일)`;
+    const maxCount = myApproved.length * dailyLimit;
+    const tierLabel = { beginner: '초보 주선자', skilled: '실력파 주선자', golden: '골든 주선자' }[myProfile.matchmaker_tier] || '';
+    document.getElementById('daily-limit').textContent = `오늘 ${usedCount}/${maxCount}건 소개 (인당 ${dailyLimit}회/일)${tierLabel ? ' · ' + tierLabel : ''}`;
 
     // 추천 영역 초기화
     document.getElementById('recommendations').innerHTML = '';
@@ -172,9 +183,11 @@ function showRecommendations() {
     const personA = myParticipants.find(p => p.id === aId);
     if (!personA) return;
 
-    // 오늘 이미 소개한 참가자면 차단
-    if (todayIntroducedIds.has(aId)) {
-        recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">오늘 이미 이 참가자를 소개했습니다.</div>';
+    // 인당 일일 제한 체크 (tier별 동적)
+    const dailyLimit = myProfile.intro_daily_limit || 1;
+    const todayCountForA = (todayIntroducedIds._counts || {})[aId] || 0;
+    if (todayCountForA >= dailyLimit) {
+        recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">오늘 이 참가자의 소개 한도를 채웠습니다. (' + todayCountForA + '/' + dailyLimit + ')</div>';
         noteArea.style.display = 'none';
         return;
     }
@@ -190,7 +203,7 @@ function showRecommendations() {
             return { ...c, _score: Math.round((s1 + s2) / 2) };
         })
         .sort((a, b) => b._score - a._score)
-        .slice(0, 3);
+        .slice(0, myProfile.intro_rec_count || 3);
 
     if (candidates.length === 0) {
         recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">추천할 이성 참가자가 없습니다.</div>';
@@ -361,14 +374,37 @@ async function loadHistory() {
 function renderMyTab() {
     const el = document.getElementById('my-profile-info');
     if (!myProfile) return;
+
+    const tier = myProfile.matchmaker_tier;
+    const successCount = myProfile.intro_success_count || 0;
+    const tierBadge = tier === 'golden'
+        ? '<span class="badge" style="background:#fef3c7;color:#b45309;"><i class="fa-solid fa-crown"></i> 골든 주선자</span>'
+        : tier === 'skilled'
+        ? '<span class="badge badge-purple"><i class="fa-solid fa-star"></i> 실력파 주선자</span>'
+        : tier === 'beginner'
+        ? '<span class="badge badge-green"><i class="fa-solid fa-seedling"></i> 초보 주선자</span>'
+        : '';
+
+    // 성공률 계산
+    const totalIntros = myIntroductions ? myIntroductions.length : 0;
+    const successRate = totalIntros > 0 ? Math.round((successCount / totalIntros) * 100) : 0;
+
+    // 다음 tier까지 남은 횟수
+    const nextTier = tier === 'golden' ? null : tier === 'skilled' ? { name: '골든', need: 5 } : tier === 'beginner' ? { name: '실력파', need: 3 } : { name: '초보', need: 1 };
+    const remaining = nextTier ? nextTier.need - successCount : 0;
+
     el.innerHTML = `
         <div style="display:flex;flex-direction:column;gap:8px;">
             <div style="font-weight:800;font-size:1.1em;">${esc(myProfile.name)}</div>
-            <div style="font-size:.85em;color:var(--muted);">
+            <div style="font-size:.85em;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 ${myProfile.role === 'matchmaker' ? '<span class="badge badge-green"><i class="fa-solid fa-handshake-angle"></i> 소개자</span>' : '<span class="badge badge-purple"><i class="fa-solid fa-user"></i> 참가자 + 주선자</span>'}
+                ${tierBadge}
             </div>
+            ${successCount > 0 ? `<div style="font-size:.85em;color:var(--muted);">소개 성사: <strong>${successCount}쌍</strong>${totalIntros > 0 ? ` (성공률 ${successRate}%)` : ''}</div>` : ''}
+            ${nextTier && remaining > 0 ? `<div style="font-size:.78em;color:#7c3aed;">${nextTier.name} 주선자까지 ${remaining}회 성사 남음</div>` : ''}
             <div style="font-size:.85em;color:var(--muted);">추천 코드: <strong>${esc(myProfile.referral_code)}</strong></div>
             <div style="font-size:.85em;color:var(--muted);">추천한 참가자: <strong>${myParticipants.length}명</strong></div>
+            <div style="font-size:.78em;color:var(--muted);">일일 소개: 인당 ${myProfile.intro_daily_limit || 1}회 · 추천 후보 ${myProfile.intro_rec_count || 3}명</div>
         </div>
     `;
 }
