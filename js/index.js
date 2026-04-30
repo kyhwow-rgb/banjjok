@@ -200,7 +200,7 @@ function translateAuthError(msg) {
     }
     // 번역 못한 영어 메시지는 표시 안 함 대신 일반 문구
     if (/^[\x00-\x7f]*$/.test(msg)) {
-        return '가입 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+        return '처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
     }
     return msg; // 한글 메시지면 그대로
 }
@@ -283,6 +283,8 @@ async function doLogin() {
     const email = document.getElementById('login-email').value.trim();
     const pw    = document.getElementById('login-pw').value;
     const err   = document.getElementById('login-error');
+    if (!email) { err.textContent = '이메일을 입력해주세요.'; err.style.display = 'block'; return; }
+    if (!pw)    { err.textContent = '비밀번호를 입력해주세요.'; err.style.display = 'block'; return; }
     setLoading(true, '로그인 중...');
     const { error } = await db.auth.signInWithPassword({ email, password: pw });
     setLoading(false);
