@@ -333,7 +333,7 @@ async function loadHistory() {
     const expired = myIntroductions.filter(i => i.status === 'expired').length;
     const rate = myIntroductions.length > 0 ? Math.round((matched / myIntroductions.length) * 100) : 0;
 
-    container.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    const statsHtml = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
         <div style="flex:1;min-width:70px;text-align:center;padding:10px;background:#ecfdf5;border-radius:var(--radius);">
             <div style="font-size:1.3em;font-weight:900;color:#059669;">${matched}</div>
             <div style="font-size:.7em;color:#065f46;">성사</div>
@@ -350,7 +350,7 @@ async function loadHistory() {
             <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${rate}%</div>
             <div style="font-size:.7em;color:#5b21b6;">성공률</div>
         </div>
-    </div>` + '';
+    </div>`;
 
     // 참가자 이름 조회
     const personIds = [...new Set(myIntroductions.flatMap(i => [i.person_a_id, i.person_b_id]))];
@@ -360,7 +360,7 @@ async function loadHistory() {
     const personMap = {};
     (persons || []).forEach(p => personMap[p.id] = p);
 
-    container.innerHTML += myIntroductions.map(intro => {
+    container.innerHTML = statsHtml + myIntroductions.map(intro => {
         const a = personMap[intro.person_a_id] || {};
         const b = personMap[intro.person_b_id] || {};
         const statusInfo = {
