@@ -80,7 +80,11 @@ function setLoading(on) {
 }
 
 // ── 추천 참가자 목록 로드 ──
+let loadingParticipants = false;
 async function loadParticipants() {
+    if (loadingParticipants) return;
+    loadingParticipants = true;
+    try {
     const { data, error } = await db.from('applicants')
         .select('id,name,gender,birth,photos,status,role,job,location,mbti,height,referred_by,referral_code')
         .eq('referred_by', myProfile.referral_code)
@@ -120,13 +124,25 @@ async function loadParticipants() {
             <div class="participant-status">${statusBadge}</div>
         </div>`;
     }).join('');
+    } finally { loadingParticipants = false; }
 }
 
 // ── 소개하기 탭 ──
 let todayIntroducedIds = new Set(); // 오늘 이미 소개한 참가자 ID
+let loadingIntroduce = false; // 중복 로드 방지
 
 async function loadIntroduceTab() {
+    if (loadingIntroduce) return;
+    loadingIntroduce = true;
+    try { await _loadIntroduceTabInner(); } finally { loadingIntroduce = false; }
+}
+
+async function _loadIntroduceTabInner() {
     const myApproved = myParticipants.filter(p => p.status === 'approved' && p.role !== 'matchmaker');
+
+    // 기존 안내 메시지 항상 제거 (중복 삽입 방지)
+    const oldMsg = document.getElementById('no-approved-msg');
+    if (oldMsg) oldMsg.remove();
 
     // 승인된 참가자가 없으면 안내 메시지 표시
     if (myApproved.length === 0) {
@@ -138,9 +154,6 @@ async function loadIntroduceTab() {
             '<div class="empty-state" id="no-approved-msg">아직 소개할 수 있는 참가자가 없습니다.<br>추천한 참가자가 승인되면 소개를 시작할 수 있어요.</div>');
         return;
     }
-    // 기존 안내 메시지 제거
-    const oldMsg = document.getElementById('no-approved-msg');
-    if (oldMsg) oldMsg.remove();
 
     // 로딩 표시
     document.getElementById('recommendations').innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner"></div></div>';
