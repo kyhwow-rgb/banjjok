@@ -1,18 +1,20 @@
         :root {
             --primary: #111;
             --primary-light: #f5f5f5;
-            --cta: #e11d48;
-            --cta-hover: #be123c;
+            --cta: #FF6B6B;
+            --cta-hover: #E85C5C;
+            --cta-light: #FFF0F0;
             --male: #111;
             --male-light: #fafafa;
             --female: #111;
             --female-light: #fafafa;
             --bg: #fff;
             --text: #111;
-            --muted: #a3a3a3;
-            --border: #e5e5e5;
+            --muted: #888;
+            --border: #f0f0f0;
             --card: #fff;
-            --radius: 12px;
+            --radius: 14px;
+            --radius-pill: 26px;
             --shadow: none;
             --shadow-hover: none;
         }
@@ -43,8 +45,8 @@
         #install-splash .splash-title { font-size:1.5em; font-weight:800; color:#111; margin-bottom:6px; }
         #install-splash .splash-sub { font-size:.88em; color:#737373; margin-bottom:28px; line-height:1.5; }
         #install-splash .splash-btn { width:100%; max-width:300px; padding:14px 0; border-radius:12px; font-size:1em; font-weight:700; cursor:pointer; border:none; transition:all .15s; }
-        #install-splash .splash-btn-install { background:#e11d48; color:#fff; }
-        #install-splash .splash-btn-install:active { background:#be123c; }
+        #install-splash .splash-btn-install { background:var(--cta); color:#fff; }
+        #install-splash .splash-btn-install:active { background:var(--cta-hover); }
         #install-splash .splash-btn-web { background:#f3f4f6; color:#525252; font-size:.88em; font-weight:600; margin-top:0; border-radius:10px; padding:12px 0; }
         .splash-guide-box {
             width:100%; max-width:320px; background:#f9fafb; border:1px solid #e5e7eb;
@@ -56,7 +58,7 @@
         }
         .splash-guide-box .guide-step:last-child { margin-bottom:0; }
         .splash-guide-box .guide-num {
-            flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#e11d48; color:#fff;
+            flex-shrink:0; width:24px; height:24px; border-radius:50%; background:var(--cta); color:#fff;
             font-size:.72em; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
         }
         .splash-guide-box .guide-step b { color:#111; }

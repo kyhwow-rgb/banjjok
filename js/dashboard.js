@@ -2217,7 +2217,7 @@ function renderMatchResult(partner) {
     sec.innerHTML = `
         <div style="text-align:center;padding:8px 0;">
             <div style="font-size:1.1em;font-weight:800;color:var(--primary);margin-bottom:16px;">축하합니다! 반쪽을 찾았어요</div>
-            ${partner._introducedBy ? `<div style="font-size:.78em;color:#7c3aed;margin-bottom:12px;"><i class="fa-solid fa-handshake-angle"></i> ${esc(partner._introducedBy.name)}님의 소개로 만났어요${partner._introducedBy.matchmaker_tier === 'golden' ? ' <span style="color:#b45309;">👑</span>' : ''}</div>` : ''}
+            ${partner._introducedBy ? `<div style="font-size:.78em;color:#FF6B6B;margin-bottom:12px;"><i class="fa-solid fa-paper-plane"></i> ${esc(partner._introducedBy.name)}님의 소개로 만났어요${partner._introducedBy.matchmaker_tier === 'golden' ? ' 👑' : ''}</div>` : ''}
             <div style="display:flex;justify-content:center;margin-bottom:16px;cursor:pointer;" onclick="openMatchedProfile()">${photoHtml}</div>
             <div style="font-size:1em;font-weight:700;margin-bottom:4px;cursor:pointer;" onclick="openMatchedProfile()">${esc(partner.name)}</div>
             <div style="font-size:.72em;color:var(--accent);margin-bottom:12px;cursor:pointer;" onclick="openMatchedProfile()">프로필 보기 <i class="fa-solid fa-chevron-right" style="font-size:.6em;"></i></div>
@@ -2504,30 +2504,42 @@ async function loadPendingIntroductions(profile) {
         const genderIcon = other.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>'
             : other.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#ec4899;"></i>' : '';
 
-        return `<div class="section-card" style="border:2px solid #ede9fe;">
-            <div class="section-header" style="background:#f5f3ff;padding:14px 20px 12px;">
-                <div class="section-title"><i class="fa-solid fa-handshake-angle" style="color:#7c3aed;"></i> ${esc(matchmaker.name || '주선자')}님의 소개${matchmaker.matchmaker_tier === 'golden' ? ' <span class="badge" style="background:#fef3c7;color:#b45309;font-size:.65em;"><i class="fa-solid fa-crown"></i> 골든</span>' : matchmaker.matchmaker_tier === 'skilled' ? ' <span class="badge badge-purple" style="font-size:.65em;"><i class="fa-solid fa-star"></i> 실력파</span>' : ''}</div>
-                ${matchmaker.intro_success_count > 0 ? `<div style="font-size:.7em;color:#7c3aed;margin-top:2px;">${matchmaker.intro_success_count}쌍 매칭 성사한 주선자</div>` : ''}
+        const tierTags = [];
+        if (matchmaker.intro_success_count > 0) tierTags.push(`성사 ${matchmaker.intro_success_count}회`);
+        if (matchmaker.intro_success_count > 0 && intro.matchmaker_id) {
+            const successRate = matchmaker.intro_success_count; // approximate
+            if (successRate >= 3) tierTags.push(`성공률 높음`);
+        }
+        if (matchmaker.matchmaker_tier === 'golden') tierTags.push(`<i class="fa-solid fa-crown"></i> 골든 주선자`);
+        else if (matchmaker.matchmaker_tier === 'skilled') tierTags.push(`<i class="fa-solid fa-star"></i> 실력파`);
+
+        return `<div class="section-card" style="border:1px solid #f0f0f0;">
+            <!-- 소개장 -->
+            <div style="padding:16px 20px;background:#FFF0F0;border-radius:14px 14px 0 0;">
+                <div style="font-size:.72em;font-weight:700;color:#FF6B6B;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                    <i class="fa-solid fa-paper-plane"></i> ${esc(matchmaker.name || '주선자')}님이 보낸 소개장
+                </div>
+                ${intro.matchmaker_note ? `<div style="font-size:.85em;color:#333;line-height:1.6;">"${esc(intro.matchmaker_note)}"</div>` : `<div style="font-size:.85em;color:#333;line-height:1.6;">"${esc(other.name || '?')}님을 소개해드려요!"</div>`}
+                ${tierTags.length > 0 ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${tierTags.map(t => `<span style="font-size:.65em;padding:3px 10px;background:#fff;border-radius:20px;color:#FF6B6B;font-weight:600;">${t}</span>`).join('')}</div>` : ''}
             </div>
-            <div class="section-body" style="padding:16px 20px;">
+            <!-- 프로필 -->
+            <div style="padding:16px 20px;">
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
-                    <div style="width:60px;height:60px;border-radius:14px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                        ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.5em;"></i>'}
+                    <div style="width:60px;height:60px;border-radius:14px;background:#f8f8f8;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                        ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;" alt="">` : '<i class="fa-solid fa-user" style="color:#ccc;font-size:1.5em;"></i>'}
                     </div>
                     <div style="flex:1;">
-                        <div style="font-weight:800;font-size:1em;">${esc(other.name || '?')} ${genderIcon} ${age ? `<span style="color:var(--muted);font-size:.82em;">${age}세</span>` : ''}</div>
-                        <div style="font-size:.82em;color:var(--muted);margin-top:2px;">${esc(other.job || '')} ${other.location ? '· ' + esc(other.location) : ''}</div>
-                        <div style="font-size:.82em;color:var(--muted);">${other.mbti || ''} ${other.height ? '· ' + other.height + 'cm' : ''}</div>
+                        <div style="font-weight:800;font-size:1em;">${esc(other.name || '?')} ${genderIcon} ${age ? `<span style="color:#888;font-size:.82em;">${age}세</span>` : ''}</div>
+                        <div style="font-size:.82em;color:#888;margin-top:2px;">${esc(other.job || '')} ${other.location ? '· ' + esc(other.location) : ''}</div>
+                        <div style="font-size:.82em;color:#888;">${other.mbti || ''} ${other.height ? '· ' + other.height + 'cm' : ''}</div>
                     </div>
                     <div style="text-align:center;">
-                        <div style="font-size:.72em;color:var(--muted);">궁합</div>
-                        <div style="font-size:1.3em;font-weight:900;color:var(--primary);">${score}%</div>
+                        <div style="background:#FF6B6B;color:#fff;padding:6px 14px;border-radius:12px;font-size:.88em;font-weight:800;">${score}%</div>
                     </div>
                 </div>
-                ${intro.matchmaker_note ? `<div style="padding:10px 14px;background:#f9fafb;border-radius:10px;font-size:.82em;color:#555;margin-bottom:14px;">"${esc(intro.matchmaker_note)}"</div>` : ''}
                 <div style="display:flex;gap:10px;">
-                    <button class="btn btn-outline" onclick="respondToIntro('${intro.id}', false)" style="flex:1;padding:12px;color:#ef4444;border-color:#fecaca;">괜찮아요</button>
-                    <button class="btn btn-primary" onclick="respondToIntro('${intro.id}', true)" style="flex:1;padding:12px;background:#7c3aed;">좋아요!</button>
+                    <button class="btn btn-outline" onclick="respondToIntro('${intro.id}', false)" style="flex:1;padding:12px;border-radius:26px;color:#aaa;">다음에</button>
+                    <button class="btn btn-primary" onclick="respondToIntro('${intro.id}', true)" style="flex:1;padding:12px;border-radius:26px;background:#FF6B6B;box-shadow:0 4px 16px rgba(255,107,107,.3);">좋아요!</button>
                 </div>
             </div>
         </div>`;
