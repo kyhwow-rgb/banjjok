@@ -358,7 +358,7 @@ async function showOnboarding(status, candidateCount) {
             <div class="onboard-title">신청서가 반려되었어요</div>
             <div class="onboard-sub">걱정 마세요! 신청서를 수정해서 다시 제출할 수 있어요.</div>
             <div style="margin-top:8px;">
-                <button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);" onclick="if(window._myProfile){localStorage.setItem('bj_edit_profile',JSON.stringify(window._myProfile));}window.location.href='index.html#register';">신청서 수정하기 ✏️</button>
+                <button class="onboard-btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);" onclick="editMyProfile();">신청서 수정하기 ✏️</button>
             </div>
             <div style="margin-top:16px;">
                 <button class="btn btn-nav" onclick="document.getElementById('onboard-overlay').style.display='none'">닫기</button>
@@ -427,7 +427,7 @@ function renderProfile(p) {
             </div>
         </div>` : ''}
         ${p.status === 'pending' ? `<div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border-radius:12px;font-size:.85em;color:#92400e;">⏳ 관리자가 신청서를 확인 중이에요. 승인되면 추천 반쪽을 볼 수 있어요!</div>` : ''}
-        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="#" onclick="event.preventDefault();if(window._myProfile){localStorage.setItem('bj_edit_profile',JSON.stringify(window._myProfile));}window.location.href='index.html#register';" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
+        ${p.status === 'rejected' ? `<div style="margin-top:16px;padding:14px 18px;background:#fee2e2;border-radius:12px;font-size:.85em;color:#991b1b;">신청서가 반려되었어요. <a href="#" onclick="event.preventDefault();editMyProfile();" style="color:#7c3aed;font-weight:700;">신청서를 수정</a>해서 다시 제출해보세요.</div>` : ''}
         <div id="my-reputation-box" style="margin-top:16px;"></div>`;
     loadMyReputations(p.id);
     if (mySec) {
@@ -592,6 +592,14 @@ function switchTab(tab) {
     if (tab === 'chat') {
         renderChatRoomList();
     }
+}
+
+function editMyProfile() {
+    if (window._myProfile) {
+        try { localStorage.setItem('bj_edit_profile', JSON.stringify(window._myProfile)); } catch(e) {}
+    }
+    localStorage.setItem('bj_edit_return_dashboard', '1');
+    window.location.href = 'index.html#register';
 }
 
 function updateInterestBadge() {
@@ -1675,32 +1683,44 @@ function dashUrl(section) { return DASH_BASE + '#tab-' + section; }
 
 // 알림 type → 이동할 탭/섹션
 function navigateByNotifType(type, relatedId) {
+    const setHash = (tab, extra) => {
+        const hash = '#tab-' + tab + (extra || '');
+        if (location.hash !== hash) history.replaceState(history.state || {}, '', hash);
+    };
     switch(type) {
         case 'interest':
         case 'mutual':
             switchTab('interest');
+            setHash('interest');
             setTimeout(() => {
                 if (type === 'mutual') {
                     document.getElementById('mutual-card')?.scrollIntoView({ behavior:'smooth', block:'start' });
+                    if (relatedId) setTimeout(() => openProfileModal(relatedId), 180);
                 }
             }, 150);
             break;
         case 'matched':
         case 'match':
             switchTab('interest');
+            setHash('interest', '#match-result-card');
             setTimeout(() => document.getElementById('match-result-card')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
+        case 'message':
         case 'chat_message':
             switchTab('chat');
+            setHash('chat');
             break;
         case 'approved':
             switchTab('discover');
+            setHash('discover');
             break;
         case 'rejected':
             switchTab('my');
+            setHash('my');
             break;
         case 'inquiry_reply':
             switchTab('my');
+            setHash('my', '#inquiry-history');
             setTimeout(() => document.getElementById('inquiry-history')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
         case 'reputation_request':
@@ -1709,17 +1729,23 @@ function navigateByNotifType(type, relatedId) {
                 openProfileModal(relatedId);
             } else {
                 switchTab('my');
+                setHash('my');
             }
             break;
         case 'reputation_received':
             // 내가 평판 받음 — MY 탭 내 평판 섹션
             switchTab('my');
+            setHash('my', '#my-reputation-box');
             setTimeout(() => document.getElementById('my-reputation-box')?.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
             break;
         case 'reputation_complete':
             // 평판 2개 모여 심사 시작 — MY 탭으로
             switchTab('my');
+            setHash('my');
             break;
+        default:
+            switchTab('my');
+            setHash('my');
     }
 }
 
@@ -1757,7 +1783,10 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
         const data = event.data || {};
         if (data.type === 'navigate' && data.section) {
+            closeNotifPanel();
             switchTab(data.section);
+            const hash = '#tab-' + data.section + (data.scrollTo || '');
+            if (location.hash !== hash) history.replaceState(history.state || {}, '', hash);
             if (data.scrollTo) {
                 setTimeout(() => {
                     const el = document.querySelector(data.scrollTo);
@@ -1893,13 +1922,12 @@ function closeNotifPanel() {
 
 async function readNotif(id) {
     const n = _notifications.find(x => x.id === id);
+    closeNotifPanel();
+    if (n) navigateByNotifType(n.type, n.related_id);
     await db.from('notifications').update({ is_read: true }).eq('id', id);
     if (n) n.is_read = true;
     renderNotifBadge();
     renderNotifList();
-    closeNotifPanel();
-    // 타입별 화면 이동
-    if (n) navigateByNotifType(n.type, n.related_id);
 }
 
 async function markAllRead() {

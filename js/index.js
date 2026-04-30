@@ -92,9 +92,14 @@ function goRegister() {
     showScreen('register');
 }
 function goBack() {
+    if (localStorage.getItem('bj_edit_return_dashboard') === '1') {
+        localStorage.removeItem('bj_edit_return_dashboard');
+        window.location.href = 'dashboard.html#tab-my';
+        return;
+    }
     // 대시보드에서 프로필 수정으로 온 경우 → 대시보드로 복귀
     if (document.referrer.includes('dashboard') || localStorage.getItem('kj_screen') === 'register') {
-        window.location.href = 'dashboard.html';
+        window.location.href = 'dashboard.html#tab-my';
         return;
     }
     showScreen(prevScreen || 'home');
@@ -3548,6 +3553,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const editData = localStorage.getItem('bj_edit_profile');
     if (session && (location.hash === '#register' || editData)) {
         localStorage.removeItem('bj_edit_profile');
+        localStorage.setItem('bj_edit_return_dashboard', '1');
         saveSession(role || 'viewer', 'register');
         // localStorage에 프로필 JSON이 있으면 직접 prefill (DB 의존 제거)
         let prefilled = false;
@@ -3584,6 +3590,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         if (!profileName) {
             // 신청서 없음 → 바로 신청서 작성 화면
+            localStorage.removeItem('bj_edit_return_dashboard');
             saveSession('viewer', 'register');
             showScreen('register');
             return;
@@ -3608,6 +3615,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     showAuthView('invite');
+    localStorage.removeItem('bj_edit_return_dashboard');
     history.replaceState({ screen: 'login' }, '', location.pathname);
 });
 

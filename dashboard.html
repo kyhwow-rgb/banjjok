@@ -162,7 +162,7 @@
             <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('my-profile-section');b.style.display=b.style.display==='none'?'':'none';">
                 <div class="section-title"><i class="fa-solid fa-user" style="color:var(--muted);"></i> 내 프로필</div>
                 <div style="display:flex;gap:6px;align-items:center;">
-                    <button class="btn btn-outline" id="edit-profile-btn-my" style="display:none;padding:7px 16px;font-size:.82em;" onclick="event.stopPropagation();if(window._myProfile){localStorage.setItem('bj_edit_profile',JSON.stringify(window._myProfile));}window.location.href='index.html#register';">프로필 수정</button>
+                    <button class="btn btn-outline" id="edit-profile-btn-my" style="display:none;padding:7px 16px;font-size:.82em;" onclick="event.stopPropagation();editMyProfile();">프로필 수정</button>
                     <span style="font-size:.78em;color:var(--muted);">▾</span>
                 </div>
             </div>
