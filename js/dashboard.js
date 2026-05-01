@@ -698,7 +698,7 @@ function renderListView(sec, favSet) {
         const isMutual = (window._mutualSet || new Set()).has(c.id);
         const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="font-size:.65em;padding:2px 6px;"><i class="fa-solid fa-fire"></i>${c._favCount}</span>` : '';
         const mutualHtml = isMutual ? `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>` : '';
-        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border:1px solid #FFF0F0;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
+        return `<div class="match-item" style="animation-delay:${i * 50}ms;${isMutual ? 'background:linear-gradient(135deg,#FFF0F0,#FFF0F0);border:1px solid #FFF0F0;' : ''}cursor:pointer;" onclick="openProfileModal('${c.id}')">
             <div class="match-rank">${rankIcon}</div>
             ${photoHtml}
             <div class="match-info">
@@ -783,7 +783,7 @@ function renderCardView(sec, favSet) {
     }
 
     const popHtml = c._favCount > 0 ? `<span class="popularity-badge" style="margin-bottom:12px;"><i class="fa-solid fa-fire"></i> ${c._favCount}명이 관심을 보이고 있어요</span>` : '';
-    const mutualCardHtml = isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border-radius:12px;margin-bottom:12px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 이 사람도 당신에게 관심이 있어요!</span></div>` : '';
+    const mutualCardHtml = isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);border-radius:12px;margin-bottom:12px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 이 사람도 당신에게 관심이 있어요!</span></div>` : '';
 
     sec.innerHTML = `
         <div class="card-view">
@@ -1428,7 +1428,7 @@ async function renderMutualSection() {
                 </div>`;
                 statusBadge = `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>${theyAccepted ? '<span class="mutual-badge" style="background:#fef3c7;color:#92400e;font-size:.7em;margin-left:4px;">상대 수락함</span>' : ''}`;
             }
-            return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border:1px solid #FFF0F0;' : ''}" onclick="openProfileModal('${c.id}')">
+            return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#FFF0F0,#FFF0F0);border:1px solid #FFF0F0;' : ''}" onclick="openProfileModal('${c.id}')">
                 ${photoHtml}
                 <div class="match-info" style="flex:1;">
                     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -1605,7 +1605,7 @@ async function openProfileModal(applicantId) {
             </div>
         </div>
         <div class="pm-body">
-            ${isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border-radius:12px;margin-bottom:14px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 서로 관심을 보냈어요!</span></div>` : ''}
+            ${isMutual ? `<div style="text-align:center;padding:10px;background:linear-gradient(135deg,#FFF0F0,#FFF0F0);border-radius:12px;margin-bottom:14px;"><span class="mutual-badge" style="font-size:.85em;"><i class="fa-solid fa-heart-circle-bolt"></i> 서로 관심을 보냈어요!</span></div>` : ''}
             ${popCount > 0 ? `<div style="margin-bottom:12px;"><span class="popularity-badge"><i class="fa-solid fa-fire"></i> ${popCount}명이 관심</span></div>` : ''}
             <div class="pm-section">
                 <div class="pm-tags">${tags.map(t => `<span class="pm-tag">${esc(t)}</span>`).join('')}</div>
@@ -2866,8 +2866,7 @@ function applyWatermark() {
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(-25 * Math.PI / 180);
     ctx.textAlign = 'center';
-    ctx.fillText(text, 0, -15);
-    ctx.fillText(text, 0, 15);
+    ctx.fillText(text, 0, 0);
     ctx.restore();
 
     const dataUrl = canvas.toDataURL();

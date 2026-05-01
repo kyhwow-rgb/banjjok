@@ -127,7 +127,7 @@
         <div class="login-logo"><i class="fa-solid fa-user-plus"></i></div>
         <div class="login-sub" style="margin-bottom:24px;">나에게 맞는 가입 유형을 선택해주세요</div>
         <div style="display:flex;flex-direction:column;gap:12px;max-width:320px;width:100%;">
-            <div onclick="selectSignupRole('participant')" style="border:2px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:flex-start;gap:14px;" onmouseover="this.style.borderColor='#111';this.style.background='#FFF8F8'" onmouseout="this.style.borderColor='var(--border)';this.style.background=''">
+            <div onclick="selectSignupRole('participant')" style="border:2px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:flex-start;gap:14px;" onmouseover="this.style.borderColor='#111';this.style.background='#FFF0F0'" onmouseout="this.style.borderColor='var(--border)';this.style.background=''">
                 <div style="font-size:1.5em;flex-shrink:0;margin-top:2px;">💕</div>
                 <div>
                     <div style="font-weight:800;font-size:1em;margin-bottom:4px;">내 반쪽 찾기</div>
@@ -534,7 +534,7 @@
             </div>
 
             <!-- 통계 카드 (클릭하면 해당 탭으로) -->
-            <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="stats-grid">
                 <div class="stat-card" id="card-total"   onclick="jumpToApplicants('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
                 <div class="stat-card" id="card-pending" onclick="jumpToApplicants('pending')"  ><div class="stat-num" id="stat-pending" style="color:var(--cta);">0</div><div class="stat-label">대기</div></div>
                 <div class="stat-card" id="card-male"    onclick="jumpToApplicants('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
@@ -688,12 +688,6 @@
                 <div id="broadcast-status" style="margin-top:10px;font-size:.82em;"></div>
             </div>
 
-            <div class="admin-section">
-                <div class="admin-section-title"><i class="fa-solid fa-lock" style="color:var(--primary);"></i> 비밀번호 변경</div>
-                <div style="padding:14px;background:#fef3c7;border:1px solid #fde68a;border-radius:12px;font-size:.86em;color:#92400e;line-height:1.6;">
-                    보안상 앱 내부 비밀번호 저장 기능은 비활성화되었습니다. 관리자 권한은 Supabase Auth 계정과 <code>admin_users</code> 테이블로 관리하세요.
-                </div>
-            </div>
         </div>
 
     </div>

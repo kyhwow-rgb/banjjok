@@ -1880,7 +1880,7 @@ async function loadMatchRequests() {
             const tIcon = to.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:var(--male);"></i>' : '<i class="fa-solid fa-venus" style="color:var(--female);"></i>';
             const alreadyMatched = from.status === 'matched' || to.status === 'matched';
             const warning = alreadyMatched ? `<div style="font-size:.72em;color:#ef4444;margin-top:4px;">⚠️ ${from.status==='matched'?esc(from.name):esc(to.name)}님은 이미 매칭됨</div>` : '';
-            return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:${alreadyMatched?'#fef2f2':'#FFF8F8'};border-radius:12px;margin-bottom:8px;flex-wrap:wrap;">
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:${alreadyMatched?'#fef2f2':'#FFF0F0'};border-radius:12px;margin-bottom:8px;flex-wrap:wrap;">
                 <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;">
                     <span>${fIcon}</span>
                     <span style="font-weight:700;font-size:.9em;">${esc(from.name)}</span>
@@ -2442,7 +2442,7 @@ async function openAdminDetail(id) {
                 <div class="detail-label">이상형</div>
                 <div class="detail-value">${renderIdealDisplay(a.ideal)}</div>
             </div>` : ''}
-        <div style="margin-top:16px;padding:14px;background:#FFF8F8;border-radius:10px;">
+        <div style="margin-top:16px;padding:14px;background:#FFF0F0;border-radius:10px;">
             <div style="font-size:.82em;font-weight:800;color:#FF6B6B;margin-bottom:8px;">
                 <i class="fa-solid fa-handshake"></i> 평판 & 추천인
             </div>
