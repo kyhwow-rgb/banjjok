@@ -1052,8 +1052,8 @@ function cardLike(id) {
             if (tgt?.[0]?.user_id) {
                 const { data: rev } = await db.from('favorites').select('id').eq('user_id', tgt[0].user_id).eq('applicant_id', window._myProfile.id).limit(1);
                 if (rev?.length > 0) {
-                    // 상호 찜 → 자동 매칭!
-                    await autoMatch(tgt[0].id, tgt[0].user_id, tgt[0].name);
+                    // 상호 찜 → 매칭 제안 (쌍방 수락 필요)
+                    await proposeMutualMatch(tgt[0].id, tgt[0].user_id, tgt[0].name);
                 } else {
                     sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', dashUrl('interest'), 'interest');
                 }
@@ -1105,8 +1105,8 @@ async function toggleFav(applicantId, opts) {
                     const { data: reverse } = await db.from('favorites')
                         .select('id').eq('user_id', tgt[0].user_id).eq('applicant_id', window._myProfile.id).limit(1);
                     if (reverse && reverse.length > 0) {
-                        // 상호 찜 → 자동 매칭!
-                        await autoMatch(tgt[0].id, tgt[0].user_id, tgt[0].name);
+                        // 상호 찜 → 매칭 제안 (쌍방 수락 필요)
+                        await proposeMutualMatch(tgt[0].id, tgt[0].user_id, tgt[0].name);
                     } else {
                         sendPushNotif(tgt[0].user_id, '💝 누군가 관심을 표현했어요', '관심 탭을 확인해보세요', dashUrl('interest'), 'interest');
                     }
@@ -1189,6 +1189,89 @@ async function loadMutualInterests(userId) {
     }
 }
 
+// ── 상호 관심 → 매칭 제안 (쌍방 수락 필요) ──
+async function proposeMutualMatch(targetApplicantId, targetUserId, targetName) {
+    if (!window._myProfile) return;
+    if (window._myProfile.status === 'matched') return;
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        // 이미 제안된 매칭이 있는지 확인
+        const { data: existing } = await db.from('notifications')
+            .select('id').eq('user_id', user.id).eq('type', 'match_proposal')
+            .eq('related_id', targetApplicantId).limit(1);
+        if (existing && existing.length > 0) return; // 이미 제안됨
+        // 양쪽에 매칭 제안 알림
+        await db.from('notifications').insert([
+            { user_id: user.id, type: 'match_proposal', title: targetName + '님과 상호 관심!', body: '매칭을 수락하시겠어요?', related_id: targetApplicantId },
+            { user_id: targetUserId, type: 'match_proposal', title: window._myProfile.name + '님과 상호 관심!', body: '매칭을 수락하시겠어요?', related_id: window._myProfile.id }
+        ]);
+        sendPushNotif(targetUserId, '💕 상호 관심이 생겼어요!', window._myProfile.name + '님과 서로 관심을 보냈어요. 매칭을 수락해보세요!', dashUrl('interest'), 'match_proposal');
+        toast('상호 관심! 상대방의 수락을 기다려주세요.', 'success');
+        // 관심 탭 갱신
+        loadMutualInterests(user.id);
+    } catch(e) {
+        console.log('proposeMutualMatch error:', e.message);
+    }
+}
+
+// 매칭 수락
+async function acceptMatch(targetApplicantId) {
+    if (!window._myProfile) return;
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        // 내 수락 알림 기록
+        const { data: existing } = await db.from('notifications')
+            .select('id').eq('user_id', user.id).eq('type', 'match_accepted')
+            .eq('related_id', targetApplicantId).limit(1);
+        if (!existing || existing.length === 0) {
+            await db.from('notifications').insert([
+                { user_id: user.id, type: 'match_accepted', title: '매칭 수락', body: '상대방의 수락을 기다리고 있어요.', related_id: targetApplicantId }
+            ]);
+        }
+        // 상대방 정보 조회
+        const { data: tgt } = await db.from('applicants').select('id,user_id,name').eq('id', targetApplicantId).limit(1);
+        if (!tgt || !tgt[0]) return;
+        // 상대방도 수락했는지 확인
+        const { data: otherAccept } = await db.from('notifications')
+            .select('id').eq('user_id', tgt[0].user_id).eq('type', 'match_accepted')
+            .eq('related_id', window._myProfile.id).limit(1);
+        if (otherAccept && otherAccept.length > 0) {
+            // 양쪽 모두 수락 → 매칭!
+            await autoMatch(targetApplicantId, tgt[0].user_id, tgt[0].name);
+        } else {
+            // 상대방 수락 대기 → 알림
+            sendPushNotif(tgt[0].user_id, '💝 매칭 수락!', window._myProfile.name + '님이 매칭을 수락했어요! 관심 탭에서 확인해보세요.', dashUrl('interest'), 'match_accepted');
+            toast('매칭을 수락했어요! 상대방의 수락을 기다려주세요.', 'success');
+        }
+        // UI 갱신
+        renderMutualSection();
+    } catch(e) {
+        console.log('acceptMatch error:', e.message);
+        toast('매칭 수락 중 오류가 발생했어요.', 'error');
+    }
+}
+
+// 매칭 거절
+async function declineMatch(targetApplicantId) {
+    if (!window._myProfile) return;
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        // 거절 알림 기록
+        await db.from('notifications').insert([
+            { user_id: user.id, type: 'match_declined', title: '매칭 거절', body: '', related_id: targetApplicantId }
+        ]);
+        // 찜 해제
+        await db.from('favorites').delete().eq('user_id', user.id).eq('applicant_id', targetApplicantId);
+        if (window._favSet) window._favSet.delete(targetApplicantId);
+        if (window._mutualSet) window._mutualSet.delete(targetApplicantId);
+        toast('매칭을 거절했어요.', 'info');
+        renderMutualSection();
+        renderFavorites([...(window._favSet || new Set())]);
+    } catch(e) {
+        console.log('declineMatch error:', e.message);
+    }
+}
+
 // 상호 찜 감지 시 자동 매칭 처리
 async function autoMatch(targetApplicantId, targetUserId, targetName) {
     if (!window._myProfile) return;
@@ -1267,7 +1350,7 @@ async function startChatFromCelebrate(applicantId, partnerUserId, partnerName) {
     await openChatRoom(partnerUserId, partnerName, candidate?.photos?.[0] || '', candidate?.gender || 'male');
 }
 
-function renderMutualSection() {
+async function renderMutualSection() {
     const card = document.getElementById('mutual-card');
     const sec = document.getElementById('mutual-section');
     const mutualSet = window._mutualSet || new Set();
@@ -1283,8 +1366,34 @@ function renderMutualSection() {
     document.getElementById('mutual-count').textContent = mutuals.length + '명';
     const isMatched = window._myProfile && window._myProfile.status === 'matched';
 
+    // 수락/거절 상태 조회
+    let myAccepted = new Set();
+    let myDeclined = new Set();
+    let otherAccepted = new Set();
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        const { data: myNotifs } = await db.from('notifications')
+            .select('type,related_id').eq('user_id', user.id)
+            .in('type', ['match_accepted', 'match_declined']);
+        (myNotifs || []).forEach(n => {
+            if (n.type === 'match_accepted') myAccepted.add(n.related_id);
+            if (n.type === 'match_declined') myDeclined.add(n.related_id);
+        });
+        // 상대방 수락 확인
+        const mutualIds = mutuals.map(c => c.id);
+        if (mutualIds.length > 0 && window._myProfile) {
+            const { data: otherNotifs } = await db.from('notifications')
+                .select('user_id,related_id').eq('type', 'match_accepted')
+                .eq('related_id', window._myProfile.id);
+            (otherNotifs || []).forEach(n => {
+                const matchedCandidate = mutuals.find(c => c.user_id === n.user_id);
+                if (matchedCandidate) otherAccepted.add(matchedCandidate.id);
+            });
+        }
+    } catch(e) { /* ignore */ }
+
     sec.innerHTML = `
-        <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">${isMatched ? '매칭된 상대예요!' : '서로 관심을 보낸 상대예요! 매칭이 자동으로 진행됩니다.'}</div>
+        <div style="font-size:.82em;color:var(--muted);margin-bottom:14px;">${isMatched ? '매칭된 상대예요!' : '서로 관심을 보낸 상대예요! 매칭을 수락해주세요.'}</div>
         ${mutuals.map(c => {
             const age = calcAge(c.birth);
             const photo = c.photos && c.photos[0];
@@ -1294,17 +1403,36 @@ function renderMutualSection() {
             const tags = [age ? age + '세' : null, c.location, c.mbti, c.job_category].filter(Boolean)
                 .map(t => `<span class="match-tag">${esc(t)}</span>`).join('');
             const matchedWithMe = window._myProfile && window._myProfile.matched_with === c.id;
+            const iAccepted = myAccepted.has(c.id);
+            const theyAccepted = otherAccepted.has(c.id);
+            const iDeclined = myDeclined.has(c.id);
             let actionHtml;
+            let statusBadge;
             if (matchedWithMe) {
                 actionHtml = `<button class="btn-match-request" style="background:#10b981;border-color:#10b981;color:#fff;" onclick="event.stopPropagation();switchTab('chat')"><i class="fa-regular fa-comment-dots"></i> 대화하기</button>`;
+                statusBadge = '<span class="mutual-badge" style="background:#d1fae5;color:#065f46;"><i class="fa-solid fa-heart-pulse"></i> 매칭됨</span>';
+            } else if (iDeclined) {
+                actionHtml = '<span style="color:var(--muted);font-size:.82em;">거절됨</span>';
+                statusBadge = '<span class="mutual-badge" style="background:#f3f4f6;color:#9ca3af;">거절</span>';
+            } else if (iAccepted && theyAccepted) {
+                // 양쪽 모두 수락 → 아직 autoMatch 안된 경우 (비동기 처리)
+                actionHtml = '<span style="color:#10b981;font-size:.82em;font-weight:700;">매칭 처리 중...</span>';
+                statusBadge = '<span class="mutual-badge" style="background:#d1fae5;color:#065f46;"><i class="fa-solid fa-spinner fa-spin"></i> 매칭 중</span>';
+            } else if (iAccepted) {
+                actionHtml = `<span style="color:#f59e0b;font-size:.82em;font-weight:600;"><i class="fa-solid fa-hourglass-half"></i> ${theyAccepted ? '' : '상대 수락 대기'}</span>`;
+                statusBadge = '<span class="mutual-badge" style="background:#fef3c7;color:#92400e;"><i class="fa-solid fa-check"></i> 수락함</span>';
             } else {
-                actionHtml = `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>`;
+                actionHtml = `<div style="display:flex;gap:6px;">
+                    <button class="btn-match-request" style="background:#FF6B6B;border-color:#FF6B6B;color:#fff;padding:8px 14px;font-size:.82em;" onclick="event.stopPropagation();acceptMatch('${c.id}')"><i class="fa-solid fa-heart"></i> 수락</button>
+                    <button class="btn-match-request" style="background:#f3f4f6;border-color:#e5e7eb;color:#6b7280;padding:8px 14px;font-size:.82em;" onclick="event.stopPropagation();declineMatch('${c.id}')"><i class="fa-solid fa-xmark"></i></button>
+                </div>`;
+                statusBadge = `<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>${theyAccepted ? '<span class="mutual-badge" style="background:#fef3c7;color:#92400e;font-size:.7em;margin-left:4px;">상대 수락함</span>' : ''}`;
             }
             return `<div class="mutual-item" style="cursor:pointer;${matchedWithMe ? 'background:linear-gradient(135deg,#FFF8F8,#FFF0F0);border:1px solid #FFF0F0;' : ''}" onclick="openProfileModal('${c.id}')">
                 ${photoHtml}
                 <div class="match-info" style="flex:1;">
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        ${matchedWithMe ? '<span class="mutual-badge" style="background:#d1fae5;color:#065f46;"><i class="fa-solid fa-heart-pulse"></i> 매칭됨</span>' : '<span class="mutual-badge"><i class="fa-solid fa-heart-circle-bolt"></i> 상호 관심</span>'}
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        ${statusBadge}
                     </div>
                     <div class="match-tags">${tags}</div>
                 </div>
