@@ -1175,7 +1175,7 @@ async function sendPushNotifIfPossible(userId, title, body, url) {
     try {
         const { data: { session } } = await db.auth.getSession();
         if (!session) return;
-        await fetch(SUPABASE_URL + '/functions/v1/send-push', {
+        const res = await fetch(SUPABASE_URL + '/functions/v1/send-push', {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + session.access_token,
@@ -1183,7 +1183,8 @@ async function sendPushNotifIfPossible(userId, title, body, url) {
             },
             body: JSON.stringify({ user_id: userId, title, body: body || '', url: url || 'https://kyhwow-rgb.github.io/banjjok/dashboard.html' })
         });
-    } catch(e) { console.log('push error:', e.message); }
+        if (!res.ok) return; // Edge Function 미배포 시 무시
+    } catch(e) { /* push unavailable */ }
 }
 
 async function sendAdminPush(userId, title, body, url, type) {
@@ -1199,7 +1200,7 @@ async function sendAdminPush(userId, title, body, url, type) {
             console.warn('admin push skipped: no authenticated session');
             return;
         }
-        await fetch(SUPABASE_URL + '/functions/v1/send-push', {
+        const res = await fetch(SUPABASE_URL + '/functions/v1/send-push', {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + session.access_token,
@@ -1207,7 +1208,8 @@ async function sendAdminPush(userId, title, body, url, type) {
             },
             body: JSON.stringify({ user_id: userId, title, body: body || '', url: url || 'https://kyhwow-rgb.github.io/banjjok/dashboard.html' })
         });
-    } catch(e) { console.log('admin push err:', e.message); }
+        if (!res.ok) return; // Edge Function 미배포 시 무시
+    } catch(e) { /* push unavailable */ }
 }
 
 // ── 관리자 패널 ──

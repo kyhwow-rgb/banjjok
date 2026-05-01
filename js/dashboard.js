@@ -1777,11 +1777,12 @@ async function sendPushNotif(userId, title, body, url, type) {
             const prefs = data?.[0]?.notification_prefs;
             if (prefs && prefs[type] === false) return; // 해당 타입 off
         }
-        await db.functions.invoke('send-push', {
+        const { error: pushErr } = await db.functions.invoke('send-push', {
             body: { user_id: userId, title, body, url }
         });
+        if (pushErr) console.log('push skipped:', pushErr.message);
     } catch(e) {
-        console.log('send-push error:', e.message);
+        // Edge Function 미배포 시 무시 (in-app 알림은 정상 작동)
     }
 }
 
