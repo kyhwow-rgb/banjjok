@@ -2425,6 +2425,7 @@ async function init() {
     }
     // 주선자 대시보드 링크 (참가자가 추천인이 있는 경우)
     try {
+        if (!profile) throw new Error('no profile');
         const hasIntroAccess = await canManageIntros(profile);
         if (hasIntroAccess) {
             const myTab = document.getElementById('tab-my');
@@ -2442,7 +2443,7 @@ async function init() {
     } catch(e) { console.log('matchmaker link check:', e.message); }
 
     // 소개 응답 대기 중인 항목 로드
-    try { await loadPendingIntroductions(profile); } catch(e) { console.log('intro load:', e.message); }
+    try { if (profile) await loadPendingIntroductions(profile); } catch(e) { console.log('intro load:', e.message); }
 
     // 알림 로드
     await loadNotifications();
