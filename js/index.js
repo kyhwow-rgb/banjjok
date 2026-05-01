@@ -3651,7 +3651,7 @@ const _isAndroid = /Android/.test(_ua);
 // 인앱 브라우저 감지 (카카오톡, 인스타, 페이스북, 라인, 네이버 등)
 const _isInApp = /KAKAOTALK|Instagram|FBAN|FBAV|Line|NAVER/i.test(_ua);
 
-if (!_isStandalone && !sessionStorage.getItem(_splashKey)) {
+if (!_isStandalone && !sessionStorage.getItem(_splashKey) && localStorage.getItem('kj_role') !== 'admin') {
     const splash = document.getElementById('install-splash');
     splash.classList.remove('hidden');
 
