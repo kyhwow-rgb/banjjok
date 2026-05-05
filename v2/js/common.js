@@ -3,8 +3,8 @@
    ========================================================================== */
 
 // --- Supabase ---
-const SUPABASE_URL = 'https://PLACEHOLDER.supabase.co';
-const SUPABASE_ANON_KEY = 'PLACEHOLDER_ANON_KEY';
+const SUPABASE_URL = 'https://nhayianbkdjtxjndhsnz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYXlpYW5ia2RqdHhqbmRoc256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5Mzk4MzMsImV4cCI6MjA5MzUxNTgzM30.8dmK8CcU_UsXqPaGSlo6QhXTZYvnlEbuzRR4nl5lq0s';
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
