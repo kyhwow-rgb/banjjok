@@ -1,0 +1,14 @@
+{
+  "name": "반쪽",
+  "short_name": "반쪽",
+  "description": "친구가 연결해주는 소개팅",
+  "start_url": "/banjjok/v2/",
+  "scope": "/banjjok/v2/",
+  "display": "standalone",
+  "background_color": "#FAFAF9",
+  "theme_color": "#FAFAF9",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

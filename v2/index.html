@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>반쪽</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Auth Screen -->
+    <section id="screen-auth" class="screen active">
+      <div class="auth-container">
+        <h1 class="logo">반쪽<span class="dot">.</span></h1>
+        <p class="tagline">친구가 연결해주는 소개팅</p>
+
+        <div id="auth-login" class="auth-form">
+          <input type="email" id="login-email" placeholder="이메일" autocomplete="email">
+          <input type="password" id="login-password" placeholder="비밀번호" autocomplete="current-password">
+          <button class="btn-primary" id="btn-login">로그인</button>
+          <p class="auth-switch">계정이 없으신가요? <a href="#" id="show-signup">가입하기</a></p>
+        </div>
+
+        <div id="auth-signup" class="auth-form hidden">
+          <input type="text" id="signup-invite" placeholder="초대 코드">
+          <input type="email" id="signup-email" placeholder="이메일">
+          <input type="password" id="signup-password" placeholder="비밀번호 (6자 이상)">
+          <input type="text" id="signup-name" placeholder="이름 (실명)">
+          <button class="btn-primary" id="btn-signup">가입하기</button>
+          <p class="auth-switch"><a href="#" id="show-login">로그인으로 돌아가기</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reputation Gate Screen -->
+    <section id="screen-reputation-gate" class="screen">
+      <div class="gate-container">
+        <div class="gate-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+        <h2>평판 작성 대기 중</h2>
+        <p class="gate-desc">추천인이 평판을 작성하면 가입이 완료됩니다.</p>
+        <div class="gate-status">
+          <div class="gate-row">
+            <span>추천인</span>
+            <span id="gate-recommender">—</span>
+          </div>
+          <div class="gate-row">
+            <span>요청일</span>
+            <span id="gate-requested-at">—</span>
+          </div>
+          <div class="gate-row">
+            <span>상태</span>
+            <span id="gate-status-text" class="badge">대기 중</span>
+          </div>
+        </div>
+        <p class="gate-help">7일 이내 작성되지 않으면 관리자가 직접 안내드립니다.</p>
+      </div>
+    </section>
+
+    <!-- Main App Screen -->
+    <section id="screen-main" class="screen">
+      <!-- Header with Mode Toggle -->
+      <header class="app-header">
+        <h1 class="header-logo">반쪽<span class="dot">.</span></h1>
+        <div class="mode-toggle" id="mode-toggle">
+          <button class="mode-btn active" data-mode="participant">참가자</button>
+          <button class="mode-btn" data-mode="matchmaker">주선자</button>
+        </div>
+        <button class="header-icon" id="btn-notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span class="badge-dot hidden" id="notif-dot"></span>
+        </button>
+      </header>
+
+      <!-- Participant Mode -->
+      <main id="mode-participant" class="mode-content active">
+        <!-- Tab: 소개 -->
+        <div id="tab-introductions" class="tab-content active">
+          <div class="empty-state" id="intro-empty">
+            <i class="fa-solid fa-envelope-open"></i>
+            <h3>아직 받은 소개가 없어요</h3>
+            <p>주선자가 소개를 보내면 여기에 나타납니다.</p>
+          </div>
+          <div class="intro-list" id="intro-list"></div>
+        </div>
+
+        <!-- Tab: 대화 -->
+        <div id="tab-chats" class="tab-content">
+          <div class="empty-state" id="chat-empty">
+            <i class="fa-solid fa-comments"></i>
+            <h3>아직 대화가 없어요</h3>
+            <p>매칭이 성사되면 대화를 시작할 수 있어요.</p>
+          </div>
+          <div class="chat-list" id="chat-list"></div>
+        </div>
+
+        <!-- Tab: MY -->
+        <div id="tab-my" class="tab-content">
+          <div class="my-profile" id="my-profile"></div>
+        </div>
+
+        <!-- Bottom Tab Bar (Participant) -->
+        <nav class="tab-bar" id="tabbar-participant">
+          <button class="tab-item active" data-tab="tab-introductions">
+            <i class="fa-solid fa-envelope"></i>
+            <span>소개</span>
+          </button>
+          <button class="tab-item" data-tab="tab-chats">
+            <i class="fa-solid fa-comments"></i>
+            <span>대화</span>
+          </button>
+          <button class="tab-item" data-tab="tab-my">
+            <i class="fa-solid fa-user"></i>
+            <span>MY</span>
+          </button>
+        </nav>
+      </main>
+
+      <!-- Matchmaker Mode -->
+      <main id="mode-matchmaker" class="mode-content">
+        <!-- Tab: 내 사람들 -->
+        <div id="tab-my-people" class="tab-content active">
+          <div class="empty-state" id="people-empty">
+            <i class="fa-solid fa-user-group"></i>
+            <h3>아직 추천한 사람이 없어요</h3>
+            <p>초대 코드를 공유해서 친구를 초대해보세요.</p>
+            <button class="btn-primary" id="btn-share-code">초대 코드 공유</button>
+          </div>
+          <div class="people-list" id="people-list"></div>
+        </div>
+
+        <!-- Tab: 소개하기 -->
+        <div id="tab-introduce" class="tab-content">
+          <div class="introduce-flow" id="introduce-flow">
+            <h3>누구를 소개할까요?</h3>
+            <p>내 사람 중 한 명을 선택하세요.</p>
+            <div class="person-selector" id="person-selector"></div>
+          </div>
+        </div>
+
+        <!-- Tab: 요청함 -->
+        <div id="tab-requests" class="tab-content">
+          <div class="empty-state" id="requests-empty">
+            <i class="fa-solid fa-inbox"></i>
+            <h3>받은 요청이 없어요</h3>
+            <p>다른 주선자의 요청이 오면 여기에 나타납니다.</p>
+          </div>
+          <div class="request-list" id="request-list"></div>
+        </div>
+
+        <!-- Tab: 이력 -->
+        <div id="tab-history" class="tab-content">
+          <div class="empty-state" id="history-empty">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <h3>소개 이력이 없어요</h3>
+            <p>소개를 진행하면 이력이 쌓입니다.</p>
+          </div>
+          <div class="history-list" id="history-list"></div>
+        </div>
+
+        <!-- Bottom Tab Bar (Matchmaker) -->
+        <nav class="tab-bar" id="tabbar-matchmaker">
+          <button class="tab-item active" data-tab="tab-my-people">
+            <i class="fa-solid fa-user-group"></i>
+            <span>내 사람들</span>
+          </button>
+          <button class="tab-item" data-tab="tab-introduce">
+            <i class="fa-solid fa-heart-circle-plus"></i>
+            <span>소개하기</span>
+          </button>
+          <button class="tab-item" data-tab="tab-requests">
+            <i class="fa-solid fa-inbox"></i>
+            <span>요청함</span>
+          </button>
+          <button class="tab-item" data-tab="tab-history">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>이력</span>
+          </button>
+        </nav>
+      </main>
+    </section>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Watermark overlay -->
+  <canvas id="watermark" class="watermark"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
