@@ -1,10 +1,16 @@
-const CACHE = 'banjjok-v2-1';
+const CACHE = 'banjjok-v2-2';
 const ASSETS = [
   '/banjjok/v2/',
   '/banjjok/v2/index.html',
   '/banjjok/v2/css/style.css',
   '/banjjok/v2/js/common.js',
   '/banjjok/v2/js/state.js',
+  '/banjjok/v2/js/notifications.js',
+  '/banjjok/v2/js/profile.js',
+  '/banjjok/v2/js/participant.js',
+  '/banjjok/v2/js/matchmaker.js',
+  '/banjjok/v2/js/chat.js',
+  '/banjjok/v2/js/admin.js',
   '/banjjok/v2/js/app.js',
   '/banjjok/v2/manifest.json',
 ];

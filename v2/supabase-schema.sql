@@ -41,10 +41,23 @@ create table public.applicants (
   -- Status
   status text default 'pending_reputation' check (status in ('pending_reputation', 'pending', 'approved', 'rejected', 'suspended')),
   invited_by uuid references public.applicants(id),
-  invite_code text unique default substr(md5(random()::text), 1, 8),
 
   created_at timestamptz default now(),
   updated_at timestamptz default now()
+);
+
+-- ==========================================================================
+-- invite_codes (초대 코드 — 별도 테이블)
+-- 민감한 개인정보 없이 코드만 관리하므로 RLS를 느슨하게 설정 가능
+-- ==========================================================================
+create table public.invite_codes (
+  id uuid primary key default uuid_generate_v4(),
+  code text unique not null default substr(md5(random()::text), 1, 8),
+  created_by uuid references public.applicants(id) not null,
+  used_by uuid references public.applicants(id),
+  is_used boolean default false,
+  created_at timestamptz default now(),
+  used_at timestamptz
 );
 
 -- ==========================================================================
@@ -266,6 +279,7 @@ create table public.event_logs (
 -- ==========================================================================
 
 alter table public.applicants enable row level security;
+alter table public.invite_codes enable row level security;
 alter table public.reputations enable row level security;
 alter table public.introductions enable row level security;
 alter table public.introduction_requests enable row level security;
@@ -302,6 +316,19 @@ create policy "Users can update own profile"
 create policy "Anyone can insert (signup)"
   on public.applicants for insert
   with check (auth.uid()::text = user_id);
+
+-- Invite codes: 인증된 유저 누구나 미사용 코드 조회 가능 (민감정보 없음)
+create policy "Anyone can verify invite code"
+  on public.invite_codes for select
+  using (true);
+
+create policy "Matchmakers can create invite codes"
+  on public.invite_codes for insert
+  with check (created_by = (select id from public.applicants where user_id = auth.uid()::text));
+
+create policy "System can mark code as used"
+  on public.invite_codes for update
+  using (is_used = false);
 
 -- Reputations: writer can insert/read, target can read
 create policy "Writer can insert reputation"

@@ -13,7 +13,7 @@
 </head>
 <body>
   <div id="app">
-    <!-- Auth Screen -->
+    <!-- ══════════════════════════════════════ Auth Screen ══════════════════════════════════════ -->
     <section id="screen-auth" class="screen active">
       <div class="auth-container">
         <h1 class="logo">반쪽<span class="dot">.</span></h1>
@@ -31,54 +31,158 @@
           <input type="email" id="signup-email" placeholder="이메일">
           <input type="password" id="signup-password" placeholder="비밀번호 (6자 이상)">
           <input type="text" id="signup-name" placeholder="이름 (실명)">
+          <div class="role-selector-mini" id="signup-role-selector">
+            <label class="role-option"><input type="checkbox" id="signup-participant" checked> 참가자 (소개 받기)</label>
+            <label class="role-option"><input type="checkbox" id="signup-matchmaker"> 주선자 (소개 해주기)</label>
+          </div>
           <button class="btn-primary" id="btn-signup">가입하기</button>
           <p class="auth-switch"><a href="#" id="show-login">로그인으로 돌아가기</a></p>
         </div>
       </div>
     </section>
 
-    <!-- Reputation Gate Screen -->
+    <!-- ══════════════════════════════════════ Reputation Gate ══════════════════════════════════════ -->
     <section id="screen-reputation-gate" class="screen">
       <div class="gate-container">
         <div class="gate-icon"><i class="fa-solid fa-hourglass-half"></i></div>
         <h2>평판 작성 대기 중</h2>
         <p class="gate-desc">추천인이 평판을 작성하면 가입이 완료됩니다.</p>
         <div class="gate-status">
-          <div class="gate-row">
-            <span>추천인</span>
-            <span id="gate-recommender">—</span>
-          </div>
-          <div class="gate-row">
-            <span>요청일</span>
-            <span id="gate-requested-at">—</span>
-          </div>
-          <div class="gate-row">
-            <span>상태</span>
-            <span id="gate-status-text" class="badge">대기 중</span>
-          </div>
+          <div class="gate-row"><span>추천인</span><span id="gate-recommender">—</span></div>
+          <div class="gate-row"><span>요청일</span><span id="gate-requested-at">—</span></div>
+          <div class="gate-row"><span>상태</span><span id="gate-status-text" class="badge">대기 중</span></div>
         </div>
         <p class="gate-help">7일 이내 작성되지 않으면 관리자가 직접 안내드립니다.</p>
+        <button class="btn-ghost" id="btn-gate-logout" style="margin-top:20px;">로그아웃</button>
       </div>
     </section>
 
-    <!-- Main App Screen -->
+    <!-- ══════════════════════════════════════ Onboarding ══════════════════════════════════════ -->
+    <section id="screen-onboarding" class="screen">
+      <div class="onboarding-container">
+        <div class="onboarding-header">
+          <h2>프로필 설정</h2>
+          <p style="color:var(--muted);font-size:14px;">소개를 받으려면 프로필을 먼저 완성해주세요.</p>
+          <div class="onboard-progress"><div class="onboard-progress-bar" id="onboard-progress-bar"></div></div>
+        </div>
+
+        <!-- Step 1: 기본 정보 -->
+        <div id="onboard-step-1" class="onboard-step active">
+          <h3>기본 정보</h3>
+          <div class="gender-selector" id="onboard-gender-selector">
+            <button class="gender-btn" data-gender="male"><i class="fa-solid fa-mars"></i> 남성</button>
+            <button class="gender-btn" data-gender="female"><i class="fa-solid fa-venus"></i> 여성</button>
+          </div>
+          <input type="tel" id="onboard-phone" placeholder="전화번호 (010-0000-0000)" class="form-input">
+          <input type="text" id="onboard-birth" placeholder="생년월일 (1995-01-01)" class="form-input">
+          <input type="number" id="onboard-height" placeholder="키 (cm)" class="form-input" min="140" max="220">
+          <select id="onboard-job" class="form-input">
+            <option value="">직업 선택</option>
+            <option value="전문직">전문직</option>
+            <option value="연구·기술직">연구/기술직</option>
+            <option value="공공·금융·교육직">공공/금융/교육직</option>
+            <option value="대기업·중견기업직">대기업/중견기업</option>
+            <option value="사업·전문자유직">사업/자유직</option>
+            <option value="일반사무·기술직">일반사무/기술직</option>
+            <option value="대학생/대학원생">대학생/대학원생</option>
+            <option value="기타">기타</option>
+          </select>
+          <select id="onboard-location" class="form-input">
+            <option value="">지역 선택</option>
+            <option value="서울">서울</option>
+            <option value="경기">경기</option>
+            <option value="인천">인천</option>
+            <option value="충청">충청</option>
+            <option value="강원">강원</option>
+            <option value="전라">전라</option>
+            <option value="경상">경상</option>
+            <option value="제주">제주</option>
+          </select>
+          <select id="onboard-mbti" class="form-input">
+            <option value="">MBTI 선택</option>
+            <option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option>
+            <option>INFJ</option><option>INFP</option><option>ENFJ</option><option>ENFP</option>
+            <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
+            <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
+          </select>
+          <select id="onboard-religion" class="form-input">
+            <option value="">종교</option>
+            <option value="무교">무교</option>
+            <option value="기독교">기독교</option>
+            <option value="천주교">천주교</option>
+            <option value="불교">불교</option>
+            <option value="기타">기타</option>
+          </select>
+          <select id="onboard-smoking" class="form-input">
+            <option value="">흡연 여부</option>
+            <option value="비흡연">비흡연</option>
+            <option value="흡연">흡연</option>
+            <option value="전자담배">전자담배</option>
+          </select>
+          <select id="onboard-drinking" class="form-input">
+            <option value="">음주 여부</option>
+            <option value="안 마심">안 마심</option>
+            <option value="가끔">가끔</option>
+            <option value="자주">자주</option>
+          </select>
+          <button class="btn-primary" id="onboard-next-1">다음</button>
+        </div>
+
+        <!-- Step 2: 사진 -->
+        <div id="onboard-step-2" class="onboard-step">
+          <h3>사진 등록</h3>
+          <p class="onboard-hint">최대 3장까지 등록할 수 있어요.</p>
+          <div class="photo-slots" id="onboard-photo-slots"></div>
+          <button class="btn-primary" id="onboard-next-2">다음</button>
+          <button class="btn-ghost" id="onboard-back-2">이전</button>
+        </div>
+
+        <!-- Step 3: 이상형 (참가자만) -->
+        <div id="onboard-step-3" class="onboard-step">
+          <h3>이상형 설정</h3>
+          <p class="onboard-hint">매칭에 참고할 선호 조건이에요.</p>
+          <div id="onboard-ideal-chips"></div>
+          <textarea id="onboard-ideal-memo" class="form-input" placeholder="추가로 원하는 조건이 있다면 자유롭게 적어주세요." maxlength="200" rows="3"></textarea>
+          <button class="btn-primary" id="onboard-next-3">다음</button>
+          <button class="btn-ghost" id="onboard-back-3">이전</button>
+        </div>
+
+        <!-- Step 4: 소개 + 약관 -->
+        <div id="onboard-step-4" class="onboard-step">
+          <h3>자기소개</h3>
+          <textarea id="onboard-bio" class="form-input" placeholder="상대방에게 보여질 자기소개를 작성해주세요." maxlength="500" rows="4"></textarea>
+          <div class="terms-check">
+            <label><input type="checkbox" id="onboard-terms"> <span>이용약관 및 개인정보처리방침에 동의합니다.</span></label>
+            <label><input type="checkbox" id="onboard-watermark-terms"> <span>워터마크(이름/전화번호) 표시에 동의합니다.</span></label>
+          </div>
+          <button class="btn-primary" id="onboard-submit">프로필 완성</button>
+          <button class="btn-ghost" id="onboard-back-4">이전</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ Main App ══════════════════════════════════════ -->
     <section id="screen-main" class="screen">
-      <!-- Header with Mode Toggle -->
+      <!-- Header -->
       <header class="app-header">
         <h1 class="header-logo">반쪽<span class="dot">.</span></h1>
         <div class="mode-toggle" id="mode-toggle">
           <button class="mode-btn active" data-mode="participant">참가자</button>
           <button class="mode-btn" data-mode="matchmaker">주선자</button>
         </div>
-        <button class="header-icon" id="btn-notifications">
-          <i class="fa-solid fa-bell"></i>
-          <span class="badge-dot hidden" id="notif-dot"></span>
-        </button>
+        <div class="header-actions">
+          <button class="header-icon hidden" id="admin-tab-item" onclick="showAdminDashboard()">
+            <i class="fa-solid fa-shield-halved"></i>
+          </button>
+          <button class="header-icon" id="btn-notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge-dot hidden" id="notif-dot"></span>
+          </button>
+        </div>
       </header>
 
-      <!-- Participant Mode -->
+      <!-- ── Participant Mode ── -->
       <main id="mode-participant" class="mode-content active">
-        <!-- Tab: 소개 -->
         <div id="tab-introductions" class="tab-content active">
           <div class="empty-state" id="intro-empty">
             <i class="fa-solid fa-envelope-open"></i>
@@ -88,7 +192,6 @@
           <div class="intro-list" id="intro-list"></div>
         </div>
 
-        <!-- Tab: 대화 -->
         <div id="tab-chats" class="tab-content">
           <div class="empty-state" id="chat-empty">
             <i class="fa-solid fa-comments"></i>
@@ -98,51 +201,58 @@
           <div class="chat-list" id="chat-list"></div>
         </div>
 
-        <!-- Tab: MY -->
         <div id="tab-my" class="tab-content">
           <div class="my-profile" id="my-profile"></div>
         </div>
 
-        <!-- Bottom Tab Bar (Participant) -->
         <nav class="tab-bar" id="tabbar-participant">
           <button class="tab-item active" data-tab="tab-introductions">
-            <i class="fa-solid fa-envelope"></i>
-            <span>소개</span>
+            <i class="fa-solid fa-envelope"></i><span>소개</span>
           </button>
           <button class="tab-item" data-tab="tab-chats">
-            <i class="fa-solid fa-comments"></i>
-            <span>대화</span>
+            <i class="fa-solid fa-comments"></i><span>대화</span>
           </button>
           <button class="tab-item" data-tab="tab-my">
-            <i class="fa-solid fa-user"></i>
-            <span>MY</span>
+            <i class="fa-solid fa-user"></i><span>MY</span>
           </button>
         </nav>
       </main>
 
-      <!-- Matchmaker Mode -->
+      <!-- ── Matchmaker Mode ── -->
       <main id="mode-matchmaker" class="mode-content">
-        <!-- Tab: 내 사람들 -->
         <div id="tab-my-people" class="tab-content active">
           <div class="empty-state" id="people-empty">
             <i class="fa-solid fa-user-group"></i>
             <h3>아직 추천한 사람이 없어요</h3>
             <p>초대 코드를 공유해서 친구를 초대해보세요.</p>
-            <button class="btn-primary" id="btn-share-code">초대 코드 공유</button>
+            <button class="btn-primary" id="btn-share-code" onclick="shareInviteCode()">초대 코드 공유</button>
           </div>
           <div class="people-list" id="people-list"></div>
         </div>
 
-        <!-- Tab: 소개하기 -->
         <div id="tab-introduce" class="tab-content">
           <div class="introduce-flow" id="introduce-flow">
             <h3>누구를 소개할까요?</h3>
-            <p>내 사람 중 한 명을 선택하세요.</p>
+            <p style="color:var(--muted);font-size:14px;">내 사람 중 한 명을 선택하세요.</p>
             <div class="person-selector" id="person-selector"></div>
+            <div id="introduce-step-2" class="hidden">
+              <h3 style="margin-top:24px;">어떤 분을 소개할까요?</h3>
+              <div class="pool-filters" id="pool-filters">
+                <select id="pool-gender" class="form-input form-input-sm"><option value="">성별</option><option value="male">남성</option><option value="female">여성</option></select>
+                <select id="pool-location" class="form-input form-input-sm"><option value="">지역</option><option value="서울">서울</option><option value="경기">경기</option><option value="인천">인천</option><option value="충청">충청</option><option value="강원">강원</option><option value="전라">전라</option><option value="경상">경상</option><option value="제주">제주</option></select>
+                <button class="btn-ghost" onclick="searchPool()">검색</button>
+              </div>
+              <div id="pool-results"></div>
+            </div>
+            <div id="introduce-step-3" class="hidden">
+              <h3 style="margin-top:24px;">소개 메모</h3>
+              <div id="intro-compat-report"></div>
+              <textarea id="intro-note" class="form-input" placeholder="이 두 분을 소개하는 이유를 적어주세요." maxlength="300" rows="3"></textarea>
+              <button class="btn-primary" id="btn-send-intro" onclick="confirmSendIntroduction()">소개 보내기</button>
+            </div>
           </div>
         </div>
 
-        <!-- Tab: 요청함 -->
         <div id="tab-requests" class="tab-content">
           <div class="empty-state" id="requests-empty">
             <i class="fa-solid fa-inbox"></i>
@@ -150,9 +260,11 @@
             <p>다른 주선자의 요청이 오면 여기에 나타납니다.</p>
           </div>
           <div class="request-list" id="request-list"></div>
+          <button class="btn-primary" style="position:fixed;bottom:80px;right:16px;width:auto;padding:12px 20px;border-radius:50px;box-shadow:0 4px 12px rgba(0,0,0,0.15);" onclick="openCreateRequestModal()">
+            <i class="fa-solid fa-bullhorn"></i> 요청 보내기
+          </button>
         </div>
 
-        <!-- Tab: 이력 -->
         <div id="tab-history" class="tab-content">
           <div class="empty-state" id="history-empty">
             <i class="fa-solid fa-clock-rotate-left"></i>
@@ -162,27 +274,139 @@
           <div class="history-list" id="history-list"></div>
         </div>
 
-        <!-- Bottom Tab Bar (Matchmaker) -->
         <nav class="tab-bar" id="tabbar-matchmaker">
           <button class="tab-item active" data-tab="tab-my-people">
-            <i class="fa-solid fa-user-group"></i>
-            <span>내 사람들</span>
+            <i class="fa-solid fa-user-group"></i><span>내 사람들</span>
           </button>
           <button class="tab-item" data-tab="tab-introduce">
-            <i class="fa-solid fa-heart-circle-plus"></i>
-            <span>소개하기</span>
+            <i class="fa-solid fa-heart-circle-plus"></i><span>소개하기</span>
           </button>
           <button class="tab-item" data-tab="tab-requests">
-            <i class="fa-solid fa-inbox"></i>
-            <span>요청함</span>
+            <i class="fa-solid fa-inbox"></i><span>요청함</span>
           </button>
           <button class="tab-item" data-tab="tab-history">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>이력</span>
+            <i class="fa-solid fa-clock-rotate-left"></i><span>이력</span>
           </button>
         </nav>
       </main>
     </section>
+
+    <!-- ══════════════════════════════════════ Admin Screen ══════════════════════════════════════ -->
+    <section id="screen-admin" class="screen">
+      <header class="app-header">
+        <h1 class="header-logo">반쪽<span class="dot">.</span> <span class="badge">관리자</span></h1>
+        <button class="btn-ghost" id="btn-admin-back" onclick="backToApp()">앱으로</button>
+      </header>
+      <nav class="admin-tabs" id="admin-tabs">
+        <button class="tab-item active" data-tab="admin-home">홈</button>
+        <button class="tab-item" data-tab="admin-applicants">신청자</button>
+        <button class="tab-item" data-tab="admin-matches">매칭</button>
+        <button class="tab-item" data-tab="admin-reports">신고</button>
+      </nav>
+      <div id="admin-home" class="admin-tab-content active">
+        <div id="admin-health-metrics"></div>
+        <div id="admin-escalation-queue"></div>
+      </div>
+      <div id="admin-applicants" class="admin-tab-content">
+        <div class="admin-filters" id="admin-filters">
+          <button class="chip on" onclick="filterAdminApplicants('all', this)">전체</button>
+          <button class="chip" onclick="filterAdminApplicants('pending', this)">승인 대기</button>
+          <button class="chip" onclick="filterAdminApplicants('pending_reputation', this)">평판 대기</button>
+          <button class="chip" onclick="filterAdminApplicants('approved', this)">승인됨</button>
+        </div>
+        <div id="admin-applicant-list"></div>
+      </div>
+      <div id="admin-matches" class="admin-tab-content">
+        <div id="admin-match-list"></div>
+      </div>
+      <div id="admin-reports" class="admin-tab-content">
+        <div id="admin-report-list"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ══════════════════════════════════════ Notification Panel ══════════════════════════════════════ -->
+  <div id="notif-backdrop" class="notif-backdrop" onclick="closeNotifPanel()"></div>
+  <div id="notif-panel" class="notif-panel">
+    <div class="notif-header">
+      <h3>알림</h3>
+      <button class="btn-ghost" onclick="markAllRead()">모두 읽음</button>
+    </div>
+    <div id="notif-list" class="notif-list">
+      <div class="empty-state" style="padding:32px;"><p>알림이 없어요.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ Profile Modal ══════════════════════════════════════ -->
+  <div id="profile-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeProfileModal()">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+      <div id="profile-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ Reputation Modal ══════════════════════════════════════ -->
+  <div id="reputation-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeReputationModal()">
+    <div class="modal-content modal-sm">
+      <button class="modal-close" onclick="closeReputationModal()">&times;</button>
+      <h3 style="margin-bottom:16px;">평판 작성</h3>
+      <div id="reputation-target-info" style="margin-bottom:12px;"></div>
+      <select id="rep-relationship" class="form-input">
+        <option value="">관계 선택</option>
+        <option value="친구">친구</option>
+        <option value="직장동료">직장동료</option>
+        <option value="학교 선후배">학교 선후배</option>
+        <option value="기타">기타</option>
+      </select>
+      <textarea id="rep-personality" class="form-input" placeholder="이 사람의 성격은 어떤가요?" maxlength="300" rows="2"></textarea>
+      <textarea id="rep-strengths" class="form-input" placeholder="이 사람의 장점은?" maxlength="300" rows="2"></textarea>
+      <textarea id="rep-dating-style" class="form-input" placeholder="연애 스타일이 어떤가요?" maxlength="300" rows="2"></textarea>
+      <textarea id="rep-overall" class="form-input" placeholder="전체적인 평가" maxlength="300" rows="2"></textarea>
+      <div class="score-stars" id="rep-score">
+        <span>평점</span>
+        <button onclick="setRepScore(1)">★</button>
+        <button onclick="setRepScore(2)">★</button>
+        <button onclick="setRepScore(3)">★</button>
+        <button onclick="setRepScore(4)">★</button>
+        <button onclick="setRepScore(5)">★</button>
+      </div>
+      <button class="btn-primary" onclick="saveReputation()" style="margin-top:12px;">평판 저장</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ Broadcast Request Modal ══════════════════════════════════════ -->
+  <div id="request-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeRequestModal()">
+    <div class="modal-content modal-sm">
+      <button class="modal-close" onclick="closeRequestModal()">&times;</button>
+      <h3 style="margin-bottom:16px;">소개 요청 보내기</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">조건에 맞는 분이 있는 주선자에게 요청이 전달됩니다.</p>
+      <select id="req-target-person" class="form-input"><option value="">내 사람 선택</option></select>
+      <select id="req-gender" class="form-input"><option value="">희망 성별</option><option value="male">남성</option><option value="female">여성</option></select>
+      <div style="display:flex;gap:8px;">
+        <input type="number" id="req-age-min" class="form-input" placeholder="최소 나이" style="flex:1;">
+        <input type="number" id="req-age-max" class="form-input" placeholder="최대 나이" style="flex:1;">
+      </div>
+      <select id="req-location" class="form-input"><option value="">지역</option><option value="서울">서울</option><option value="경기">경기</option><option value="인천">인천</option><option value="충청">충청</option><option value="강원">강원</option><option value="전라">전라</option><option value="경상">경상</option><option value="제주">제주</option></select>
+      <select id="req-job" class="form-input"><option value="">직업</option><option value="전문직">전문직</option><option value="연구·기술직">연구/기술직</option><option value="공공·금융·교육직">공공/금융/교육직</option><option value="대기업·중견기업직">대기업/중견기업</option><option value="사업·전문자유직">사업/자유직</option></select>
+      <button class="btn-primary" onclick="submitBroadcastRequest()" style="margin-top:8px;">요청 보내기</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ Chat Room ══════════════════════════════════════ -->
+  <div id="chat-room-view" class="chat-room-view hidden">
+    <div class="chat-room-header">
+      <button class="btn-ghost" onclick="closeChatRoom()"><i class="fa-solid fa-chevron-left"></i></button>
+      <div id="chat-room-partner-info" class="chat-room-partner-info"></div>
+      <button class="btn-ghost" id="btn-chat-menu"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div id="chat-input-bar" class="chat-input-bar">
+      <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1"></textarea>
+      <button id="btn-send-chat" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+    <div id="chat-ended-notice" class="chat-ended-notice hidden">
+      <i class="fa-solid fa-lock"></i> 이 대화는 종료되었어요
+    </div>
   </div>
 
   <!-- Toast -->
@@ -194,6 +418,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/common.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/participant.js"></script>
+  <script src="js/matchmaker.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

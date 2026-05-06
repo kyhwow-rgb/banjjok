@@ -38,6 +38,11 @@
   document.getElementById('btn-login').addEventListener('click', handleLogin);
   document.getElementById('btn-signup').addEventListener('click', handleSignup);
 
+  // --- Gate Logout ---
+  document.getElementById('btn-gate-logout')?.addEventListener('click', async () => {
+    await sb.auth.signOut();
+  });
+
   // --- Mode Toggle ---
   document.getElementById('mode-toggle').addEventListener('click', e => {
     const btn = e.target.closest('.mode-btn');
@@ -52,6 +57,13 @@
     const { mode } = e.detail;
     document.querySelectorAll('.mode-content').forEach(m => m.classList.remove('active'));
     document.getElementById(`mode-${mode}`).classList.add('active');
+
+    // Load data for the new mode
+    if (mode === 'matchmaker') {
+      loadMyPeopleTab();
+    } else {
+      loadIntroductionsTab();
+    }
   });
 
   // --- Tab Bars ---
@@ -61,18 +73,28 @@
       if (!item) return;
       const tabId = item.dataset.tab;
 
-      // Update tab bar UI
       bar.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
       item.classList.add('active');
 
-      // Show tab content
       const parent = bar.closest('.mode-content');
       parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
 
       AppState.setTab(tabId);
+
+      // Load tab data
+      if (tabId === 'tab-introductions') loadIntroductionsTab();
+      else if (tabId === 'tab-chats') loadChatTab();
+      else if (tabId === 'tab-my') loadMyTab();
+      else if (tabId === 'tab-my-people') loadMyPeopleTab();
+      else if (tabId === 'tab-introduce') loadIntroduceTab();
+      else if (tabId === 'tab-requests') loadRequestsTab();
+      else if (tabId === 'tab-history') loadHistoryTab();
     });
   });
+
+  // --- Notification Bell ---
+  document.getElementById('btn-notifications')?.addEventListener('click', toggleNotifPanel);
 })();
 
 // --- Route after auth ---
@@ -80,8 +102,16 @@ function routeAfterAuth() {
   const profile = AppState.getProfile();
 
   if (!profile) {
-    // New user — needs profile setup (TODO: onboarding flow)
-    AppState.showScreen('screen-main');
+    // New user — needs onboarding
+    AppState.showScreen('screen-onboarding');
+    initOnboarding();
+    return;
+  }
+
+  // Check if profile is incomplete (no gender means onboarding not done)
+  if (!profile.gender) {
+    AppState.showScreen('screen-onboarding');
+    initOnboarding();
     return;
   }
 
@@ -92,10 +122,19 @@ function routeAfterAuth() {
   }
 
   if (profile.status === 'pending') {
-    // Waiting for admin approval
     AppState.showScreen('screen-reputation-gate');
     document.querySelector('.gate-container h2').textContent = '관리자 검토 중';
     document.querySelector('.gate-desc').textContent = '추천인의 평판이 작성되었습니다. 관리자 승인을 기다리고 있습니다.';
+    document.getElementById('gate-status-text').textContent = '검토 중';
+    loadReputationGate();
+    return;
+  }
+
+  if (profile.status === 'rejected') {
+    AppState.showScreen('screen-reputation-gate');
+    document.querySelector('.gate-container h2').textContent = '가입이 승인되지 않았어요';
+    document.querySelector('.gate-desc').textContent = '관리자에게 문의해주세요.';
+    document.getElementById('gate-status-text').textContent = '거절됨';
     return;
   }
 
@@ -106,11 +145,54 @@ function routeAfterAuth() {
 
 // --- Reputation Gate ---
 async function loadReputationGate() {
-  // TODO: Load recommender info, requested date, current status
+  const profile = AppState.getProfile();
+  if (!profile) return;
+
+  if (profile.invited_by) {
+    const { data: inviter } = await sb.from('applicants')
+      .select('name')
+      .eq('id', profile.invited_by)
+      .maybeSingle();
+    document.getElementById('gate-recommender').textContent = inviter?.name || '알 수 없음';
+  }
+
+  document.getElementById('gate-requested-at').textContent =
+    new Date(profile.created_at).toLocaleDateString('ko-KR');
+
+  // Check if reputation exists
+  const { data: reps } = await sb.from('reputations')
+    .select('id')
+    .eq('target_id', profile.id);
+
+  if (reps && reps.length > 0) {
+    document.getElementById('gate-status-text').textContent = '평판 작성됨';
+    document.getElementById('gate-status-text').style.background = '#D1FAE5';
+    document.getElementById('gate-status-text').style.color = '#065F46';
+  }
+
+  // Subscribe to status changes (for auto-redirect when approved)
+  const channel = sb.channel('my-status')
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'applicants',
+      filter: `id=eq.${profile.id}`
+    }, async payload => {
+      if (payload.new.status === 'approved') {
+        await AppState.refreshProfile();
+        AppState.showScreen('screen-main');
+        initMainApp();
+        toast('가입이 승인되었어요!');
+      } else if (payload.new.status === 'pending') {
+        document.querySelector('.gate-container h2').textContent = '관리자 검토 중';
+        document.querySelector('.gate-desc').textContent = '추천인의 평판이 작성되었습니다. 관리자 승인을 기다리고 있습니다.';
+        document.getElementById('gate-status-text').textContent = '검토 중';
+      }
+    })
+    .subscribe();
+  AppState.subscribe('my-status', channel);
 }
 
 // --- Main App Init ---
-function initMainApp() {
+async function initMainApp() {
   const profile = AppState.getProfile();
 
   // Set initial mode based on roles
@@ -123,6 +205,14 @@ function initMainApp() {
   // Hide mode toggle if user has only one role
   if (!profile.is_participant || !profile.is_matchmaker) {
     document.getElementById('mode-toggle').style.display = 'none';
+  } else {
+    document.getElementById('mode-toggle').style.display = '';
+  }
+
+  // Admin detection
+  const isAdmin = await AppState.checkAdmin();
+  if (isAdmin) {
+    document.getElementById('admin-tab-item')?.classList.remove('hidden');
   }
 
   // Apply watermark
@@ -130,8 +220,26 @@ function initMainApp() {
     applyWatermark(profile.name, profile.phone);
   }
 
-  // Setup Realtime subscriptions for current mode
+  // Load initial tab data
+  const mode = AppState.getMode();
+  if (mode === 'participant') {
+    loadIntroductionsTab();
+  } else {
+    loadMyPeopleTab();
+  }
+  loadMyTab();
+
+  // Setup notifications
+  loadNotifications();
+  subscribeNotifications();
+
+  // Setup Realtime subscriptions
   setupSubscriptions();
+
+  // Update last_seen
+  sb.from('applicants').update({ last_seen_at: new Date().toISOString() }).eq('user_id', profile.user_id).then(() => {});
+
+  logEvent('app_open');
 }
 
 // --- Realtime Subscriptions ---
@@ -142,44 +250,27 @@ function setupSubscriptions() {
   const mode = AppState.getMode();
 
   if (mode === 'participant') {
-    // Subscribe to introductions where I'm a participant
     const introChannel = sb.channel('my-introductions')
       .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'introductions',
+        event: '*', schema: 'public', table: 'introductions',
         filter: `person_a_id=eq.${profile.id}`,
-      }, payload => {
-        // TODO: handle new/updated introductions
-        console.log('Introduction update:', payload);
-      })
+      }, () => loadIntroductionsTab())
       .subscribe();
     AppState.subscribe('introductions-a', introChannel);
 
     const introChannelB = sb.channel('my-introductions-b')
       .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'introductions',
+        event: '*', schema: 'public', table: 'introductions',
         filter: `person_b_id=eq.${profile.id}`,
-      }, payload => {
-        console.log('Introduction update (B):', payload);
-      })
+      }, () => loadIntroductionsTab())
       .subscribe();
     AppState.subscribe('introductions-b', introChannelB);
 
   } else if (mode === 'matchmaker') {
-    // Subscribe to introduction requests targeting me
     const reqChannel = sb.channel('my-requests')
       .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'introduction_requests',
-        filter: `responder_matchmaker_id=eq.${profile.id}`,
-      }, payload => {
-        // TODO: handle new request
-        console.log('New request:', payload);
-      })
+        event: 'INSERT', schema: 'public', table: 'introduction_requests',
+      }, () => loadRequestsTab())
       .subscribe();
     AppState.subscribe('requests', reqChannel);
   }
@@ -187,7 +278,9 @@ function setupSubscriptions() {
 
 // Re-setup subscriptions on mode change
 document.addEventListener('mode-change', () => {
+  AppState.unsubscribeAll();
   setupSubscriptions();
+  subscribeNotifications();
 });
 
 // --- Auth Handlers ---
@@ -208,22 +301,40 @@ async function handleSignup() {
   const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
   const name = document.getElementById('signup-name').value.trim();
+  const isParticipant = document.getElementById('signup-participant').checked;
+  const isMatchmaker = document.getElementById('signup-matchmaker').checked;
 
   if (!code) { toast('초대 코드를 입력해주세요.'); return; }
   if (!email) { toast('이메일을 입력해주세요.'); return; }
   if (password.length < 6) { toast('비밀번호는 6자 이상이어야 합니다.'); return; }
   if (!name) { toast('이름을 입력해주세요.'); return; }
+  if (!isParticipant && !isMatchmaker) { toast('역할을 하나 이상 선택해주세요.'); return; }
 
-  // Verify invite code
-  const { data: inviteData, error: inviteErr } = await sb
-    .from('applicants')
-    .select('id, name')
-    .eq('invite_code', code)
-    .maybeSingle();
+  // Supercode check (관리자 직접 가입용)
+  const SUPERCODE_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // sha256('admin')
+  let isSupercode = false;
+  try {
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(code));
+    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    isSupercode = (hashHex === SUPERCODE_HASH);
+  } catch {}
 
-  if (inviteErr || !inviteData) {
-    toast('유효하지 않은 초대 코드입니다.');
-    return;
+  let inviteData = null;
+  if (!isSupercode) {
+    // Verify invite code
+    const { data, error: inviteErr } = await sb
+      .from('invite_codes')
+      .select('id, code, created_by, is_used')
+      .eq('code', code)
+      .eq('is_used', false)
+      .maybeSingle();
+
+    if (inviteErr || !data) {
+      toast('유효하지 않은 초대 코드입니다.');
+      return;
+    }
+    inviteData = data;
   }
 
   // Sign up
@@ -235,14 +346,43 @@ async function handleSignup() {
     user_id: authData.user.id,
     name,
     email,
-    invited_by: inviteData.id,
-    status: 'pending_reputation',
-    is_participant: true,
-    is_matchmaker: false,
+    invited_by: inviteData?.created_by || null,
+    status: isSupercode ? 'approved' : 'pending_reputation',
+    is_participant: isParticipant,
+    is_matchmaker: isMatchmaker,
   });
 
   if (profileErr) { toast('프로필 생성 실패'); return; }
 
-  // TODO: Notify inviter to write reputation
+  if (inviteData) {
+    // Mark invite code as used
+    const { data: newApplicant } = await sb.from('applicants').select('id').eq('user_id', authData.user.id).single();
+    await sb.from('invite_codes').update({
+      is_used: true,
+      used_by: newApplicant?.id,
+      used_at: new Date().toISOString(),
+    }).eq('id', inviteData.id);
+
+    // Notify inviter to write reputation
+    if (inviteData.created_by) {
+      await sb.rpc('create_notification', {
+        p_user_id: inviteData.created_by,
+        p_type: 'reputation_request',
+        p_title: `${name}님의 평판을 작성해주세요`,
+        p_body: '초대한 분의 가입을 완료하려면 평판 작성이 필요해요.',
+        p_data: { target_id: newApplicant?.id }
+      });
+    }
+  }
+
+  if (isSupercode) {
+    // 슈퍼코드로 가입한 경우 admin_users에도 등록
+    const { data: newAdmin } = await sb.from('applicants').select('id').eq('user_id', authData.user.id).single();
+    if (newAdmin) {
+      await sb.from('admin_users').insert({ user_id: authData.user.id }).then(() => {}, () => {});
+    }
+  }
+
   toast('가입 완료! 추천인의 평판 작성을 기다려주세요.');
+  logEvent('signup', { role: isParticipant && isMatchmaker ? 'both' : isMatchmaker ? 'matchmaker' : 'participant' });
 }

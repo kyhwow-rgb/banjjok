@@ -73,9 +73,28 @@ const AppState = (() => {
     if (target) target.classList.add('active');
   }
 
+  // --- Admin ---
+  let isAdmin = false;
+
+  async function refreshProfile() {
+    if (!currentUser) return;
+    const { data } = await sb.from('applicants').select('*').eq('user_id', currentUser.id).maybeSingle();
+    currentProfile = data;
+  }
+
+  async function checkAdmin() {
+    if (!currentUser) { isAdmin = false; return false; }
+    const { data } = await sb.from('admin_users').select('user_id').eq('user_id', currentUser.id).maybeSingle();
+    isAdmin = !!data;
+    return isAdmin;
+  }
+
+  function getIsAdmin() { return isAdmin; }
+
   return {
-    getUser, getProfile, getMode, getTab,
+    getUser, getProfile, getMode, getTab, getIsAdmin,
     setUser, setMode, setTab,
+    refreshProfile, checkAdmin,
     subscribe, unsubscribe, unsubscribeAll,
     showScreen,
   };

@@ -161,3 +161,20 @@ create policy "Requester or responder can read responses"
       where requester_matchmaker_id = public.get_my_applicant_id()
     )
   );
+
+-- Invite codes (민감정보 없으므로 누구나 조회 가능)
+drop policy if exists "Anyone can verify invite code" on public.invite_codes;
+drop policy if exists "Matchmakers can create invite codes" on public.invite_codes;
+drop policy if exists "System can mark code as used" on public.invite_codes;
+
+create policy "Anyone can verify invite code"
+  on public.invite_codes for select
+  using (true);
+
+create policy "Matchmakers can create invite codes"
+  on public.invite_codes for insert
+  with check (created_by = public.get_my_applicant_id());
+
+create policy "Authenticated users can mark code as used"
+  on public.invite_codes for update
+  using (is_used = false);
