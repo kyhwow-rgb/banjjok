@@ -209,10 +209,12 @@ async function initMainApp() {
     document.getElementById('mode-toggle').style.display = '';
   }
 
-  // Admin detection
+  // Admin detection — 관리자는 바로 대시보드로
   const isAdmin = await AppState.checkAdmin();
   if (isAdmin) {
-    document.getElementById('admin-tab-item')?.classList.remove('hidden');
+    showAdminDashboard();
+    logEvent('app_open');
+    return;
   }
 
   // Apply watermark

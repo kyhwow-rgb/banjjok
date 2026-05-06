@@ -13,6 +13,12 @@ function backToApp() {
   AppState.showScreen('screen-main');
 }
 
+async function adminLogout() {
+  AppState.unsubscribeAll();
+  await sb.auth.signOut();
+  AppState.showScreen('screen-auth');
+}
+
 // Admin tab switching
 document.getElementById('admin-tabs')?.addEventListener('click', e => {
   const item = e.target.closest('.tab-item');
