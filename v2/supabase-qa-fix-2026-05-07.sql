@@ -124,6 +124,51 @@ create policy "Invited person can read their inviter"
 
 
 -- ==========================================================================
+-- V2-011 · 평판 작성 후 자동 승인 RPC (RLS 우회)
+-- 주선자가 피추천인의 applicants.status 직접 update 못 하므로 RPC로 처리
+-- ==========================================================================
+
+create or replace function public.approve_after_reputation(p_target_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  caller_id uuid;
+  target_status text;
+  target_invited_by uuid;
+begin
+  select id into caller_id from public.applicants where user_id = auth.uid()::text;
+  if caller_id is null then return false; end if;
+
+  select status, invited_by into target_status, target_invited_by
+  from public.applicants where id = p_target_id;
+
+  if target_status = 'pending_reputation' and target_invited_by = caller_id then
+    update public.applicants set status = 'approved' where id = p_target_id;
+    return true;
+  end if;
+  return false;
+end;
+$$;
+
+grant execute on function public.approve_after_reputation(uuid) to authenticated;
+
+
+-- ==========================================================================
+-- V2-012 · reputations UPDATE policy (upsert conflict 허용)
+-- ==========================================================================
+
+drop policy if exists "Writer can update own reputation" on public.reputations;
+
+create policy "Writer can update own reputation"
+  on public.reputations for update
+  using (writer_id = public.get_my_applicant_id())
+  with check (writer_id = public.get_my_applicant_id());
+
+
+-- ==========================================================================
 -- V2-003 · 중복 admin row 정리
 --
 -- 신청자 리스트에 "관리자" 이름이 2번 노출되는 이슈.

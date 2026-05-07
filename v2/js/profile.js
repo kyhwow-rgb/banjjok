@@ -504,11 +504,11 @@ async function saveReputation() {
 
   if (error) { toast('평판 저장 실패: ' + error.message); return; }
 
-  // Check if this was the required reputation gate — auto-approve when inviter writes reputation
-  const { data: target } = await sb.from('applicants').select('status, invited_by, user_id').eq('id', _repTargetId).maybeSingle();
-  if (target && target.status === 'pending_reputation' && target.invited_by === profile.id) {
-    await sb.from('applicants').update({ status: 'approved' }).eq('id', _repTargetId);
-    if (target.user_id) {
+  // Auto-approve when inviter writes reputation (RPC bypasses RLS for matchmaker)
+  const { data: approved } = await sb.rpc('approve_after_reputation', { p_target_id: _repTargetId });
+  if (approved) {
+    const { data: target } = await sb.from('applicants').select('user_id').eq('id', _repTargetId).maybeSingle();
+    if (target?.user_id) {
       await sb.rpc('create_notification', {
         p_user_id: target.user_id,
         p_type: 'approved',
