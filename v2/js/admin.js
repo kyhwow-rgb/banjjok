@@ -14,10 +14,21 @@ function backToApp() {
 }
 
 async function adminLogout() {
-  AppState.unsubscribeAll();
-  await sb.auth.signOut();
-  AppState.showScreen('screen-auth');
+  try {
+    AppState.unsubscribeAll();
+    await sb.auth.signOut();
+  } catch (e) { console.error('Logout error:', e); }
+  // signOut 후 onAuthStateChange가 screen-auth로 전환하지만
+  // 혹시 안 되면 강제 전환 + 페이지 리로드
+  window.location.reload();
 }
+
+// 버튼 이벤트 바인딩 (onclick 대신 addEventListener로 확실하게)
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-admin-logout')?.addEventListener('click', adminLogout);
+});
+// DOMContentLoaded 이미 지난 경우 대비
+document.getElementById('btn-admin-logout')?.addEventListener('click', adminLogout);
 
 // Admin tab switching
 document.getElementById('admin-tabs')?.addEventListener('click', e => {
