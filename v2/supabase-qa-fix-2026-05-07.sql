@@ -39,10 +39,12 @@ create policy "Matchmakers can create invite codes"
   on public.invite_codes for insert
   with check (created_by = public.get_my_applicant_id());
 
--- 미사용 코드만 update (사용 처리)
+-- 미사용 코드만 update 가능, 사용 처리(is_used=true)만 허용
+-- WITH CHECK 없으면 post-update에 USING이 적용되어 toggle 자체가 차단됨
 create policy "System can mark code as used"
   on public.invite_codes for update
-  using (is_used = false);
+  using (is_used = false)
+  with check (is_used = true);
 
 
 -- ==========================================================================
