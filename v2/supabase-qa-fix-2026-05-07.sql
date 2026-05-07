@@ -112,25 +112,49 @@ grant execute on function public.admin_get_applicant(uuid) to authenticated;
 --    order by created_at;
 
 -- 2) admin@banjjok.kr 가 아닌데 이름이 '관리자' 인 row 삭제 (정상이 아니므로)
-delete from public.applicants
-where name = '관리자'
-  and email != 'admin@banjjok.kr';
+--    event_logs / introductions / matches 등이 참조 중일 수 있으므로 references 도 함께 정리
+do $$
+declare
+  bad_id uuid;
+begin
+  for bad_id in
+    select id from public.applicants
+    where name = '관리자' and email != 'admin@banjjok.kr'
+  loop
+    update public.event_logs set actor_id = null where actor_id = bad_id;
+    delete from public.reputations where writer_id = bad_id or target_id = bad_id;
+    delete from public.invite_codes where created_by = bad_id or used_by = bad_id;
+    delete from public.applicants where id = bad_id;
+  end loop;
+end $$;
 
--- 3) admin@banjjok.kr 의 row 가 2개 이상이면 가장 오래된 1개만 남기고 삭제
---    (admin_users.user_id 와 매칭되는 row 는 보존)
-with admin_rows as (
-  select a.id, a.created_at,
-    case when exists (select 1 from public.admin_users au where au.user_id = a.user_id) then 1 else 0 end as is_admin_user,
-    row_number() over (
-      order by
-        case when exists (select 1 from public.admin_users au where au.user_id = a.user_id) then 0 else 1 end,
-        a.created_at asc
-    ) as rn
+-- 3) admin@banjjok.kr 의 row 가 2개 이상이면 admin_users 와 매칭되는 1개만 보존
+do $$
+declare
+  keep_id uuid;
+  rm_id uuid;
+begin
+  -- 보존할 id (admin_users 와 매칭, 없으면 가장 오래된 row)
+  select a.id into keep_id
   from public.applicants a
   where a.email = 'admin@banjjok.kr'
-)
-delete from public.applicants
-where id in (select id from admin_rows where rn > 1);
+  order by
+    case when exists (select 1 from public.admin_users au where au.user_id = a.user_id) then 0 else 1 end,
+    a.created_at asc
+  limit 1;
+
+  if keep_id is null then return; end if;
+
+  for rm_id in
+    select id from public.applicants
+    where email = 'admin@banjjok.kr' and id != keep_id
+  loop
+    update public.event_logs set actor_id = null where actor_id = rm_id;
+    delete from public.reputations where writer_id = rm_id or target_id = rm_id;
+    delete from public.invite_codes where created_by = rm_id or used_by = rm_id;
+    delete from public.applicants where id = rm_id;
+  end loop;
+end $$;
 
 
 -- ==========================================================================
