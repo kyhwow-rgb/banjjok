@@ -71,6 +71,15 @@ function closeNotifPanel() {
   document.getElementById('notif-backdrop').classList.remove('open');
 }
 
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('notif-panel')?.classList.contains('open')) {
+    closeNotifPanel();
+  }
+});
+
+document.addEventListener('tab-change', closeNotifPanel);
+document.addEventListener('mode-change', closeNotifPanel);
+
 async function readNotif(id) {
   await sb.from('notifications').update({ is_read: true }).eq('id', id);
   const n = _notifications.find(n => n.id === id);

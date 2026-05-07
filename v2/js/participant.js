@@ -113,11 +113,16 @@ async function respondToIntroduction(introId, response) {
 
 // --- Profile Modal ---
 async function openProfileModal(applicantId) {
-  const { data: person } = await sb.from('applicants')
-    .select('*')
-    .eq('id', applicantId)
-    .maybeSingle();
-  if (!person) { toast('프로필을 불러올 수 없어요.'); return; }
+  let person;
+  if (AppState.getIsAdmin && AppState.getIsAdmin()) {
+    const { data, error } = await sb.rpc('admin_get_applicant', { p_id: applicantId });
+    if (error || !data) { toast('프로필을 불러올 수 없어요.'); return; }
+    person = data;
+  } else {
+    const { data } = await sb.from('applicants').select('*').eq('id', applicantId).maybeSingle();
+    if (!data) { toast('프로필을 불러올 수 없어요.'); return; }
+    person = data;
+  }
 
   // Load reputations (anonymous - don't show writer)
   const { data: reps } = await sb.from('reputations')

@@ -328,11 +328,28 @@ function buildIdealChipsHtml(containerId, idealData, myGender) {
     html += `<div class="chip-group"><span class="chip-group-label">${cat.label}</span><div class="chip-list">`;
     opts.forEach(opt => {
       const isOn = selected[cat.key] && Array.isArray(selected[cat.key]) && selected[cat.key].includes(opt);
-      html += `<button type="button" class="chip${isOn ? ' on' : ''}" data-cat="${cat.key}" data-val="${opt}" onclick="this.classList.toggle('on')">${opt}</button>`;
+      html += `<button type="button" class="chip${isOn ? ' on' : ''}" data-cat="${cat.key}" data-val="${opt}" onclick="toggleIdealChip(this)">${opt}</button>`;
     });
     html += `</div></div>`;
   });
   return html;
+}
+
+function toggleIdealChip(btn) {
+  const group = btn.parentElement;
+  const isAnyOption = btn.dataset.val === '상관없음';
+  if (isAnyOption) {
+    if (btn.classList.contains('on')) {
+      btn.classList.remove('on');
+    } else {
+      group.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
+      btn.classList.add('on');
+    }
+  } else {
+    const anyBtn = group.querySelector('.chip[data-val="상관없음"]');
+    if (anyBtn) anyBtn.classList.remove('on');
+    btn.classList.toggle('on');
+  }
 }
 
 function collectIdealData(containerId, memoId) {
@@ -392,6 +409,14 @@ function logEvent(eventType, detail = {}) {
 }
 
 // --- Watermark ---
+function clearWatermark() {
+  const canvas = document.getElementById('watermark');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
 function applyWatermark(name, phone) {
   const canvas = document.getElementById('watermark');
   if (!canvas) return;

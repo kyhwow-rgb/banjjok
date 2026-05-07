@@ -18,6 +18,7 @@
       routeAfterAuth();
     } else if (event === 'SIGNED_OUT') {
       AppState.unsubscribeAll();
+      clearWatermark();
       AppState.showScreen('screen-auth');
     }
   });

@@ -271,9 +271,158 @@ async function enableParticipantRole() {
   loadMyTab();
 }
 
+let _editPhotoFiles = [null, null, null];
+let _editExistingPhotos = [];
+
 function openProfileEditModal() {
-  // For now, redirect to onboarding with existing data pre-filled
-  toast('프로필 수정 기능은 곧 추가될 예정이에요.');
+  const profile = AppState.getProfile();
+  if (!profile) { toast('프로필을 불러올 수 없어요.'); return; }
+
+  // Populate text/select fields
+  document.getElementById('edit-height').value = profile.height || '';
+  document.getElementById('edit-job').value = profile.job || '';
+  document.getElementById('edit-location').value = profile.location || '';
+  document.getElementById('edit-mbti').value = profile.mbti || '';
+  document.getElementById('edit-religion').value = profile.religion || '';
+  document.getElementById('edit-smoking').value = profile.smoking || '';
+  document.getElementById('edit-drinking').value = profile.drinking || '';
+  document.getElementById('edit-education').value = profile.education || '';
+  document.getElementById('edit-hobby').value = profile.hobby || '';
+  document.getElementById('edit-bio').value = profile.bio || '';
+
+  // Photos
+  _editExistingPhotos = profile.photos || (profile.photo_url ? [profile.photo_url] : []);
+  _editPhotoFiles = [null, null, null];
+  renderEditPhotoSlots();
+
+  // Ideal type — only show for participants
+  const idealSection = document.getElementById('edit-ideal-section');
+  if (profile.is_participant) {
+    idealSection.style.display = '';
+    const chipsEl = document.getElementById('edit-ideal-chips');
+    chipsEl.innerHTML = buildIdealChipsHtml('edit-ideal-chips', profile.ideal_type, profile.gender);
+    let memo = '';
+    if (profile.ideal_type) {
+      try {
+        const data = typeof profile.ideal_type === 'string' ? JSON.parse(profile.ideal_type) : profile.ideal_type;
+        memo = data?.memo || '';
+      } catch {}
+    }
+    document.getElementById('edit-ideal-memo').value = memo;
+  } else {
+    idealSection.style.display = 'none';
+  }
+
+  document.getElementById('profile-edit-modal-overlay').classList.add('open');
+}
+
+function closeProfileEditModal() {
+  document.getElementById('profile-edit-modal-overlay').classList.remove('open');
+}
+
+function renderEditPhotoSlots() {
+  const container = document.getElementById('edit-photo-slots');
+  if (!container) return;
+  container.innerHTML = [0, 1, 2].map(i => {
+    const existing = _editExistingPhotos[i];
+    if (existing && !_editPhotoFiles[i]) {
+      return `
+        <div class="photo-slot has-photo" id="edit-photo-slot-${i}">
+          <img src="${esc(existing)}" alt="사진 ${i + 1}">
+          <button class="photo-remove" onclick="removeEditPhoto(event, ${i})">&times;</button>
+          <input type="file" accept="image/*" onchange="handleEditPhotoSelect(${i}, this)">
+        </div>`;
+    }
+    return `
+      <div class="photo-slot" id="edit-photo-slot-${i}">
+        <div class="photo-placeholder"><i class="fa-solid fa-camera"></i><div>사진 ${i + 1}</div></div>
+        <input type="file" accept="image/*" onchange="handleEditPhotoSelect(${i}, this)">
+      </div>`;
+  }).join('');
+}
+
+function handleEditPhotoSelect(index, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('5MB 이하 사진만 업로드 가능해요.'); return; }
+  _editPhotoFiles[index] = file;
+  _editExistingPhotos[index] = null;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const slot = document.getElementById(`edit-photo-slot-${index}`);
+    slot.classList.add('has-photo');
+    slot.innerHTML = `
+      <img src="${e.target.result}" alt="사진 ${index + 1}">
+      <button class="photo-remove" onclick="removeEditPhoto(event, ${index})">&times;</button>
+      <input type="file" accept="image/*" onchange="handleEditPhotoSelect(${index}, this)">
+    `;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeEditPhoto(event, index) {
+  event.stopPropagation();
+  event.preventDefault();
+  _editPhotoFiles[index] = null;
+  _editExistingPhotos[index] = null;
+  renderEditPhotoSlots();
+}
+
+async function saveProfileEdit() {
+  const user = AppState.getUser();
+  const profile = AppState.getProfile();
+  if (!user || !profile) { toast('로그인이 필요해요.'); return; }
+
+  toast('저장 중...');
+
+  // Build photos: keep existing where not replaced, upload new where added
+  const newPhotos = [];
+  for (let i = 0; i < 3; i++) {
+    if (_editPhotoFiles[i]) {
+      try {
+        const url = await uploadPhotoToStorage(_editPhotoFiles[i], user.id, i);
+        newPhotos.push(url);
+      } catch (e) { console.error('Photo upload error:', e); }
+    } else if (_editExistingPhotos[i]) {
+      newPhotos.push(_editExistingPhotos[i]);
+    }
+  }
+
+  // Ideal type for participants
+  let idealType = profile.ideal_type;
+  if (profile.is_participant) {
+    idealType = collectIdealData('edit-ideal-chips', 'edit-ideal-memo');
+  }
+
+  const updateData = {
+    height: parseInt(document.getElementById('edit-height').value) || null,
+    job: document.getElementById('edit-job').value || null,
+    location: document.getElementById('edit-location').value || null,
+    mbti: document.getElementById('edit-mbti').value || null,
+    religion: document.getElementById('edit-religion').value || null,
+    smoking: document.getElementById('edit-smoking').value || null,
+    drinking: document.getElementById('edit-drinking').value || null,
+    education: document.getElementById('edit-education').value.trim() || null,
+    hobby: document.getElementById('edit-hobby').value.trim() || null,
+    bio: document.getElementById('edit-bio').value.trim() || null,
+    ideal_type: idealType,
+    photo_url: newPhotos[0] || null,
+    photos: newPhotos.length > 0 ? newPhotos : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await sb.from('applicants')
+    .update(updateData)
+    .eq('user_id', user.id);
+
+  if (error) { toast('저장 실패: ' + error.message); return; }
+
+  await AppState.refreshProfile();
+  toast('프로필이 저장되었어요!');
+  logEvent('profile_edited');
+  closeProfileEditModal();
+  loadMyTab();
 }
 
 // --- Report / Block ---

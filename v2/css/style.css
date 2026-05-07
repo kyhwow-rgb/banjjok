@@ -133,7 +133,7 @@ body {
 .auth-container .logo { margin-bottom: 8px; }
 .tagline { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
 
-.auth-form input {
+.auth-form input:not([type="checkbox"]):not([type="radio"]) {
   display: block;
   width: 100%;
   padding: 14px 16px;
@@ -145,7 +145,7 @@ body {
   background: #fff;
   transition: border-color 0.15s;
 }
-.auth-form input:focus {
+.auth-form input:not([type="checkbox"]):not([type="radio"]):focus {
   outline: none;
   border-color: var(--accent);
 }
@@ -523,6 +523,12 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   position: relative;
 }
 .modal-sm { max-width: 380px; }
+
+.edit-section { margin-bottom: 20px; }
+.edit-section-title {
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;
+}
 .modal-close {
   position: absolute; top: 12px; right: 12px; background: none; border: none;
   font-size: 24px; cursor: pointer; color: var(--muted); width: 32px; height: 32px;
