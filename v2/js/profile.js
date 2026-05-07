@@ -504,17 +504,22 @@ async function saveReputation() {
 
   if (error) { toast('평판 저장 실패: ' + error.message); return; }
 
-  // Auto-approve when inviter writes reputation (RPC bypasses RLS for matchmaker)
-  const { data: approved } = await sb.rpc('approve_after_reputation', { p_target_id: _repTargetId });
-  if (approved) {
-    const { data: target } = await sb.from('applicants').select('user_id').eq('id', _repTargetId).maybeSingle();
+  // Auto-approve when inviter writes reputation (RPC bypasses RLS, validates reputation row exists)
+  const { data: approved, error: approveErr } = await sb.rpc('approve_after_reputation', { p_target_id: _repTargetId });
+  if (approveErr) {
+    console.error('[saveReputation] approve_after_reputation failed:', approveErr);
+    toast('평판은 저장되었지만 자동 승인 처리에 문제가 있어요. 관리자에게 문의해주세요.');
+  } else if (approved) {
+    const { data: target, error: targetErr } = await sb.from('applicants').select('user_id').eq('id', _repTargetId).maybeSingle();
+    if (targetErr) console.error('[saveReputation] target lookup failed:', targetErr);
     if (target?.user_id) {
-      await sb.rpc('create_notification', {
+      const { error: notifErr } = await sb.rpc('create_notification', {
         p_user_id: target.user_id,
         p_type: 'approved',
         p_title: '가입이 완료되었어요! 🎉',
         p_body: '추천인 평판이 등록되어 가입이 자동 승인되었습니다.'
-      }).then(() => {}, () => {});
+      });
+      if (notifErr) console.error('[saveReputation] approval notification failed:', notifErr);
     }
   }
 

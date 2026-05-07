@@ -406,12 +406,19 @@ async function loadMatchmakerMyTab() {
   const profile = AppState.getProfile();
   if (!profile) return;
 
-  // Stats: 추천한 사람 수, 진행 중 소개, 성사 매칭
-  const [{ count: invitedCount }, { count: introCount }, { count: matchedCount }] = await Promise.all([
+  // Stats: 추천한 사람 수, 진행 중 소개, 성사 매칭 — 각 쿼리 에러 별도 추적
+  const [invitedRes, introRes, matchedRes] = await Promise.all([
     sb.from('applicants').select('id', { count: 'exact', head: true }).eq('invited_by', profile.id),
     sb.from('introductions').select('id', { count: 'exact', head: true }).eq('primary_matchmaker_id', profile.id).eq('status', 'pending'),
     sb.from('introductions').select('id', { count: 'exact', head: true }).eq('primary_matchmaker_id', profile.id).eq('status', 'matched'),
   ]);
+
+  if (invitedRes.error) console.error('[loadMatchmakerMyTab] invited count failed:', invitedRes.error);
+  if (introRes.error) console.error('[loadMatchmakerMyTab] intro count failed:', introRes.error);
+  if (matchedRes.error) console.error('[loadMatchmakerMyTab] matched count failed:', matchedRes.error);
+
+  const fmt = (res, suffix) => res.error ? '—' : `${res.count || 0}${suffix}`;
+  const headerSub = invitedRes.error ? '주선자' : `주선자 · 추천한 분 ${invitedRes.count || 0}명`;
 
   const container = document.getElementById('mm-my-profile');
   if (!container) return;
@@ -420,15 +427,15 @@ async function loadMatchmakerMyTab() {
     <div class="my-profile-header">
       <div class="my-profile-avatar" style="display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);"><i class="fa-solid fa-hand-holding-heart"></i></div>
       <div class="my-profile-name">${esc(profile.name)}</div>
-      <div class="my-profile-sub">주선자 · 추천한 분 ${invitedCount || 0}명</div>
+      <div class="my-profile-sub">${headerSub}</div>
     </div>
 
     <div class="my-section">
       <div class="my-section-title">활동 통계</div>
       <div class="pm-grid">
-        <div class="pm-grid-item"><div class="pm-grid-label">추천한 분</div><div class="pm-grid-value">${invitedCount || 0}명</div></div>
-        <div class="pm-grid-item"><div class="pm-grid-label">진행 중 소개</div><div class="pm-grid-value">${introCount || 0}건</div></div>
-        <div class="pm-grid-item"><div class="pm-grid-label">성사된 매칭</div><div class="pm-grid-value">${matchedCount || 0}쌍</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">추천한 분</div><div class="pm-grid-value">${fmt(invitedRes, '명')}</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">진행 중 소개</div><div class="pm-grid-value">${fmt(introRes, '건')}</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">성사된 매칭</div><div class="pm-grid-value">${fmt(matchedRes, '쌍')}</div></div>
       </div>
     </div>
 

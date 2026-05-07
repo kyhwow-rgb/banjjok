@@ -324,69 +324,54 @@ async function handleSignup() {
     isSupercode = (hashHex === SUPERCODE_HASH);
   } catch {}
 
-  let inviteData = null;
+  // Pre-verify invite code (코드만 노출하지 않는 verify_invite_code RPC 사용)
+  let inviterId = null;
   if (!isSupercode) {
-    // Verify invite code
-    const { data, error: inviteErr } = await sb
-      .from('invite_codes')
-      .select('id, code, created_by, is_used')
-      .eq('code', code)
-      .eq('is_used', false)
-      .maybeSingle();
-
-    if (inviteErr || !data) {
+    const { data: verifyData, error: verifyErr } = await sb.rpc('verify_invite_code', { p_code: code });
+    if (verifyErr || !verifyData || verifyData.length === 0) {
       toast('유효하지 않은 초대 코드입니다.');
       return;
     }
-    inviteData = data;
+    inviterId = verifyData[0].created_by;
   }
 
-  // Sign up
+  // Sign up — auth user 생성
   const { data: authData, error: authErr } = await sb.auth.signUp({ email, password });
   if (authErr) { toast('가입 실패: ' + authErr.message); return; }
 
-  // Create applicant record
-  const { error: profileErr } = await sb.from('applicants').insert({
-    user_id: authData.user.id,
-    name,
-    email,
-    invited_by: inviteData?.created_by || null,
-    status: isSupercode ? 'approved' : 'pending_reputation',
-    is_participant: isParticipant,
-    is_matchmaker: isMatchmaker,
+  // Create applicant + consume invite code in one atomic transaction (RPC)
+  const { data: newApplicantId, error: signupErr } = await sb.rpc('signup_with_invite', {
+    p_invite_code: isSupercode ? null : code,
+    p_name: name,
+    p_email: email,
+    p_is_participant: isParticipant,
+    p_is_matchmaker: isMatchmaker,
+    p_is_supercode: isSupercode,
   });
 
-  if (profileErr) { toast('프로필 생성 실패'); return; }
+  if (signupErr) {
+    console.error('[handleSignup] signup_with_invite failed:', signupErr);
+    toast('가입 실패: ' + (signupErr.message || '코드가 이미 사용되었거나 유효하지 않아요.'));
+    return;
+  }
 
-  if (inviteData) {
-    // Mark invite code as used
-    const { data: newApplicant } = await sb.from('applicants').select('id').eq('user_id', authData.user.id).single();
-    await sb.from('invite_codes').update({
-      is_used: true,
-      used_by: newApplicant?.id,
-      used_at: new Date().toISOString(),
-    }).eq('id', inviteData.id);
-
-    // Notify inviter to write reputation
-    if (inviteData.created_by) {
-      await sb.rpc('create_notification', {
-        p_user_id: inviteData.created_by,
-        p_type: 'reputation_request',
-        p_title: `${name}님의 평판을 작성해주세요`,
-        p_body: '초대한 분의 가입을 완료하려면 평판 작성이 필요해요.',
-        p_data: { target_id: newApplicant?.id }
-      });
-    }
+  // Notify inviter to write reputation
+  if (inviterId) {
+    const { error: notifErr } = await sb.rpc('create_notification', {
+      p_user_id: inviterId,
+      p_type: 'reputation_request',
+      p_title: `${name}님의 평판을 작성해주세요`,
+      p_body: '초대한 분의 가입을 완료하려면 평판 작성이 필요해요.',
+      p_data: { target_id: newApplicantId }
+    });
+    if (notifErr) console.error('[handleSignup] notify inviter failed:', notifErr);
   }
 
   if (isSupercode) {
-    // 슈퍼코드로 가입한 경우 admin_users에도 등록
-    const { data: newAdmin } = await sb.from('applicants').select('id').eq('user_id', authData.user.id).single();
-    if (newAdmin) {
-      await sb.from('admin_users').insert({ user_id: authData.user.id }).then(() => {}, () => {});
-    }
+    const { error: adminErr } = await sb.from('admin_users').insert({ user_id: authData.user.id });
+    if (adminErr) console.error('[handleSignup] admin_users insert failed:', adminErr);
   }
 
-  toast('가입 완료! 추천인의 평판 작성을 기다려주세요.');
+  toast(isSupercode ? '가입 완료!' : '가입 완료! 추천인의 평판 작성을 기다려주세요.');
   logEvent('signup', { role: isParticipant && isMatchmaker ? 'both' : isMatchmaker ? 'matchmaker' : 'participant' });
 }
