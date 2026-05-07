@@ -91,6 +91,7 @@
       else if (tabId === 'tab-introduce') loadIntroduceTab();
       else if (tabId === 'tab-requests') loadRequestsTab();
       else if (tabId === 'tab-history') loadHistoryTab();
+      else if (tabId === 'tab-mm-my') loadMatchmakerMyTab();
     });
   });
 

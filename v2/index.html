@@ -17,7 +17,7 @@
     <section id="screen-auth" class="screen active">
       <div class="auth-container">
         <h1 class="logo">반쪽<span class="dot">.</span></h1>
-        <p class="tagline">친구가 연결해주는 소개팅</p>
+        <p class="tagline">지인이 연결해주는 소개팅</p>
 
         <div id="auth-login" class="auth-form">
           <input type="email" id="login-email" placeholder="이메일" autocomplete="email">
@@ -27,14 +27,15 @@
         </div>
 
         <div id="auth-signup" class="auth-form hidden">
+          <div class="role-selector-mini" id="signup-role-selector">
+            <p class="role-selector-label">어떤 역할로 가입하시나요?</p>
+            <label class="role-option"><input type="checkbox" id="signup-participant" checked> 참가자 (소개 받기)</label>
+            <label class="role-option"><input type="checkbox" id="signup-matchmaker"> 주선자 (소개 해주기)</label>
+          </div>
           <input type="text" id="signup-invite" placeholder="초대 코드">
           <input type="email" id="signup-email" placeholder="이메일">
           <input type="password" id="signup-password" placeholder="비밀번호 (6자 이상)">
           <input type="text" id="signup-name" placeholder="이름 (실명)">
-          <div class="role-selector-mini" id="signup-role-selector">
-            <label class="role-option"><input type="checkbox" id="signup-participant" checked> 참가자 (소개 받기)</label>
-            <label class="role-option"><input type="checkbox" id="signup-matchmaker"> 주선자 (소개 해주기)</label>
-          </div>
           <button class="btn-primary" id="btn-signup">가입하기</button>
           <p class="auth-switch"><a href="#" id="show-login">로그인으로 돌아가기</a></p>
         </div>
@@ -165,7 +166,7 @@
     <section id="screen-main" class="screen">
       <!-- Header -->
       <header class="app-header">
-        <h1 class="header-logo">반쪽<span class="dot">.</span></h1>
+        <h1 class="header-logo" onclick="confirmLogout()" style="cursor:pointer;">반쪽<span class="dot">.</span></h1>
         <div class="mode-toggle" id="mode-toggle">
           <button class="mode-btn active" data-mode="participant">참가자</button>
           <button class="mode-btn" data-mode="matchmaker">주선자</button>
@@ -274,6 +275,10 @@
           <div class="history-list" id="history-list"></div>
         </div>
 
+        <div id="tab-mm-my" class="tab-content">
+          <div id="mm-my-profile"></div>
+        </div>
+
         <nav class="tab-bar" id="tabbar-matchmaker">
           <button class="tab-item active" data-tab="tab-my-people">
             <i class="fa-solid fa-user-group"></i><span>내 사람들</span>
@@ -287,6 +292,9 @@
           <button class="tab-item" data-tab="tab-history">
             <i class="fa-solid fa-clock-rotate-left"></i><span>이력</span>
           </button>
+          <button class="tab-item" data-tab="tab-mm-my">
+            <i class="fa-solid fa-user"></i><span>MY</span>
+          </button>
         </nav>
       </main>
     </section>
@@ -294,7 +302,7 @@
     <!-- ══════════════════════════════════════ Admin Screen ══════════════════════════════════════ -->
     <section id="screen-admin" class="screen">
       <header class="app-header">
-        <h1 class="header-logo" onclick="adminLogout()" style="cursor:pointer;">반쪽<span class="dot">.</span> <span class="badge">관리자</span></h1>
+        <h1 class="header-logo" onclick="confirmLogout()" style="cursor:pointer;">반쪽<span class="dot">.</span> <span class="badge">관리자</span></h1>
         <button class="btn-ghost" id="btn-admin-logout">로그아웃</button>
       </header>
       <nav class="admin-tabs" id="admin-tabs">

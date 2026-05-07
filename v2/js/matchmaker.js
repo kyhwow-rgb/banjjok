@@ -64,13 +64,20 @@ async function shareInviteCode() {
 
   if (error) { toast('초대 코드 생성 실패'); return; }
 
-  const text = `반쪽에 초대할게!\n초대 코드: ${data.code}\n가입: https://kyhwow-rgb.github.io/banjjok/v2/`;
+  const link = 'https://kyhwow-rgb.github.io/banjjok/v2/';
+  const text = `[반쪽] ${profile.name}님이 당신을 소개팅에 초대했어요!\n\n반쪽은 지인이 연결해주는 신뢰 기반 소개팅이에요.\n아래 링크에서 초대 코드를 입력하면 가입할 수 있어요.\n\n초대 코드: ${data.code}\n가입 링크: ${link}`;
 
   if (navigator.share) {
-    try { await navigator.share({ text }); } catch {}
+    try {
+      await navigator.share({
+        title: '반쪽 — 지인이 연결해주는 소개팅',
+        text,
+        url: link,
+      });
+    } catch {}
   } else {
     await navigator.clipboard.writeText(text);
-    toast('초대 코드가 복사되었어요!');
+    toast(`복사 완료! 카톡 등으로 붙여넣어 초대하세요\n(링크는 가입 페이지로 연결돼요)`);
   }
 }
 
@@ -392,4 +399,58 @@ async function loadHistoryTab() {
         <div class="history-date">${formatTimeAgo(h.created_at)}</div>
       </div>`;
   }).join('');
+}
+
+// --- Matchmaker MY Tab ---
+async function loadMatchmakerMyTab() {
+  const profile = AppState.getProfile();
+  if (!profile) return;
+
+  // Stats: 추천한 사람 수, 진행 중 소개, 성사 매칭
+  const [{ count: invitedCount }, { count: introCount }, { count: matchedCount }] = await Promise.all([
+    sb.from('applicants').select('id', { count: 'exact', head: true }).eq('invited_by', profile.id),
+    sb.from('introductions').select('id', { count: 'exact', head: true }).eq('primary_matchmaker_id', profile.id).eq('status', 'pending'),
+    sb.from('introductions').select('id', { count: 'exact', head: true }).eq('primary_matchmaker_id', profile.id).eq('status', 'matched'),
+  ]);
+
+  const container = document.getElementById('mm-my-profile');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="my-profile-header">
+      <div class="my-profile-avatar" style="display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);"><i class="fa-solid fa-hand-holding-heart"></i></div>
+      <div class="my-profile-name">${esc(profile.name)}</div>
+      <div class="my-profile-sub">주선자 · 추천한 분 ${invitedCount || 0}명</div>
+    </div>
+
+    <div class="my-section">
+      <div class="my-section-title">활동 통계</div>
+      <div class="pm-grid">
+        <div class="pm-grid-item"><div class="pm-grid-label">추천한 분</div><div class="pm-grid-value">${invitedCount || 0}명</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">진행 중 소개</div><div class="pm-grid-value">${introCount || 0}건</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">성사된 매칭</div><div class="pm-grid-value">${matchedCount || 0}쌍</div></div>
+      </div>
+    </div>
+
+    ${profile.is_participant ? `
+      <div class="my-section">
+        <div class="my-section-title">힌트</div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.5;">참가자 모드 (소개 받기)도 활성화되어 있어요. 상단 '참가자' 토글로 전환할 수 있어요.</p>
+      </div>
+    ` : `
+      <div class="my-section">
+        <div class="my-section-title">설정</div>
+        <div class="my-menu-item" onclick="enableParticipantRole()">
+          <span><i class="fa-solid fa-heart"></i> 참가자 역할 추가</span>
+          <i class="fa-solid fa-chevron-right chevron"></i>
+        </div>
+      </div>
+    `}
+
+    <button class="btn-secondary" id="btn-mm-logout" style="margin-top:8px;">
+      <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
+    </button>
+  `;
+
+  document.getElementById('btn-mm-logout')?.addEventListener('click', confirmLogout);
 }

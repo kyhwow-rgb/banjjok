@@ -102,6 +102,28 @@ grant execute on function public.admin_get_applicant(uuid) to authenticated;
 
 
 -- ==========================================================================
+-- V2-010 · 가입자가 본인의 추천인 프로필 읽기 RLS
+-- 평판 대기 화면에 추천인 실명 표시용
+-- 자기참조 RLS 무한 재귀를 피하려면 SECURITY DEFINER helper 함수 사용
+-- ==========================================================================
+
+create or replace function public.get_my_inviter_id()
+returns uuid
+language sql
+stable
+security definer
+as $$
+  select invited_by from public.applicants where user_id = auth.uid()::text limit 1;
+$$;
+
+drop policy if exists "Invited person can read their inviter" on public.applicants;
+
+create policy "Invited person can read their inviter"
+  on public.applicants for select
+  using (id = public.get_my_inviter_id());
+
+
+-- ==========================================================================
 -- V2-003 · 중복 admin row 정리
 --
 -- 신청자 리스트에 "관리자" 이름이 2번 노출되는 이슈.

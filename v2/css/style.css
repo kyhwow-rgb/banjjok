@@ -424,8 +424,15 @@ textarea.form-input { resize: vertical; min-height: 60px; }
    Role Selector (Signup)
    ========================================================================== */
 
-.role-selector-mini { margin-bottom: 12px; text-align: left; }
-.role-option { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 14px; cursor: pointer; }
+.role-selector-mini {
+  margin-bottom: 16px; padding: 12px 14px; text-align: left;
+  background: var(--surface-alt, #f8f8f8); border-radius: var(--radius-sm);
+}
+.role-selector-label {
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  margin: 0 0 6px; letter-spacing: -0.01em;
+}
+.role-option { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; cursor: pointer; }
 .role-option input { accent-color: var(--accent); }
 
 /* ==========================================================================

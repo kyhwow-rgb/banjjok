@@ -100,6 +100,16 @@ function compatibilityReport(personA, personB) {
   return items;
 }
 
+// --- Logout (with confirm) ---
+async function confirmLogout() {
+  if (!confirm('로그아웃하고 홈으로 이동하시겠습니까?')) return;
+  try {
+    if (typeof AppState !== 'undefined') AppState.unsubscribeAll?.();
+    await sb.auth.signOut();
+  } catch (e) { console.error('Logout error:', e); }
+  window.location.reload();
+}
+
 // --- Admin Check ---
 async function checkIsAdmin() {
   const { data: { user } } = await sb.auth.getUser();

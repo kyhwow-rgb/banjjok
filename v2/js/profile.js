@@ -504,16 +504,18 @@ async function saveReputation() {
 
   if (error) { toast('평판 저장 실패: ' + error.message); return; }
 
-  // Check if this was the required reputation gate
-  const { data: target } = await sb.from('applicants').select('status, invited_by').eq('id', _repTargetId).maybeSingle();
+  // Check if this was the required reputation gate — auto-approve when inviter writes reputation
+  const { data: target } = await sb.from('applicants').select('status, invited_by, user_id').eq('id', _repTargetId).maybeSingle();
   if (target && target.status === 'pending_reputation' && target.invited_by === profile.id) {
-    await sb.from('applicants').update({ status: 'pending' }).eq('id', _repTargetId);
-    await sb.rpc('create_notification', {
-      p_user_id: _repTargetId,
-      p_type: 'reputation_written',
-      p_title: '평판이 작성되었어요!',
-      p_body: '관리자 검토 후 가입이 완료됩니다.'
-    });
+    await sb.from('applicants').update({ status: 'approved' }).eq('id', _repTargetId);
+    if (target.user_id) {
+      await sb.rpc('create_notification', {
+        p_user_id: target.user_id,
+        p_type: 'approved',
+        p_title: '가입이 완료되었어요! 🎉',
+        p_body: '추천인 평판이 등록되어 가입이 자동 승인되었습니다.'
+      }).then(() => {}, () => {});
+    }
   }
 
   toast('평판이 저장되었어요!');
