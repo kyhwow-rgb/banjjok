@@ -11,10 +11,15 @@ async function loadChatTab() {
   const profile = AppState.getProfile();
   if (!profile) return;
 
-  const { data: matches } = await sb.from('matches')
+  const { data: matches, error: matchesError } = await sb.from('matches')
     .select('*, applicant_a:applicant_a_id(id, name, photo_url, photos, gender), applicant_b:applicant_b_id(id, name, photo_url, photos, gender)')
     .or(`applicant_a_id.eq.${profile.id},applicant_b_id.eq.${profile.id}`)
     .order('created_at', { ascending: false });
+  if (matchesError) {
+    console.error('[loadChatTab] matches load failed:', matchesError);
+    toast('채팅 목록을 불러오지 못했어요.');
+    return;
+  }
 
   const emptyEl = document.getElementById('chat-empty');
   const listEl = document.getElementById('chat-list');
@@ -29,10 +34,13 @@ async function loadChatTab() {
 
   // Get last messages for each match
   const matchIds = matches.map(m => m.id);
-  const { data: lastMsgs } = await sb.from('chat_messages')
+  const { data: lastMsgs, error: lastMsgsError } = await sb.from('chat_messages')
     .select('match_id, content, created_at, sender_id')
     .in('match_id', matchIds)
     .order('created_at', { ascending: false });
+  if (lastMsgsError) {
+    console.error('[loadChatTab] last messages load failed:', lastMsgsError);
+  }
 
   const lastMsgMap = {};
   (lastMsgs || []).forEach(msg => {
@@ -91,10 +99,15 @@ async function openChatRoom(matchId) {
   }
 
   // Load messages
-  const { data: messages } = await sb.from('chat_messages')
+  const { data: messages, error: messagesError } = await sb.from('chat_messages')
     .select('*')
     .eq('match_id', matchId)
     .order('created_at', { ascending: true });
+  if (messagesError) {
+    console.error('[openChatRoom] messages load failed:', messagesError);
+    toast('메시지를 불러오지 못했어요.');
+    return;
+  }
 
   renderChatMessages(messages || []);
 
@@ -194,11 +207,12 @@ function closeChatRoom() {
 
 async function markChatAsRead(matchId) {
   const profile = AppState.getProfile();
-  await sb.from('chat_messages')
+  const { error } = await sb.from('chat_messages')
     .update({ read_at: new Date().toISOString() })
     .eq('match_id', matchId)
     .neq('sender_id', profile.id)
     .is('read_at', null);
+  if (error) console.error('[markChatAsRead] failed:', error);
 }
 
 function formatChatTime(iso) {

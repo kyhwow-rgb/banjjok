@@ -333,26 +333,14 @@ async function handleSignup() {
   if (!name) { toast('이름을 입력해주세요.'); return; }
   if (!isParticipant && !isMatchmaker) { toast('역할을 하나 이상 선택해주세요.'); return; }
 
-  // Supercode check (관리자 직접 가입용)
-  const SUPERCODE_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // sha256('admin')
-  let isSupercode = false;
-  try {
-    const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(code));
-    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    isSupercode = (hashHex === SUPERCODE_HASH);
-  } catch {}
-
   // Pre-verify invite code (코드만 노출하지 않는 verify_invite_code RPC 사용)
   let inviterId = null;
-  if (!isSupercode) {
-    const { data: verifyData, error: verifyErr } = await sb.rpc('verify_invite_code', { p_code: code });
-    if (verifyErr || !verifyData || verifyData.length === 0) {
-      toast('유효하지 않은 초대 코드입니다.');
-      return;
-    }
-    inviterId = verifyData[0].created_by;
+  const { data: verifyData, error: verifyErr } = await sb.rpc('verify_invite_code', { p_code: code });
+  if (verifyErr || !verifyData || verifyData.length === 0) {
+    toast('유효하지 않은 초대 코드입니다.');
+    return;
   }
+  inviterId = verifyData[0].created_by;
 
   // Capture role choice locally so onboarding doesn't race with the applicants insert.
   if (typeof setSignupRoles === 'function') {
@@ -365,12 +353,12 @@ async function handleSignup() {
 
   // Create applicant + consume invite code in one atomic transaction (RPC)
   const { data: newApplicantId, error: signupErr } = await sb.rpc('signup_with_invite', {
-    p_invite_code: isSupercode ? null : code,
+    p_invite_code: code,
     p_name: name,
     p_email: email,
     p_is_participant: isParticipant,
     p_is_matchmaker: isMatchmaker,
-    p_is_supercode: isSupercode,
+    p_is_supercode: false,
   });
 
   if (signupErr) {
@@ -380,22 +368,15 @@ async function handleSignup() {
   }
 
   // Notify inviter to write reputation
-  if (inviterId) {
-    const { error: notifErr } = await sb.rpc('create_notification', {
-      p_user_id: inviterId,
-      p_type: 'reputation_request',
-      p_title: `${name}님의 평판을 작성해주세요`,
-      p_body: '초대한 분의 가입을 완료하려면 평판 작성이 필요해요.',
-      p_data: { target_id: newApplicantId }
-    });
-    if (notifErr) console.error('[handleSignup] notify inviter failed:', notifErr);
-  }
+  const { error: notifErr } = await sb.rpc('create_notification', {
+    p_user_id: inviterId,
+    p_type: 'reputation_request',
+    p_title: `${name}님의 평판을 작성해주세요`,
+    p_body: '초대한 분의 가입을 완료하려면 평판 작성이 필요해요.',
+    p_data: { target_id: newApplicantId }
+  });
+  if (notifErr) console.error('[handleSignup] notify inviter failed:', notifErr);
 
-  if (isSupercode) {
-    const { error: adminErr } = await sb.from('admin_users').insert({ user_id: authData.user.id });
-    if (adminErr) console.error('[handleSignup] admin_users insert failed:', adminErr);
-  }
-
-  toast(isSupercode ? '가입 완료!' : '가입 완료! 추천인의 평판 작성을 기다려주세요.');
+  toast('가입 완료! 추천인의 평판 작성을 기다려주세요.');
   logEvent('signup', { role: isParticipant && isMatchmaker ? 'both' : isMatchmaker ? 'matchmaker' : 'participant' });
 }

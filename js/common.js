@@ -123,7 +123,11 @@ async function confirmLogout() {
 async function checkIsAdmin() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return false;
-  const { data } = await sb.from('admin_users').select('id').eq('user_id', user.id).maybeSingle();
+  const { data, error } = await sb.from('admin_users').select('id').eq('user_id', user.id).maybeSingle();
+  if (error) {
+    console.error('[checkIsAdmin] admin check failed:', error);
+    return false;
+  }
   return !!data;
 }
 
@@ -289,9 +293,11 @@ async function uploadPhotoToStorage(file, userId, index) {
 // --- Storage 사진 삭제 ---
 async function deleteUserPhotosFromStorage(userId) {
   try {
-    const { data: files } = await sb.storage.from('photos').list(userId);
+    const { data: files, error: listError } = await sb.storage.from('photos').list(userId);
+    if (listError) throw listError;
     if (files && files.length > 0) {
-      await sb.storage.from('photos').remove(files.map(f => `${userId}/${f.name}`));
+      const { error: removeError } = await sb.storage.from('photos').remove(files.map(f => `${userId}/${f.name}`));
+      if (removeError) throw removeError;
     }
   } catch (e) { console.log('Storage cleanup error:', e.message); }
 }

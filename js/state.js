@@ -19,7 +19,8 @@ const AppState = (() => {
   async function setUser(user) {
     currentUser = user;
     if (user) {
-      const { data } = await sb.from('applicants').select('*').eq('user_id', user.id).maybeSingle();
+      const { data, error } = await sb.from('applicants').select('*').eq('user_id', user.id).maybeSingle();
+      if (error) console.error('[AppState.setUser] profile load failed:', error);
       currentProfile = data;
     } else {
       currentProfile = null;
@@ -78,13 +79,22 @@ const AppState = (() => {
 
   async function refreshProfile() {
     if (!currentUser) return;
-    const { data } = await sb.from('applicants').select('*').eq('user_id', currentUser.id).maybeSingle();
+    const { data, error } = await sb.from('applicants').select('*').eq('user_id', currentUser.id).maybeSingle();
+    if (error) {
+      console.error('[AppState.refreshProfile] profile load failed:', error);
+      return;
+    }
     currentProfile = data;
   }
 
   async function checkAdmin() {
     if (!currentUser) { isAdmin = false; return false; }
-    const { data } = await sb.from('admin_users').select('user_id').eq('user_id', currentUser.id).maybeSingle();
+    const { data, error } = await sb.from('admin_users').select('user_id').eq('user_id', currentUser.id).maybeSingle();
+    if (error) {
+      console.error('[AppState.checkAdmin] admin check failed:', error);
+      isAdmin = false;
+      return false;
+    }
     isAdmin = !!data;
     return isAdmin;
   }

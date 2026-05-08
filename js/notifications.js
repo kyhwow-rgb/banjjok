@@ -7,11 +7,15 @@ let _notifications = [];
 async function loadNotifications() {
   const profile = AppState.getProfile();
   if (!profile) return;
-  const { data } = await sb.from('notifications')
+  const { data, error } = await sb.from('notifications')
     .select('*')
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(30);
+  if (error) {
+    console.error('[loadNotifications] failed:', error);
+    return;
+  }
   _notifications = data || [];
   renderNotifBadge();
 }
@@ -72,7 +76,12 @@ async function handleNotifClick(id) {
       document.querySelector('.mode-btn[data-mode=participant]')?.classList.remove('active');
       switchToTab('tab-my-people');
       await new Promise(r => setTimeout(r, 400));
-      const { data: target } = await sb.from('applicants').select('id, name').eq('id', data.target_id).maybeSingle();
+      const { data: target, error } = await sb.from('applicants').select('id, name').eq('id', data.target_id).maybeSingle();
+      if (error) {
+        console.error('[handleNotifClick] target load failed:', error);
+        toast('대상 정보를 불러오지 못했어요.');
+        return;
+      }
       if (target) openReputationModal(target.id, target.name);
       return;
     }
@@ -193,7 +202,12 @@ document.addEventListener('tab-change', closeNotifPanel);
 document.addEventListener('mode-change', closeNotifPanel);
 
 async function readNotif(id) {
-  await sb.from('notifications').update({ is_read: true }).eq('id', id);
+  const { error } = await sb.from('notifications').update({ is_read: true }).eq('id', id);
+  if (error) {
+    console.error('[readNotif] failed:', error);
+    toast('알림 읽음 처리에 실패했어요.');
+    return;
+  }
   const n = _notifications.find(n => n.id === id);
   if (n) n.is_read = true;
   renderNotifBadge();
@@ -205,7 +219,12 @@ async function markAllRead() {
   if (!profile) return;
   const unreadIds = _notifications.filter(n => !n.is_read).map(n => n.id);
   if (unreadIds.length === 0) return;
-  await sb.from('notifications').update({ is_read: true }).in('id', unreadIds);
+  const { error } = await sb.from('notifications').update({ is_read: true }).in('id', unreadIds);
+  if (error) {
+    console.error('[markAllRead] failed:', error);
+    toast('알림 읽음 처리에 실패했어요.');
+    return;
+  }
   _notifications.forEach(n => n.is_read = true);
   renderNotifBadge();
   renderNotifList();

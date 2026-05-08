@@ -14,9 +14,14 @@ async function openMmChat(partnerId, myRole) {
   if (!profile) return;
 
   // 상대 정보 표시
-  const { data: partner } = await sb.from('applicants')
+  const { data: partner, error: partnerError } = await sb.from('applicants')
     .select('id, name, photo_url, photos')
     .eq('id', partnerId).maybeSingle();
+  if (partnerError) {
+    console.error('[openMmChat] partner load failed:', partnerError);
+    toast('상대 정보를 불러오지 못했어요.');
+    return;
+  }
   const photo = (partner?.photos && partner.photos[0]) || partner?.photo_url || '';
   document.getElementById('mm-chat-partner-info').innerHTML = `
     ${photo ? `<img src="${esc(photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px;">` : ''}
@@ -62,7 +67,8 @@ async function loadMmMessages() {
   // 안 읽은 메시지 읽음 처리
   const unread = (data || []).filter(m => m.sender_id !== profile.id && !m.read_at);
   if (unread.length > 0) {
-    await sb.from('mm_messages').update({ read_at: new Date().toISOString() }).in('id', unread.map(m => m.id));
+    const { error: readError } = await sb.from('mm_messages').update({ read_at: new Date().toISOString() }).in('id', unread.map(m => m.id));
+    if (readError) console.error('[loadMmMessages] mark read failed:', readError);
   }
 }
 
@@ -103,13 +109,14 @@ async function sendMmMessage() {
   if (error) { toast('전송 실패: ' + error.message); return; }
   input.value = '';
   // 상대에게 알림
-  await sb.rpc('create_notification', {
+  const { error: notifError } = await sb.rpc('create_notification', {
     p_user_id: _mmChatPartnerId,
     p_type: 'mm_chat_message',
     p_title: `${profile.name}님의 메시지`,
     p_body: content.length > 40 ? content.substring(0, 40) + '...' : content,
     p_data: { partner_id: profile.id, role: _mmChatRole === 'matchmaker' ? 'matchmaker_to_participant' : 'participant_to_matchmaker' }
-  }).then(() => {}, () => {});
+  });
+  if (notifError) console.error('[sendMmMessage] notification failed:', notifError);
   await loadMmMessages();
 }
 
