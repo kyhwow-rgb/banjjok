@@ -4,6 +4,16 @@
 
 let _adminFilter = 'all';
 
+function renderAdminError(targetId, message) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="empty-state" style="padding:32px;border:1px solid var(--border);border-radius:8px;background:var(--surface);">
+      <p style="color:var(--error);font-weight:700;margin-bottom:6px;">${esc(message)}</p>
+      <p style="font-size:13px;color:var(--muted);">잠시 후 다시 시도하거나 관리자 권한을 확인해주세요.</p>
+    </div>`;
+}
+
 function showAdminDashboard() {
   AppState.showScreen('screen-admin');
   loadAdminHome();
@@ -50,7 +60,12 @@ document.getElementById('admin-tabs')?.addEventListener('click', e => {
 // --- Admin Home ---
 async function loadAdminHome() {
   const { data: metrics, error } = await sb.rpc('admin_health_metrics');
-  if (error) { console.error('Admin metrics error:', error); return; }
+  if (error) {
+    console.error('Admin metrics error:', error);
+    renderAdminError('admin-health-metrics', '대시보드를 불러오지 못했어요.');
+    toast('관리자 대시보드 로딩 실패');
+    return;
+  }
 
   const m = metrics || {};
   document.getElementById('admin-health-metrics').innerHTML = `
@@ -105,7 +120,12 @@ async function loadAdminApplicants(filter) {
   const status = _adminFilter === 'all' ? null : _adminFilter;
 
   const { data: applicants, error } = await sb.rpc('admin_list_applicants', { p_status: status });
-  if (error) { console.error('Admin list error:', error); return; }
+  if (error) {
+    console.error('Admin list error:', error);
+    renderAdminError('admin-applicant-list', '신청자 목록을 불러오지 못했어요.');
+    toast('신청자 목록 로딩 실패');
+    return;
+  }
 
   const listEl = document.getElementById('admin-applicant-list');
   if (!applicants || applicants.length === 0) {
@@ -166,7 +186,12 @@ async function adminReject(applicantId) {
 // --- Admin Matches ---
 async function loadAdminMatches() {
   const { data: matches, error } = await sb.rpc('admin_list_matches');
-  if (error) { console.error('Admin matches error:', error); return; }
+  if (error) {
+    console.error('Admin matches error:', error);
+    renderAdminError('admin-match-list', '매칭 목록을 불러오지 못했어요.');
+    toast('매칭 목록 로딩 실패');
+    return;
+  }
 
   const listEl = document.getElementById('admin-match-list');
   if (!matches || matches.length === 0) {
@@ -204,6 +229,13 @@ async function openAdminMatchDetail(aId, bId, aName, bName) {
     sb.rpc('admin_get_applicant', { p_id: bId }),
   ]);
 
+  if (aRes.error || bRes.error) {
+    console.error('Admin match detail error:', aRes.error || bRes.error);
+    body.innerHTML = '<p style="text-align:center;color:var(--error);padding:24px;">매칭 상세 정보를 불러오지 못했어요.</p>';
+    toast('매칭 상세 로딩 실패');
+    return;
+  }
+
   const renderSide = (p, fallbackName) => {
     if (!p) return `<div class="amm-side"><div class="amm-photo amm-photo-empty"><i class="fa-solid fa-user"></i></div><div><div class="amm-name">${esc(fallbackName)}</div><div style="color:var(--muted);font-size:12px;">정보 없음</div></div></div>`;
     const age = calcAge(p.birth_date);
@@ -240,7 +272,12 @@ function closeAdminMatchModal() {
 // --- Admin Reports ---
 async function loadAdminReports() {
   const { data: reports, error } = await sb.rpc('admin_list_reports');
-  if (error) { console.error('Admin reports error:', error); return; }
+  if (error) {
+    console.error('Admin reports error:', error);
+    renderAdminError('admin-report-list', '신고 목록을 불러오지 못했어요.');
+    toast('신고 목록 로딩 실패');
+    return;
+  }
 
   const listEl = document.getElementById('admin-report-list');
   if (!reports || reports.length === 0) {
@@ -263,7 +300,12 @@ async function loadAdminReports() {
 // --- Admin Relationship Tree ---
 async function loadAdminNetwork() {
   const { data: rows, error } = await sb.rpc('admin_relationship_tree');
-  if (error) { console.error('admin_relationship_tree error:', error); return; }
+  if (error) {
+    console.error('admin_relationship_tree error:', error);
+    renderAdminError('admin-network-tree', '관계 데이터를 불러오지 못했어요.');
+    toast('관계 데이터 로딩 실패');
+    return;
+  }
   const treeEl = document.getElementById('admin-network-tree');
   if (!treeEl) return;
   if (!rows || rows.length === 0) {
