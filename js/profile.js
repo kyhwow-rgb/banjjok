@@ -206,6 +206,15 @@ async function loadMyTab() {
 
   const age = calcAge(profile.birth_date);
   const photoSrc = (profile.photos && profile.photos[0]) || profile.photo_url || '';
+  let inviterName = '';
+  if (profile.invited_by) {
+    const { data: inviter, error } = await sb.from('applicants')
+      .select('name')
+      .eq('id', profile.invited_by)
+      .maybeSingle();
+    if (error) console.error('[loadMyTab] inviter load failed:', error);
+    inviterName = inviter?.name || '주선자';
+  }
 
   container.innerHTML = `
     <div class="my-profile-header">
@@ -213,6 +222,13 @@ async function loadMyTab() {
       <div class="my-profile-name">${esc(profile.name)}</div>
       <div class="my-profile-sub">${age ? age + '세' : ''} ${esc(profile.job || '')} ${esc(profile.location || '')}</div>
     </div>
+
+    ${profile.invited_by ? `
+      <div class="my-invite-chain" onclick="openMmChat('${profile.invited_by}','participant')" role="button" tabindex="0">
+        <span class="my-invite-chain__label">초대 체인</span>
+        <span class="my-invite-chain__value"><i class="fa-solid fa-link"></i> ${esc(inviterName)}님이 데려왔어요</span>
+      </div>
+    ` : ''}
 
     <div class="my-section">
       <div class="my-section-title">내 정보</div>

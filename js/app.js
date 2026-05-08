@@ -108,6 +108,15 @@ async function routeAfterAuth() {
   }
   const profile = AppState.getProfile();
 
+  // Admin accounts may not have a completed dating profile. Route them before
+  // onboarding checks so the service opens on the admin home as expected.
+  const isAdmin = await AppState.checkAdmin();
+  if (isAdmin) {
+    showAdminDashboard();
+    logEvent('app_open');
+    return;
+  }
+
   if (!profile) {
     // New user — needs onboarding
     AppState.showScreen('screen-onboarding');
@@ -115,8 +124,9 @@ async function routeAfterAuth() {
     return;
   }
 
-  // Check if profile is incomplete (no gender means onboarding not done)
-  if (!profile.gender) {
+  // Participant profiles need the full onboarding data before introductions.
+  // Matchmaker-only profiles can use their home without dating-profile fields.
+  if (profile.is_participant && !profile.gender) {
     AppState.showScreen('screen-onboarding');
     initOnboarding();
     return;

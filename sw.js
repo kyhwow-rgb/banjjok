@@ -1,4 +1,4 @@
-const CACHE = 'banjjok-main-v2-1';
+const CACHE = 'banjjok-main-v2-2';
 const ASSETS = [
   '/banjjok/',
   '/banjjok/index.html',
