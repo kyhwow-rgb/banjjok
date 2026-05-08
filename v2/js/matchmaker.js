@@ -286,7 +286,7 @@ async function loadRequestsTab() {
   const profile = AppState.getProfile();
   if (!profile || !profile.is_matchmaker) return;
 
-  const { data: requests } = await sb.from('introduction_requests')
+  const { data: requests, error: requestsError } = await sb.from('introduction_requests')
     .select(`*,
       requester:requester_matchmaker_id(name, photo_url, photos),
       target:target_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
@@ -295,10 +295,38 @@ async function loadRequestsTab() {
     .neq('requester_matchmaker_id', profile.id)
     .order('created_at', { ascending: false });
 
+  const { data: myRequests, error: myRequestsError } = await sb.from('introduction_requests')
+    .select(`*,
+      target:target_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+    `)
+    .eq('requester_matchmaker_id', profile.id)
+    .order('created_at', { ascending: false });
+
+  let responseRows = [];
+  if (myRequests && myRequests.length > 0) {
+    const requestIds = myRequests.map(req => req.id);
+    const { data: responses, error: responsesError } = await sb.from('introduction_request_responses')
+      .select(`*,
+        responder:responder_matchmaker_id(name, photo_url, photos),
+        proposed:proposed_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+      `)
+      .in('request_id', requestIds)
+      .order('created_at', { ascending: false });
+    if (responsesError) console.error('[loadRequestsTab] responses failed:', responsesError);
+    responseRows = responses || [];
+  }
+
+  if (requestsError) console.error('[loadRequestsTab] incoming requests failed:', requestsError);
+  if (myRequestsError) console.error('[loadRequestsTab] my requests failed:', myRequestsError);
+
   const emptyEl = document.getElementById('requests-empty');
   const listEl = document.getElementById('request-list');
 
-  if (!requests || requests.length === 0) {
+  const hasIncoming = requests && requests.length > 0;
+  const hasMyRequests = myRequests && myRequests.length > 0;
+  const hasResponses = responseRows.length > 0;
+
+  if (!hasIncoming && !hasMyRequests) {
     emptyEl?.classList.remove('hidden');
     listEl.innerHTML = '';
     return;
@@ -306,7 +334,7 @@ async function loadRequestsTab() {
 
   emptyEl?.classList.add('hidden');
 
-  listEl.innerHTML = requests.map(req => {
+  const renderRequestCard = req => {
     const criteria = req.criteria || {};
     const target = req.target || {};
     const age = calcAge(target.birth_date);
@@ -348,7 +376,72 @@ async function loadRequestsTab() {
           <span class="rcv-time">${formatTimeAgo(req.created_at)}</span>
         </div>
       </div>`;
-  }).join('');
+  };
+
+  const requestMap = {};
+  (myRequests || []).forEach(req => { requestMap[req.id] = req; });
+
+  const renderResponseCard = res => {
+    const req = requestMap[res.request_id] || {};
+    const target = req.target || {};
+    const proposed = res.proposed || {};
+    const responderPhoto = (res.responder?.photos && res.responder.photos[0]) || res.responder?.photo_url || '';
+    const proposedPhoto = (proposed.photos && proposed.photos[0]) || proposed.photo_url || '';
+    const targetAge = calcAge(target.birth_date);
+    const proposedAge = calcAge(proposed.birth_date);
+    const statusLabel = res.status === 'requester_accepted' ? '수락됨' : res.status === 'requester_declined' ? '거절됨' : '검토 대기';
+    const statusClass = res.status === 'requester_accepted' ? 'matched' : res.status === 'requester_declined' ? 'declined' : 'pending';
+
+    return `
+      <div class="request-card-v2 request-response-card">
+        <div class="rcv-header">
+          <div class="rcv-requester">
+            ${responderPhoto ? `<img class="rcv-requester-photo" src="${esc(responderPhoto)}" alt="">` : '<div class="rcv-requester-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+            <span class="rcv-requester-name">${esc(res.responder?.name || '주선자')}님의 추천</span>
+          </div>
+          <span class="intro-status-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="response-pair">
+          <div class="response-person">
+            <div class="response-label">내 요청 대상</div>
+            <div class="response-name">${esc(target.name || '?')} ${targetAge ? `<span>${targetAge}세</span>` : ''}</div>
+            <div class="response-detail">${target.height ? target.height + 'cm · ' : ''}${esc(target.job || '')}${target.location ? ' · ' + esc(target.location) : ''}</div>
+          </div>
+          <div class="response-link"><i class="fa-solid fa-heart"></i></div>
+          <div class="response-person">
+            <div class="response-label">추천 후보</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${proposedPhoto ? `<img class="response-photo" src="${esc(proposedPhoto)}" alt="">` : '<div class="response-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+              <div>
+                <div class="response-name">${esc(proposed.name || '?')} ${proposedAge ? `<span>${proposedAge}세</span>` : ''}</div>
+                <div class="response-detail">${proposed.height ? proposed.height + 'cm · ' : ''}${esc(proposed.job || '')}${proposed.location ? ' · ' + esc(proposed.location) : ''}${proposed.mbti ? ' · ' + esc(proposed.mbti) : ''}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${res.status === 'pending' ? `
+          <div class="rcv-actions response-actions">
+            <button class="btn-ghost rcv-btn" onclick="resolveRequestResponse('${res.id}', false)">거절</button>
+            <button class="btn-primary rcv-btn" onclick="resolveRequestResponse('${res.id}', true)">소개 만들기</button>
+          </div>
+        ` : ''}
+        <div class="rcv-time" style="margin-top:8px;">${formatTimeAgo(res.created_at)}</div>
+      </div>`;
+  };
+
+  const myRequestHtml = hasResponses
+    ? responseRows.map(renderResponseCard).join('')
+    : (hasMyRequests ? '<div class="request-empty-inline">아직 도착한 추천이 없어요.</div>' : '');
+
+  listEl.innerHTML = `
+    <div class="request-section">
+      <div class="request-section-title">내 요청에 온 추천</div>
+      ${myRequestHtml}
+    </div>
+    <div class="request-section">
+      <div class="request-section-title">받은 요청</div>
+      ${hasIncoming ? requests.map(renderRequestCard).join('') : '<div class="request-empty-inline">응답할 요청이 없어요.</div>'}
+    </div>`;
 }
 
 let _currentRespondReqId = null;
@@ -418,6 +511,32 @@ async function confirmRespondPick(personId, personName, el) {
   toast(`${personName}님을 추천했어요!`);
   logEvent('request_response', { request_id: _currentRespondReqId, proposed: personId });
   closeRespondPickerModal();
+}
+
+async function resolveRequestResponse(responseId, accept) {
+  const action = accept ? '소개를 만들까요?' : '이 추천을 거절할까요?';
+  if (!confirm(action)) return;
+
+  const { data, error } = await sb.rpc('resolve_request_response', {
+    p_response_id: responseId,
+    p_accept: accept,
+  });
+
+  if (error) {
+    toast((accept ? '소개 생성 실패: ' : '거절 실패: ') + error.message);
+    return;
+  }
+
+  if (data?.accepted) {
+    toast('소개를 만들었어요. 두 참가자에게 알림을 보냈습니다.');
+    logEvent('request_response_accepted', { response_id: responseId, introduction_id: data.introduction_id });
+  } else {
+    toast('추천을 거절했어요.');
+    logEvent('request_response_declined', { response_id: responseId });
+  }
+
+  loadRequestsTab();
+  loadHistoryTab();
 }
 
 // --- Broadcast 요청 생성 ---
