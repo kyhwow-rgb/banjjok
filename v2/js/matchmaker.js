@@ -105,8 +105,13 @@ async function loadIntroduceTab() {
 
   selector.innerHTML = myPeople.map(p => {
     const age = calcAge(p.birth_date);
-    return `<div class="person-chip" onclick="selectPersonForIntro('${p.id}', this)" data-person-id="${p.id}">
-      ${esc(p.name)} ${age ? `(${age}세)` : ''} · ${esc(p.job || '')}
+    const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+    return `<div class="person-row-card" onclick="selectPersonForIntro('${p.id}', this)" data-person-id="${p.id}">
+      ${photoSrc ? `<img class="prc-photo" src="${esc(photoSrc)}" alt="">` : `<div class="prc-photo prc-photo-empty"><i class="fa-solid fa-user"></i></div>`}
+      <div class="prc-info">
+        <div class="prc-name">${esc(p.name)} <span class="prc-meta">${p.gender === 'male' ? '♂' : p.gender === 'female' ? '♀' : ''} ${age ? age + '세' : ''}</span></div>
+        <div class="prc-detail">${esc(p.job || '직업 미입력')} · ${esc(p.location || '')} ${p.height ? '· ' + p.height + 'cm' : ''} ${p.mbti ? '· ' + esc(p.mbti) : ''}</div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -131,35 +136,47 @@ async function selectPersonForIntro(personId, el) {
 async function searchPool() {
   const gender = document.getElementById('pool-gender').value || null;
   const location = document.getElementById('pool-location').value || null;
+  const job = document.getElementById('pool-job')?.value || null;
+  const minAge = parseInt(document.getElementById('pool-min-age')?.value) || null;
+  const maxAge = parseInt(document.getElementById('pool-max-age')?.value) || null;
+  const minHeight = parseInt(document.getElementById('pool-min-height')?.value) || null;
+  const maxHeight = parseInt(document.getElementById('pool-max-height')?.value) || null;
 
   const { data: pool, error } = await sb.rpc('search_introduction_pool', {
     p_gender: gender,
     p_location: location,
+    p_job: job,
+    p_min_age: minAge,
+    p_max_age: maxAge,
+    p_min_height: minHeight,
+    p_max_height: maxHeight,
   });
 
   const results = document.getElementById('pool-results');
+  if (error) console.error('[searchPool] error:', error);
   if (error || !pool || pool.length === 0) {
     results.innerHTML = '<p style="color:var(--muted);font-size:14px;padding:12px 0;">조건에 맞는 사람이 없어요.</p>';
     return;
   }
 
-  // Get person A data for compatibility
+  // Get person A data for compatibility score
   const { data: personA } = await sb.from('applicants').select('*').eq('id', _selectedPersonA).maybeSingle();
 
-  results.innerHTML = pool.map(p => {
+  results.innerHTML = pool.map((p, idx) => {
     const age = calcAge(p.birth_date);
     const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
     const score = personA ? calcMatchScore(personA, p) : null;
+    const selected = _selectedPersonB === p.id ? 'selected' : '';
 
     return `
-      <div class="pool-card ${_selectedPersonB === p.id ? 'selected' : ''}" onclick="selectPoolPerson('${p.id}', this)">
-        <div style="display:flex;gap:12px;align-items:center;">
-          ${photoSrc ? `<img style="width:44px;height:44px;border-radius:50%;object-fit:cover;" src="${esc(photoSrc)}" alt="">` : `<div style="width:44px;height:44px;border-radius:50%;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--muted);"><i class="fa-solid fa-user"></i></div>`}
-          <div style="flex:1;">
-            <div style="font-weight:600;font-size:14px;">${esc(p.name)} ${age ? `(${age}세)` : ''}</div>
-            <div style="font-size:12px;color:var(--muted);">${esc(p.job || '')} · ${esc(p.location || '')} · ${esc(p.mbti || '')}</div>
+      <div class="person-row-card ${selected}" onclick="selectPoolPerson('${p.id}', this)" data-person-id="${p.id}">
+        <div class="prc-num">${idx + 1}</div>
+        ${photoSrc ? `<img class="prc-photo" src="${esc(photoSrc)}" alt="">` : `<div class="prc-photo prc-photo-empty"><i class="fa-solid fa-user"></i></div>`}
+        <div class="prc-info">
+          <div class="prc-name">${esc(p.name)} <span class="prc-meta">${p.gender === 'male' ? '♂' : '♀'} ${age ? age + '세' : ''}</span> ${score != null ? `<span class="prc-score">${score}점</span>` : ''}</div>
+          <div class="prc-detail">
+            ${p.height ? p.height + 'cm · ' : ''}${esc(p.job || '직업 미입력')} · ${esc(p.location || '지역 미입력')} ${p.mbti ? '· ' + esc(p.mbti) : ''}
           </div>
-          ${score != null ? `<div style="font-size:13px;font-weight:600;color:var(--accent);">${score}점</div>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -373,7 +390,10 @@ async function loadHistoryTab() {
   if (!profile || !profile.is_matchmaker) return;
 
   const { data: history } = await sb.from('introductions')
-    .select('*, person_a:person_a_id(name), person_b:person_b_id(name)')
+    .select(`*,
+      person_a:person_a_id(id, name, gender, birth_date, job, location, mbti, height, photo_url, photos),
+      person_b:person_b_id(id, name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+    `)
     .eq('primary_matchmaker_id', profile.id)
     .order('created_at', { ascending: false });
 
@@ -388,15 +408,35 @@ async function loadHistoryTab() {
 
   emptyEl?.classList.add('hidden');
 
+  const renderMini = (p) => {
+    if (!p) return '<div class="hist-person hist-person-unknown"><i class="fa-solid fa-user"></i><div>알 수 없음</div></div>';
+    const age = calcAge(p.birth_date);
+    const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+    return `
+      <div class="hist-person" onclick="event.stopPropagation();openProfileModal('${p.id}')">
+        ${photoSrc ? `<img class="hist-photo" src="${esc(photoSrc)}" alt="">` : `<div class="hist-photo hist-photo-empty"><i class="fa-solid fa-user"></i></div>`}
+        <div class="hist-name">${esc(p.name)} ${p.gender === 'male' ? '♂' : '♀'}</div>
+        <div class="hist-detail">${age ? age + '세' : ''}${p.height ? ' · ' + p.height + 'cm' : ''}</div>
+        <div class="hist-detail">${esc(p.job || '')}${p.location ? ' · ' + esc(p.location) : ''}${p.mbti ? ' · ' + esc(p.mbti) : ''}</div>
+      </div>`;
+  };
+
   listEl.innerHTML = history.map(h => {
     const statusClass = h.status === 'matched' ? 'matched' : h.status === 'declined' ? 'declined' : h.status === 'expired' ? 'expired' : 'pending';
     const statusLabel = h.status === 'matched' ? '매칭 성사' : h.status === 'declined' ? '거절됨' : h.status === 'expired' ? '만료됨' : '진행 중';
 
     return `
-      <div class="history-card">
-        <div class="history-names">${esc(h.person_a?.name || '?')} ↔ ${esc(h.person_b?.name || '?')}</div>
-        <span class="intro-status-badge ${statusClass}">${statusLabel}</span>
-        <div class="history-date">${formatTimeAgo(h.created_at)}</div>
+      <div class="history-card-v2">
+        <div class="history-meta">
+          <span class="intro-status-badge ${statusClass}">${statusLabel}</span>
+          <span class="history-date">${formatTimeAgo(h.created_at)}</span>
+        </div>
+        <div class="history-couple">
+          ${renderMini(h.person_a)}
+          <div class="history-link"><i class="fa-solid fa-heart"></i></div>
+          ${renderMini(h.person_b)}
+        </div>
+        ${h.note ? `<div class="history-note">"${esc(h.note)}"</div>` : ''}
       </div>`;
   }).join('');
 }

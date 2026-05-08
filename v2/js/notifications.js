@@ -42,7 +42,7 @@ function renderNotifList() {
   };
 
   list.innerHTML = _notifications.map(n => `
-    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="readNotif('${n.id}')">
+    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="handleNotifClick('${n.id}')">
       <div class="notif-icon"><i class="fa-solid ${NOTIF_ICONS[n.type] || 'fa-bell'}"></i></div>
       <div class="notif-body">
         <div class="notif-title">${esc(n.title)}</div>
@@ -51,6 +51,106 @@ function renderNotifList() {
       </div>
     </div>
   `).join('');
+}
+
+async function handleNotifClick(id) {
+  const n = _notifications.find(x => x.id === id);
+  if (!n) return;
+
+  // 읽음 처리
+  await readNotif(id);
+  closeNotifPanel();
+
+  const data = n.data || {};
+  const type = n.type;
+
+  try {
+    // 평판 작성 요청 → 주선자 모드 → 내 사람들 → 평판 모달
+    if (type === 'reputation_request' && data.target_id) {
+      AppState.setMode('matchmaker');
+      document.querySelector('.mode-btn[data-mode=matchmaker]')?.classList.add('active');
+      document.querySelector('.mode-btn[data-mode=participant]')?.classList.remove('active');
+      switchToTab('tab-my-people');
+      await new Promise(r => setTimeout(r, 400));
+      const { data: target } = await sb.from('applicants').select('id, name').eq('id', data.target_id).maybeSingle();
+      if (target) openReputationModal(target.id, target.name);
+      return;
+    }
+
+    // 매칭 성사 → 참가자 모드 → 대화 → 해당 채팅방
+    if (type === 'match_created' && data.match_id) {
+      AppState.setMode('participant');
+      document.querySelector('.mode-btn[data-mode=participant]')?.classList.add('active');
+      document.querySelector('.mode-btn[data-mode=matchmaker]')?.classList.remove('active');
+      switchToTab('tab-chats');
+      await new Promise(r => setTimeout(r, 500));
+      if (typeof openChatRoom === 'function') openChatRoom(data.match_id);
+      return;
+    }
+
+    // 새 메시지 → 대화 탭 → 해당 채팅방
+    if (type === 'message' && data.match_id) {
+      AppState.setMode('participant');
+      switchToTab('tab-chats');
+      await new Promise(r => setTimeout(r, 400));
+      if (typeof openChatRoom === 'function') openChatRoom(data.match_id);
+      return;
+    }
+
+    // 소개 응답 도착 → 참가자 모드 → 소개 탭
+    if (type === 'introduction_received') {
+      AppState.setMode('participant');
+      switchToTab('tab-introductions');
+      return;
+    }
+
+    // 가입 자동 승인 → 메인 화면 (이미 접속 중이면 해당 화면 유지)
+    if (type === 'approved') {
+      AppState.setMode('participant');
+      switchToTab('tab-introductions');
+      return;
+    }
+
+    // 주선자 요청 도착 → 주선자 모드 → 요청함
+    if (type === 'request_received') {
+      AppState.setMode('matchmaker');
+      switchToTab('tab-requests');
+      return;
+    }
+  } catch (e) {
+    console.error('[handleNotifClick] navigation error:', e);
+  }
+}
+
+function switchToTab(tabId) {
+  // 모든 tab-bar 에서 활성 상태 토글
+  document.querySelectorAll('.tab-bar').forEach(bar => {
+    const items = bar.querySelectorAll('.tab-item');
+    let matched = false;
+    items.forEach(item => {
+      if (item.dataset.tab === tabId) {
+        item.classList.add('active');
+        matched = true;
+      } else {
+        item.classList.remove('active');
+      }
+    });
+    if (matched) {
+      const parent = bar.closest('.mode-content');
+      parent?.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId)?.classList.add('active');
+    }
+  });
+  AppState.setTab(tabId);
+  // Trigger tab loader
+  if (tabId === 'tab-introductions') loadIntroductionsTab?.();
+  else if (tabId === 'tab-chats') loadChatTab?.();
+  else if (tabId === 'tab-my') loadMyTab?.();
+  else if (tabId === 'tab-my-people') loadMyPeopleTab?.();
+  else if (tabId === 'tab-introduce') loadIntroduceTab?.();
+  else if (tabId === 'tab-requests') loadRequestsTab?.();
+  else if (tabId === 'tab-history') loadHistoryTab?.();
+  else if (tabId === 'tab-mm-my') loadMatchmakerMyTab?.();
 }
 
 function toggleNotifPanel() {

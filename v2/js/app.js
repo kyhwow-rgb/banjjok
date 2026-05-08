@@ -197,12 +197,16 @@ async function loadReputationGate() {
 async function initMainApp() {
   const profile = AppState.getProfile();
 
-  // Set initial mode based on roles
-  if (profile.is_matchmaker && !profile.is_participant) {
-    AppState.setMode('matchmaker');
-    document.querySelector('[data-mode="matchmaker"]').classList.add('active');
-    document.querySelector('[data-mode="participant"]').classList.remove('active');
-  }
+  // Set initial mode based on roles — 주선자 역할이 있으면 주선자 모드로 시작
+  // (setMode 의 mode-change 이벤트보다 먼저 호출될 수 있어 mode-content 직접 활성화)
+  const initialMode = profile.is_matchmaker ? 'matchmaker' : 'participant';
+  AppState.setMode(initialMode, true);  // force — 이전 세션 모드와 같아도 강제 전환
+  document.querySelector(`[data-mode="${initialMode}"]`).classList.add('active');
+  document.querySelector(`[data-mode="${initialMode === 'matchmaker' ? 'participant' : 'matchmaker'}"]`).classList.remove('active');
+  document.querySelectorAll('.mode-content').forEach(m => m.classList.remove('active'));
+  document.getElementById(`mode-${initialMode}`).classList.add('active');
+  if (initialMode === 'matchmaker' && typeof loadMyPeopleTab === 'function') loadMyPeopleTab();
+  else if (initialMode === 'participant' && typeof loadIntroductionsTab === 'function') loadIntroductionsTab();
 
   // Hide mode toggle if user has only one role
   if (!profile.is_participant || !profile.is_matchmaker) {

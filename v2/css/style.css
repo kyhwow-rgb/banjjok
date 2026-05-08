@@ -621,9 +621,22 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 
 .intro-card {
   background: #fff; border-radius: var(--radius-md); border: 1px solid var(--border);
-  padding: 16px; margin-bottom: 12px;
+  padding: 16px; margin-bottom: 12px; position: relative;
 }
-.intro-card-header { margin-bottom: 12px; }
+.intro-card-header { margin-bottom: 12px; padding-right: 90px; }
+.intro-card .intro-status-badge {
+  position: absolute; top: 12px; right: 12px;
+  padding: 5px 12px; font-size: 11.5px; font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.intro-card .intro-status-badge.pending {
+  background: var(--accent); color: #fff;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
 .intro-matchmaker {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
   background: var(--accent-light); color: var(--accent); border-radius: var(--radius-pill);
@@ -645,6 +658,50 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .intro-status-badge.matched { background: #D1FAE5; color: #065F46; }
 .intro-status-badge.declined { background: #FEE2E2; color: #991B1B; }
 .intro-status-badge.expired { background: var(--surface-alt); color: var(--muted); }
+
+/* Person row card (selector + pool result) */
+.person-row-card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  margin-bottom: 8px; background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s;
+}
+.person-row-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.person-row-card.selected { border-color: var(--accent); background: var(--accent-light); }
+.prc-num { font-size: 12px; color: var(--muted); font-weight: 600; min-width: 18px; text-align: center; }
+.prc-photo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: var(--surface-alt); flex-shrink: 0; }
+.prc-photo-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.prc-info { flex: 1; min-width: 0; }
+.prc-name { font-size: 14.5px; font-weight: 700; }
+.prc-meta { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.prc-score { float: right; font-size: 13px; color: var(--accent); font-weight: 700; }
+.prc-detail { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* Pool filters — grid for compact layout */
+#pool-filters {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+}
+#pool-filters .form-input-sm { width: 100%; }
+
+/* History card v2 */
+.history-card-v2 {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 14px; margin-bottom: 10px;
+}
+.history-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.history-meta .history-date { font-size: 12px; color: var(--muted); }
+.history-couple { display: flex; align-items: center; gap: 10px; }
+.hist-person {
+  flex: 1; padding: 10px 8px; background: var(--surface-alt); border-radius: var(--radius-sm);
+  text-align: center; cursor: pointer; transition: background 0.15s;
+}
+.hist-person:hover { background: var(--accent-light); }
+.hist-person-unknown { color: var(--muted); font-size: 12px; }
+.hist-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; margin: 0 auto 6px; display: block; background: #fff; }
+.hist-photo-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.hist-name { font-size: 13px; font-weight: 700; }
+.hist-detail { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.history-link { color: var(--accent); font-size: 18px; flex-shrink: 0; }
+.history-note { font-size: 12.5px; color: var(--muted); font-style: italic; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 
 /* ==========================================================================
    Compatibility Report

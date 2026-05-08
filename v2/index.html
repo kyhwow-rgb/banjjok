@@ -238,10 +238,31 @@
             <div class="person-selector" id="person-selector"></div>
             <div id="introduce-step-2" class="hidden">
               <h3 style="margin-top:24px;">어떤 분을 소개할까요?</h3>
+              <p style="color:var(--muted);font-size:13px;margin-bottom:8px;">선택한 분의 이성만 자동으로 보여요.</p>
+              <input type="hidden" id="pool-gender">
               <div class="pool-filters" id="pool-filters">
-                <select id="pool-gender" class="form-input form-input-sm"><option value="">성별</option><option value="male">남성</option><option value="female">여성</option></select>
-                <select id="pool-location" class="form-input form-input-sm"><option value="">지역</option><option value="서울">서울</option><option value="경기">경기</option><option value="인천">인천</option><option value="충청">충청</option><option value="강원">강원</option><option value="전라">전라</option><option value="경상">경상</option><option value="제주">제주</option></select>
-                <button class="btn-ghost" onclick="searchPool()">검색</button>
+                <select id="pool-location" class="form-input form-input-sm">
+                  <option value="">지역 전체</option>
+                  <option value="서울">서울</option><option value="경기">경기</option><option value="인천">인천</option>
+                  <option value="충청">충청</option><option value="강원">강원</option><option value="전라">전라</option>
+                  <option value="경상">경상</option><option value="제주">제주</option>
+                </select>
+                <select id="pool-job" class="form-input form-input-sm">
+                  <option value="">직업 전체</option>
+                  <option value="전문직">전문직</option>
+                  <option value="연구·기술직">연구/기술직</option>
+                  <option value="공공·금융·교육직">공공/금융/교육직</option>
+                  <option value="대기업·중견기업직">대기업/중견기업</option>
+                  <option value="사업·전문자유직">사업/자유직</option>
+                  <option value="일반사무·기술직">일반사무/기술직</option>
+                  <option value="대학생/대학원생">대학생/대학원생</option>
+                  <option value="기타">기타</option>
+                </select>
+                <input type="number" id="pool-min-age" class="form-input form-input-sm" placeholder="최소나이" min="20" max="60">
+                <input type="number" id="pool-max-age" class="form-input form-input-sm" placeholder="최대나이" min="20" max="60">
+                <input type="number" id="pool-min-height" class="form-input form-input-sm" placeholder="최소키cm" min="140" max="220">
+                <input type="number" id="pool-max-height" class="form-input form-input-sm" placeholder="최대키cm" min="140" max="220">
+                <button class="btn-ghost" onclick="searchPool()" style="grid-column: span 2;">검색</button>
               </div>
               <div id="pool-results"></div>
             </div>

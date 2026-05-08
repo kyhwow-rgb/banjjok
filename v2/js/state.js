@@ -27,8 +27,8 @@ const AppState = (() => {
   }
 
   // --- Mode Toggle ---
-  function setMode(mode) {
-    if (mode === currentMode) return;
+  function setMode(mode, force = false) {
+    if (!force && mode === currentMode) return;
     // Cleanup all subscriptions from previous mode
     unsubscribeAll();
     currentMode = mode;
