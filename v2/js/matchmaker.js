@@ -394,7 +394,7 @@ async function loadHistoryTab() {
       person_a:person_a_id(id, name, gender, birth_date, job, location, mbti, height, photo_url, photos),
       person_b:person_b_id(id, name, gender, birth_date, job, location, mbti, height, photo_url, photos)
     `)
-    .eq('primary_matchmaker_id', profile.id)
+    .or(`primary_matchmaker_id.eq.${profile.id},referred_by_matchmaker_id.eq.${profile.id}`)
     .order('created_at', { ascending: false });
 
   const emptyEl = document.getElementById('history-empty');

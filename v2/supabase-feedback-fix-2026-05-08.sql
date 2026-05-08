@@ -165,3 +165,34 @@ begin
   limit 50;
 end;
 $$;
+-- ==========================================================================
+-- Round 4 fixes — 라이브 테스트에서 발견된 이슈
+-- ==========================================================================
+
+-- [#1] notifications type check 에 'approved' 추가
+alter table public.notifications drop constraint if exists notifications_type_check;
+alter table public.notifications add constraint notifications_type_check
+  check (type = any (array[
+    'reputation_request', 'reputation_written', 'reputation_received',
+    'introduction_received', 'match_created', 'message',
+    'request_received', 'admin_approved', 'approved', 'announcement'
+  ]));
+
+-- [#2] 참가자가 본인 introduction 의 매치메이커(주선자/추천자) 프로필 읽기 RLS
+-- 현재 "Matchmaker can read own introduction participants" 와 대칭으로 추가
+drop policy if exists "Participants can read their introduction matchmakers" on public.applicants;
+create policy "Participants can read their introduction matchmakers"
+  on public.applicants for select
+  using (
+    id in (
+      select primary_matchmaker_id from public.introductions
+      where person_a_id = public.get_my_applicant_id()
+         or person_b_id = public.get_my_applicant_id()
+    )
+    or id in (
+      select referred_by_matchmaker_id from public.introductions
+      where person_a_id = public.get_my_applicant_id()
+         or person_b_id = public.get_my_applicant_id()
+    )
+  );
+-- (appended round 4 fixes)
