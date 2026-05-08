@@ -182,7 +182,7 @@ async function loadReputationGate() {
         await AppState.refreshProfile();
         AppState.showScreen('screen-main');
         initMainApp();
-        toast('가입이 승인되었어요!');
+        showApprovedModal();
       } else if (payload.new.status === 'pending') {
         document.querySelector('.gate-container h2').textContent = '관리자 검토 중';
         document.querySelector('.gate-desc').textContent = '추천인의 평판이 작성되었습니다. 관리자 승인을 기다리고 있습니다.';

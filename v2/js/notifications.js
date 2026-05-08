@@ -104,10 +104,11 @@ async function handleNotifClick(id) {
       return;
     }
 
-    // 가입 자동 승인 → 메인 화면 (이미 접속 중이면 해당 화면 유지)
+    // 가입 자동 승인 → 환영 팝업 + 메인 화면
     if (type === 'approved') {
       AppState.setMode('participant');
       switchToTab('tab-introductions');
+      if (typeof showApprovedModal === 'function') showApprovedModal();
       return;
     }
 
@@ -115,6 +116,17 @@ async function handleNotifClick(id) {
     if (type === 'request_received') {
       AppState.setMode('matchmaker');
       switchToTab('tab-requests');
+      return;
+    }
+
+    // 주선자 ↔ 참가자 1:1 메시지 → 채팅 모달 자동 오픈
+    if (type === 'mm_chat_message' && data.partner_id) {
+      const profile = AppState.getProfile();
+      // role: 받은 사람이 주선자면 본인은 'matchmaker', 참가자면 'participant'
+      const myRole = profile?.is_matchmaker ? 'matchmaker' : 'participant';
+      // data.role 값이 있으면 더 정확한 판단 가능
+      const role = data.role === 'participant_to_matchmaker' ? 'matchmaker' : (data.role === 'matchmaker_to_participant' ? 'participant' : myRole);
+      if (typeof openMmChat === 'function') openMmChat(data.partner_id, role);
       return;
     }
   } catch (e) {

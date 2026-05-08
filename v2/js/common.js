@@ -100,6 +100,15 @@ function compatibilityReport(personA, personB) {
   return items;
 }
 
+// --- Approved welcome modal ---
+function showApprovedModal() {
+  const overlay = document.getElementById('approved-modal-overlay');
+  if (overlay) overlay.classList.add('open');
+}
+function closeApprovedModal() {
+  document.getElementById('approved-modal-overlay')?.classList.remove('open');
+}
+
 // --- Logout (with confirm) ---
 async function confirmLogout() {
   if (!confirm('로그아웃하고 홈으로 이동하시겠습니까?')) return;

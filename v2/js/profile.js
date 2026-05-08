@@ -221,6 +221,16 @@ async function loadMyTab() {
 
     ${profile.ideal_type ? `<div class="my-section"><div class="my-section-title">이상형</div><div>${renderIdealDisplay(profile.ideal_type)}</div></div>` : ''}
 
+    ${profile.invited_by ? `
+      <div class="my-section">
+        <div class="my-section-title">내 주선자</div>
+        <div id="my-matchmaker-card" class="my-menu-item" onclick="openMmChat('${profile.invited_by}','participant')" style="cursor:pointer;">
+          <span><i class="fa-solid fa-comments" style="color:var(--accent);"></i> 주선자에게 메시지 보내기</span>
+          <i class="fa-solid fa-chevron-right chevron"></i>
+        </div>
+      </div>
+    ` : ''}
+
     <div class="my-section">
       <div class="my-section-title">설정</div>
       <div class="my-menu-item" onclick="openProfileEditModal()">

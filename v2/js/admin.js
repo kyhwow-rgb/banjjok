@@ -44,6 +44,7 @@ document.getElementById('admin-tabs')?.addEventListener('click', e => {
   if (tabId === 'admin-applicants') loadAdminApplicants();
   if (tabId === 'admin-matches') loadAdminMatches();
   if (tabId === 'admin-reports') loadAdminReports();
+  if (tabId === 'admin-network') loadAdminNetwork();
 });
 
 // --- Admin Home ---
@@ -174,12 +175,66 @@ async function loadAdminMatches() {
   }
 
   listEl.innerHTML = matches.map(m => `
-    <div class="history-card">
-      <div class="history-names">${esc(m.a_name)} ↔ ${esc(m.b_name)}</div>
-      <span class="intro-status-badge ${m.status === 'active' ? 'matched' : 'expired'}">${m.status === 'active' ? '활성' : '종료'}</span>
-      <div class="history-date">${formatTimeAgo(m.created_at)}</div>
+    <div class="admin-match-row" onclick="openAdminMatchDetail('${m.a_id}','${m.b_id}','${esc(m.a_name)}','${esc(m.b_name)}')">
+      <div class="amr-side">
+        ${m.a_photo ? `<img class="amr-photo" src="${esc(m.a_photo)}" alt="">` : '<div class="amr-photo amr-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+        <span class="amr-name">${esc(m.a_name)}</span>
+      </div>
+      <div class="amr-link"><i class="fa-solid fa-heart"></i></div>
+      <div class="amr-side">
+        ${m.b_photo ? `<img class="amr-photo" src="${esc(m.b_photo)}" alt="">` : '<div class="amr-photo amr-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+        <span class="amr-name">${esc(m.b_name)}</span>
+      </div>
+      <div class="amr-meta">
+        <span class="intro-status-badge ${m.status === 'active' ? 'matched' : 'expired'}">${m.status === 'active' ? '활성' : '종료'}</span>
+        <span class="amr-time">${formatTimeAgo(m.created_at)}</span>
+      </div>
     </div>
   `).join('');
+}
+
+async function openAdminMatchDetail(aId, bId, aName, bName) {
+  const overlay = document.getElementById('admin-match-modal-overlay');
+  const body = document.getElementById('admin-match-modal-body');
+  body.innerHTML = '<p style="text-align:center;color:var(--muted);padding:24px;">불러오는 중...</p>';
+  overlay.classList.add('open');
+
+  const [aRes, bRes] = await Promise.all([
+    sb.rpc('admin_get_applicant', { p_id: aId }),
+    sb.rpc('admin_get_applicant', { p_id: bId }),
+  ]);
+
+  const renderSide = (p, fallbackName) => {
+    if (!p) return `<div class="amm-side"><div class="amm-photo amm-photo-empty"><i class="fa-solid fa-user"></i></div><div><div class="amm-name">${esc(fallbackName)}</div><div style="color:var(--muted);font-size:12px;">정보 없음</div></div></div>`;
+    const age = calcAge(p.birth_date);
+    const photo = (p.photos && p.photos[0]) || p.photo_url || '';
+    return `
+      <div class="amm-side">
+        ${photo ? `<img class="amm-photo" src="${esc(photo)}" alt="">` : '<div class="amm-photo amm-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+        <div class="amm-name">${esc(p.name)} ${p.gender === 'male' ? '♂' : '♀'} ${age ? '· ' + age + '세' : ''}</div>
+        <div class="amm-row"><span>키</span><b>${p.height ? p.height + 'cm' : '—'}</b></div>
+        <div class="amm-row"><span>직업</span><b>${esc(p.job || '—')}</b></div>
+        <div class="amm-row"><span>지역</span><b>${esc(p.location || '—')}</b></div>
+        <div class="amm-row"><span>MBTI</span><b>${esc(p.mbti || '—')}</b></div>
+        <div class="amm-row"><span>흡연</span><b>${esc(p.smoking || '—')}</b></div>
+        <div class="amm-row"><span>음주</span><b>${esc(p.drinking || '—')}</b></div>
+        <div class="amm-row"><span>종교</span><b>${esc(p.religion || '—')}</b></div>
+        <div class="amm-row"><span>이메일</span><b style="font-size:11px;">${esc(p.email || '—')}</b></div>
+        <div class="amm-row"><span>전화</span><b style="font-size:11px;">${esc(p.phone || '—')}</b></div>
+        ${p.bio ? `<div class="amm-bio">"${esc(p.bio)}"</div>` : ''}
+      </div>`;
+  };
+
+  body.innerHTML = `
+    <div class="amm-grid">
+      ${renderSide(aRes.data, aName)}
+      <div class="amm-link"><i class="fa-solid fa-heart"></i></div>
+      ${renderSide(bRes.data, bName)}
+    </div>`;
+}
+
+function closeAdminMatchModal() {
+  document.getElementById('admin-match-modal-overlay')?.classList.remove('open');
 }
 
 // --- Admin Reports ---
@@ -203,4 +258,62 @@ async function loadAdminReports() {
       <div style="font-size:11px;color:var(--muted);margin-top:6px;">${formatTimeAgo(r.created_at)}</div>
     </div>
   `).join('');
+}
+
+// --- Admin Relationship Tree ---
+async function loadAdminNetwork() {
+  const { data: rows, error } = await sb.rpc('admin_relationship_tree');
+  if (error) { console.error('admin_relationship_tree error:', error); return; }
+  const treeEl = document.getElementById('admin-network-tree');
+  if (!treeEl) return;
+  if (!rows || rows.length === 0) {
+    treeEl.innerHTML = '<div class="empty-state" style="padding:32px;"><p>관계 데이터가 없어요.</p></div>';
+    return;
+  }
+  // 주선자별 그룹핑
+  const grouped = new Map();
+  for (const r of rows) {
+    if (!grouped.has(r.matchmaker_id)) {
+      grouped.set(r.matchmaker_id, { mm: r, invitees: [] });
+    }
+    if (r.invitee_id) grouped.get(r.matchmaker_id).invitees.push(r);
+  }
+
+  treeEl.innerHTML = `
+    <div style="margin-bottom:14px;font-size:13px;color:var(--muted);">
+      주선자 ${grouped.size}명, 추천 관계 ${rows.filter(r => r.invitee_id).length}건
+    </div>
+    ${Array.from(grouped.values()).map(g => {
+      const mm = g.mm;
+      const mmPhoto = mm.mm_photo || '';
+      return `
+        <div class="anet-group">
+          <div class="anet-mm">
+            ${mmPhoto ? `<img class="anet-mm-photo" src="${esc(mmPhoto)}" alt="">` : '<div class="anet-mm-photo anet-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+            <div class="anet-mm-info">
+              <div class="anet-mm-name"><i class="fa-solid fa-hand-holding-heart" style="color:var(--accent);"></i> ${esc(mm.mm_name)}</div>
+              <div class="anet-mm-meta">${esc(mm.mm_email)} · 추천 ${g.invitees.length}명</div>
+            </div>
+          </div>
+          ${g.invitees.length === 0 ? '<div class="anet-empty">추천한 사람 없음</div>' : `
+            <div class="anet-arrow">↓</div>
+            <div class="anet-invitees">
+              ${g.invitees.map(p => {
+                const age = calcAge(p.invitee_birth);
+                const photo = p.invitee_photo || '';
+                const statusBadge = p.invitee_status === 'approved' ? '<span class="anet-badge ok">승인</span>'
+                  : p.invitee_status === 'pending_reputation' ? '<span class="anet-badge wait">평판 대기</span>'
+                  : `<span class="anet-badge">${esc(p.invitee_status)}</span>`;
+                return `
+                  <div class="anet-invitee" onclick="openAdminDetail('${p.invitee_id}')">
+                    ${photo ? `<img class="anet-invitee-photo" src="${esc(photo)}" alt="">` : '<div class="anet-invitee-photo anet-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+                    <div class="anet-invitee-name">${esc(p.invitee_name)} ${p.invitee_gender === 'male' ? '♂' : '♀'} ${age ? age + '세' : ''}</div>
+                    <div class="anet-invitee-detail">${esc(p.invitee_job || '')}${p.invitee_location ? ' · ' + esc(p.invitee_location) : ''}</div>
+                    ${statusBadge}
+                  </div>`;
+              }).join('')}
+            </div>
+          `}
+        </div>`;
+    }).join('')}`;
 }

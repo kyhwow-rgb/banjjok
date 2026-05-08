@@ -41,6 +41,7 @@ async function loadMyPeopleTab() {
         </div>
         <span class="people-status ${statusClass}">${statusLabel}</span>
         ${p.status === 'pending_reputation' ? `<button class="btn-ghost" style="font-size:12px;" onclick="event.stopPropagation();openReputationModal('${p.id}','${esc(p.name)}')">평판 작성</button>` : ''}
+        <button class="btn-ghost" style="font-size:12px;color:var(--accent);" onclick="event.stopPropagation();openMmChat('${p.id}','matchmaker')"><i class="fa-solid fa-comment"></i></button>
       </div>`;
   }).join('');
 
@@ -259,7 +260,10 @@ async function loadRequestsTab() {
   if (!profile || !profile.is_matchmaker) return;
 
   const { data: requests } = await sb.from('introduction_requests')
-    .select('*, requester:requester_matchmaker_id(name), target:target_applicant_id(name, gender, birth_date, job, location)')
+    .select(`*,
+      requester:requester_matchmaker_id(name, photo_url, photos),
+      target:target_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+    `)
     .or(`and(request_type.eq.broadcast,status.eq.open),responder_matchmaker_id.eq.${profile.id}`)
     .neq('requester_matchmaker_id', profile.id)
     .order('created_at', { ascending: false });
@@ -277,58 +281,99 @@ async function loadRequestsTab() {
 
   listEl.innerHTML = requests.map(req => {
     const criteria = req.criteria || {};
-    const age = calcAge(req.target?.birth_date);
+    const target = req.target || {};
+    const age = calcAge(target.birth_date);
+    const targetPhoto = (target.photos && target.photos[0]) || target.photo_url || '';
+    const requesterPhoto = (req.requester?.photos && req.requester.photos[0]) || req.requester?.photo_url || '';
 
     return `
-      <div class="request-card">
-        <div class="request-card-header">
-          <span style="font-size:13px;font-weight:600;">${esc(req.requester?.name || '주선자')}님의 요청</span>
+      <div class="request-card-v2">
+        <div class="rcv-header">
+          <div class="rcv-requester">
+            ${requesterPhoto ? `<img class="rcv-requester-photo" src="${esc(requesterPhoto)}" alt="">` : '<div class="rcv-requester-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+            <span class="rcv-requester-name">${esc(req.requester?.name || '주선자')}님의 요청</span>
+          </div>
           <span class="request-type-badge ${req.request_type}">${req.request_type === 'broadcast' ? '전체' : '지목'}</span>
         </div>
-        <div style="font-size:13px;margin-bottom:8px;">"${esc(req.target?.name || '?')} (${age ? age + '세' : '?'}, ${esc(req.target?.job || '')})에게 어울릴 분을 찾고 있어요"</div>
-        <div class="request-criteria">
-          ${criteria.gender ? `<span><i class="fa-solid fa-venus-mars"></i> ${criteria.gender === 'male' ? '남성' : '여성'}</span>` : ''}
-          ${criteria.age_min || criteria.age_max ? `<span><i class="fa-solid fa-cake-candles"></i> ${criteria.age_min || '?'}~${criteria.age_max || '?'}세</span>` : ''}
-          ${criteria.location ? `<span><i class="fa-solid fa-location-dot"></i> ${esc(criteria.location)}</span>` : ''}
-          ${criteria.job ? `<span><i class="fa-solid fa-briefcase"></i> ${esc(criteria.job)}</span>` : ''}
+
+        <div class="rcv-target">
+          ${targetPhoto ? `<img class="rcv-target-photo" src="${esc(targetPhoto)}" alt="">` : '<div class="rcv-target-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+          <div class="rcv-target-info">
+            <div class="rcv-target-name">${esc(target.name || '?')} ${target.gender === 'male' ? '♂' : target.gender === 'female' ? '♀' : ''} <span class="rcv-target-age">${age ? age + '세' : ''}</span></div>
+            <div class="rcv-target-detail">${target.height ? target.height + 'cm · ' : ''}${esc(target.job || '')}${target.location ? ' · ' + esc(target.location) : ''}${target.mbti ? ' · ' + esc(target.mbti) : ''}</div>
+            <div class="rcv-target-headline">에게 어울릴 분을 찾고 있어요</div>
+          </div>
         </div>
-        <div style="margin-top:10px;display:flex;gap:8px;">
-          <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" onclick="respondToRequest('${req.id}')">내 사람 추천하기</button>
+
+        <div class="rcv-criteria-block">
+          <div class="rcv-criteria-label">이런 분이면 좋아요</div>
+          <div class="request-criteria">
+            ${criteria.gender ? `<span><i class="fa-solid fa-venus-mars"></i> ${criteria.gender === 'male' ? '남성' : '여성'}</span>` : ''}
+            ${(criteria.age_min || criteria.age_max) ? `<span><i class="fa-solid fa-cake-candles"></i> ${criteria.age_min || '?'}~${criteria.age_max || '?'}세</span>` : ''}
+            ${criteria.location ? `<span><i class="fa-solid fa-location-dot"></i> ${esc(criteria.location)}</span>` : ''}
+            ${criteria.job ? `<span><i class="fa-solid fa-briefcase"></i> ${esc(criteria.job)}</span>` : ''}
+            ${(!criteria.gender && !criteria.age_min && !criteria.age_max && !criteria.location && !criteria.job) ? '<span style="color:var(--muted);">조건 없음 (자유)</span>' : ''}
+          </div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;">${formatTimeAgo(req.created_at)}</div>
+
+        <div class="rcv-actions">
+          <button class="btn-primary rcv-btn" onclick="openRespondPickerModal('${req.id}', '${esc(target.name || '')}')"><i class="fa-solid fa-hand-holding-heart"></i> 내 사람 추천하기</button>
+          <span class="rcv-time">${formatTimeAgo(req.created_at)}</span>
+        </div>
       </div>`;
   }).join('');
 }
 
-async function respondToRequest(requestId) {
+let _currentRespondReqId = null;
+
+async function openRespondPickerModal(requestId, targetName) {
+  _currentRespondReqId = requestId;
   const profile = AppState.getProfile();
   const { data: myPeople } = await sb.from('applicants')
-    .select('id, name, gender, birth_date, job')
+    .select('id, name, gender, birth_date, job, location, mbti, height, photo_url, photos')
     .eq('invited_by', profile.id)
     .eq('status', 'approved')
     .eq('is_participant', true);
 
+  document.getElementById('respond-target-name').textContent = targetName || '상대';
+  const list = document.getElementById('respond-people-list');
+
   if (!myPeople || myPeople.length === 0) {
-    toast('추천할 수 있는 사람이 없어요.');
-    return;
+    list.innerHTML = '<p style="color:var(--muted);font-size:14px;padding:12px 0;text-align:center;">추천할 수 있는 사람이 없어요. 먼저 초대 코드를 공유해주세요.</p>';
+  } else {
+    list.innerHTML = myPeople.map(p => {
+      const age = calcAge(p.birth_date);
+      const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+      return `<div class="person-row-card" onclick="confirmRespondPick('${p.id}','${esc(p.name)}', this)">
+        ${photoSrc ? `<img class="prc-photo" src="${esc(photoSrc)}" alt="">` : '<div class="prc-photo prc-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+        <div class="prc-info">
+          <div class="prc-name">${esc(p.name)} <span class="prc-meta">${p.gender === 'male' ? '♂' : '♀'} ${age ? age + '세' : ''}</span></div>
+          <div class="prc-detail">${p.height ? p.height + 'cm · ' : ''}${esc(p.job || '')} ${p.location ? '· ' + esc(p.location) : ''} ${p.mbti ? '· ' + esc(p.mbti) : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
   }
+  document.getElementById('respond-picker-overlay').classList.add('open');
+}
 
-  const options = myPeople.map(p => `${p.name} (${calcAge(p.birth_date) || '?'}세, ${p.job || '?'})`).join('\n');
-  const choice = prompt(`추천할 사람을 선택해주세요:\n\n${options}\n\n이름을 입력하세요:`);
-  if (!choice) return;
+function closeRespondPickerModal() {
+  document.getElementById('respond-picker-overlay').classList.remove('open');
+  _currentRespondReqId = null;
+}
 
-  const selected = myPeople.find(p => p.name === choice.trim());
-  if (!selected) { toast('일치하는 사람이 없어요.'); return; }
-
+async function confirmRespondPick(personId, personName, el) {
+  if (!_currentRespondReqId) return;
+  if (!confirm(`${personName}님을 추천하시겠어요?`)) return;
+  const profile = AppState.getProfile();
   const { error } = await sb.from('introduction_request_responses').insert({
-    request_id: requestId,
+    request_id: _currentRespondReqId,
     responder_matchmaker_id: profile.id,
-    proposed_applicant_id: selected.id
+    proposed_applicant_id: personId
   });
-
   if (error) { toast('응답 실패: ' + error.message); return; }
-  toast('응답을 보냈어요!');
-  logEvent('request_response', { request_id: requestId, proposed: selected.id });
+  toast(`${personName}님을 추천했어요!`);
+  logEvent('request_response', { request_id: _currentRespondReqId, proposed: personId });
+  closeRespondPickerModal();
 }
 
 // --- Broadcast 요청 생성 ---
