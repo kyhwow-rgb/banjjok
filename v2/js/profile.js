@@ -260,10 +260,8 @@ async function loadMyTab() {
 }
 
 async function enableMatchmakerRole() {
-  const { error } = await sb.from('applicants')
-    .update({ is_matchmaker: true })
-    .eq('user_id', AppState.getUser().id);
-  if (error) { toast('역할 추가 실패'); return; }
+  const { data, error } = await sb.rpc('enable_my_role', { p_role: 'matchmaker' });
+  if (error || !data) { toast('역할 추가 실패' + (error ? ': ' + error.message : '')); return; }
   await AppState.refreshProfile();
   toast('주선자 역할이 추가되었어요!');
   document.getElementById('mode-toggle').style.display = '';
@@ -271,10 +269,8 @@ async function enableMatchmakerRole() {
 }
 
 async function enableParticipantRole() {
-  const { error } = await sb.from('applicants')
-    .update({ is_participant: true })
-    .eq('user_id', AppState.getUser().id);
-  if (error) { toast('역할 추가 실패'); return; }
+  const { data, error } = await sb.rpc('enable_my_role', { p_role: 'participant' });
+  if (error || !data) { toast('역할 추가 실패' + (error ? ': ' + error.message : '')); return; }
   await AppState.refreshProfile();
   toast('참가자 역할이 추가되었어요!');
   document.getElementById('mode-toggle').style.display = '';
