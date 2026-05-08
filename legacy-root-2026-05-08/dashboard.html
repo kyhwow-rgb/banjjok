@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<title>반쪽 - 내 대시보드</title>
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+
+<div id="loading-overlay">
+    <div class="spinner"></div>
+</div>
+
+<div class="navbar">
+    <div class="navbar-brand" onclick="goHome()" style="cursor:pointer;">반쪽</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <span class="navbar-email" id="user-email"></span>
+        <button class="notif-bell" id="notif-bell" onclick="toggleNotifPanel()">
+            <i class="fa-solid fa-bell"></i>
+            <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+        </button>
+    </div>
+</div>
+
+<!-- 알림 패널 -->
+<div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifPanel()"></div>
+<div class="notif-panel" id="notif-panel">
+    <div class="notif-header">
+        <span style="font-weight:800;font-size:.95em;">알림</span>
+        <button class="btn btn-nav" onclick="markAllRead()" style="font-size:.78em;">모두 읽음</button>
+    </div>
+    <div id="notif-list"></div>
+</div>
+
+<!-- ── 대기/온보딩 오버레이 ── -->
+<div id="onboard-overlay" class="onboard-overlay" style="display:none;"></div>
+
+<div class="page">
+
+    <!-- ══ TAB: 추천 ══ -->
+    <div class="tab-content active" id="tab-discover">
+        <div class="section-card" id="match-ranking-card" style="display:none;">
+            <div class="section-header">
+                <div class="section-title">오늘의 추천</div>
+                <span style="font-size:.72em;font-weight:500;color:var(--muted);">오늘의 추천 3명</span>
+            </div>
+            <div class="section-body">
+                <div class="discover-card-wrap" id="match-ranking-section">
+                    <!-- JS로 채움 -->
+                </div>
+            </div>
+        </div>
+        <span id="match-count" style="display:none;"></span>
+    </div>
+
+    <!-- ══ TAB: 관심 ══ -->
+    <div class="tab-content" id="tab-interest">
+        <!-- 매칭 결과 (관심 탭 상단) -->
+        <div class="section-card" id="match-result-card" style="display:none;">
+            <div class="section-header" style="padding:14px 20px 12px;">
+                <div class="section-title"><i class="fa-solid fa-heart-pulse" style="color:#FF6B6B;"></i> 매칭 성사</div>
+            </div>
+            <div class="section-body" id="match-result-section" style="padding:14px 20px;"></div>
+        </div>
+
+        <!-- 상호 관심 -->
+        <div class="section-card" id="mutual-card">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:#FF6B6B;"></i> 상호 관심 <span id="mutual-count" style="font-size:.85em;color:var(--primary);font-weight:700;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
+            </div>
+            <div class="section-body" id="mutual-section" style="display:none;padding:14px 20px;">
+                <div style="text-align:center;padding:16px;color:#d1d5db;font-size:.85em;">서로 찜하면 여기 표시</div>
+            </div>
+        </div>
+
+        <!-- 내가 찜한 사람 -->
+        <div class="section-card">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-heart" style="color:#FF6B6B;"></i> 내가 찜한 사람 <span id="fav-count" style="font-size:.85em;color:var(--muted);font-weight:600;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
+            </div>
+            <div class="section-body" id="favorites-section" style="display:none;padding:14px 20px;"></div>
+        </div>
+
+        <!-- 나를 찜한 사람 -->
+        <div class="section-card" id="liked-me-card">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-fire" style="color:#f59e0b;"></i> 나를 찜한 사람 <span id="liked-me-count" style="font-size:.85em;color:#f59e0b;font-weight:700;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
+            </div>
+            <div class="section-body" id="liked-me-section" style="display:none;padding:14px 20px;"></div>
+        </div>
+
+        <!-- 프로필 방문 흔적 -->
+        <div class="section-card" id="visitors-card" style="display:none;">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-eye" style="color:var(--accent);"></i> 프로필 방문 <span id="visitor-count" style="font-size:.85em;color:var(--accent);font-weight:700;margin-left:4px;"></span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
+            </div>
+            <div class="section-body" id="visitors-section" style="display:none;padding:14px 20px;"></div>
+        </div>
+
+        <!-- 아무것도 없을 때 빈 상태 -->
+        <div id="interest-empty" style="text-align:center;padding:48px 20px;display:none;">
+            <div style="font-size:3em;margin-bottom:12px;"><i class="fa-solid fa-heart" style="color:#FFF0F0;"></i></div>
+            <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 관심 활동이 없어요</div>
+            <div style="font-size:.82em;color:var(--muted);">추천 탭에서 마음에 드는 반쪽을 찜해보세요!</div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: 대화 ══ -->
+    <div class="tab-content" id="tab-chat">
+        <!-- 채팅방 목록 (카카오톡 스타일) -->
+        <div id="chat-room-list">
+            <div id="chat-rooms-container"></div>
+            <!-- 매칭 없을 때 -->
+            <div id="chat-not-matched" style="display:none;">
+                <div class="chat-empty">
+                    <i class="fa-regular fa-comment-dots"></i>
+                    <div style="font-size:.95em;font-weight:700;color:var(--text);margin-bottom:6px;">아직 대화할 수 없어요</div>
+                    <div style="font-size:.82em;">매칭이 성사되면 대화를 시작할 수 있어요</div>
+                </div>
+            </div>
+        </div>
+        <!-- 개별 채팅방 (처음엔 숨김) -->
+        <div id="chat-room-view" style="display:none;">
+            <div class="chat-room-header" id="chat-room-header">
+                <button onclick="closeChatRoom()" class="chat-back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="chat-room-partner" id="chat-room-partner-info"></div>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="chat-empty" id="chat-empty-msg">
+                    <i class="fa-regular fa-paper-plane"></i>
+                    <div style="font-size:.92em;font-weight:600;margin-bottom:4px;">첫 메시지를 보내보세요!</div>
+                    <div style="font-size:.82em;">매칭된 반쪽과 대화를 시작해보세요</div>
+                </div>
+            </div>
+            <div class="chat-input-wrap">
+                <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1" maxlength="500"
+                    oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+                <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: MY ══ -->
+    <div class="tab-content" id="tab-my">
+        <!-- 내 프로필 (MY) -->
+        <div class="section-card">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('my-profile-section');b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-user" style="color:var(--muted);"></i> 내 프로필</div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="btn btn-outline" id="edit-profile-btn-my" style="display:none;padding:7px 16px;font-size:.82em;" onclick="event.stopPropagation();editMyProfile();">프로필 수정</button>
+                    <span style="font-size:.78em;color:var(--muted);">▾</span>
+                </div>
+            </div>
+            <div class="section-body" id="my-profile-section" style="display:none;padding:14px 20px;"></div>
+        </div>
+        <!-- 문의사항 (접이식) -->
+        <div class="section-card">
+            <div class="section-header" style="cursor:pointer;padding:14px 20px 12px;" onclick="const b=document.getElementById('inquiry-body');b.style.display=b.style.display==='none'?'':'none';">
+                <div class="section-title"><i class="fa-solid fa-headset" style="color:var(--muted);"></i> 문의사항 <span id="inquiry-new-badge" style="display:none;font-size:.65em;background:var(--cta);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700;vertical-align:middle;margin-left:6px;">새 답변</span></div>
+                <span style="font-size:.78em;color:var(--muted);">▾</span>
+            </div>
+            <div class="section-body" id="inquiry-body" style="display:none;padding:14px 20px;">
+                <textarea id="inquiry-input" placeholder="문의 내용을 입력해주세요..." rows="3" maxlength="500" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;"></textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                    <span id="inquiry-charcount" style="font-size:.72em;color:var(--muted);">0 / 500</span>
+                    <button class="btn btn-primary" onclick="sendInquiry()" style="padding:8px 24px;">보내기</button>
+                </div>
+                <div id="inquiry-history" style="margin-top:16px;"></div>
+            </div>
+        </div>
+
+        <!-- MY 메뉴 -->
+        <div class="section-card">
+            <div class="section-body" style="display:flex;flex-direction:column;gap:8px;padding:14px 20px;">
+                <div id="push-toggle-row" onclick="togglePush()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-bell" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;font-size:.9em;">푸시 알림 받기</div>
+                        <div id="push-toggle-status" style="font-size:.72em;color:var(--muted);margin-top:2px;">매칭·메시지·찜 알림</div>
+                    </div>
+                    <div id="push-toggle-switch" style="width:40px;height:22px;background:#e5e7eb;border-radius:11px;position:relative;transition:all .3s cubic-bezier(.34,1.56,.64,1);">
+                        <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+                    </div>
+                </div>
+                <div onclick="doLogout()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-right-from-bracket" style="color:var(--muted);font-size:1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:600;font-size:.9em;">로그아웃</div></div>
+                </div>
+                <div onclick="deleteAccount()" style="display:flex;align-items:center;gap:12px;padding:14px;background:#fafafa;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fafafa'">
+                    <i class="fa-solid fa-trash" style="color:#ef4444;font-size:1em;width:24px;text-align:center;"></i>
+                    <div><div style="font-weight:600;font-size:.9em;color:#ef4444;">계정 삭제</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="site-footer">Designed &amp; Developed by Kang</div>
+<!-- 하단 탭 바 -->
+<div class="tab-bar" id="tab-bar">
+    <div class="tab-item active" onclick="switchTab('discover')" id="tab-btn-discover" style="position:relative;">
+        <i class="fa-regular fa-heart"></i>
+        <span>추천</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('interest')" id="tab-btn-interest" style="position:relative;">
+        <i class="fa-regular fa-bell"></i>
+        <span>관심</span>
+        <span class="tab-badge" id="interest-badge" style="display:none;">0</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('chat')" id="tab-btn-chat" style="position:relative;">
+        <i class="fa-regular fa-comment-dots"></i>
+        <span>대화</span>
+        <span class="tab-badge" id="chat-badge" style="display:none;">0</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('my')" id="tab-btn-my">
+        <i class="fa-solid fa-user"></i>
+        <span>MY</span>
+    </div>
+</div>
+
+<!-- 프로필 상세 모달 -->
+<div class="profile-modal-overlay" id="profile-modal" onclick="if(event.target===this)closeProfileModal()">
+    <div class="profile-modal" id="profile-modal-content"></div>
+</div>
+
+<!-- 피드백 모달 -->
+<div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this&&!window._feedbackRequired)closeFeedbackModal()">
+    <div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:28px 24px;animation:modalPop .3s cubic-bezier(.34,1.56,.64,1);">
+        <div id="feedback-title" style="font-size:1.1em;font-weight:800;margin-bottom:6px;text-align:center;"></div>
+        <div id="feedback-sub" style="font-size:.82em;color:#737373;margin-bottom:18px;text-align:center;line-height:1.5;"></div>
+        <div id="feedback-reasons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+        <textarea id="feedback-text" placeholder="자유롭게 의견을 남겨주세요..." rows="3" maxlength="500" style="width:100%;padding:12px;border:1px solid #e5e7eb;border-radius:10px;font-size:.88em;font-family:inherit;resize:vertical;background:#fafafa;margin-bottom:12px;"></textarea>
+        <button class="btn btn-primary" onclick="submitFeedback()" style="width:100%;padding:12px;">보내기</button>
+        <button id="feedback-skip-btn" class="btn btn-ghost" onclick="closeFeedbackModal()" style="width:100%;margin-top:6px;font-size:.82em;color:#a3a3a3;">다음에 할게요</button>
+    </div>
+</div>
+
+<!-- 평판 작성 모달 -->
+<div id="reputation-modal-overlay" class="filter-modal-overlay" onclick="if(event.target===this)closeReputationModal()">
+    <div class="filter-modal" style="max-width:480px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:1.05em;font-weight:800;"><i class="fa-solid fa-handshake" style="color:var(--primary);"></i> 평판 작성</div>
+            <button class="btn btn-nav" onclick="closeReputationModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="reputation-target-info" style="padding:12px;background:#FFF0F0;border-radius:10px;margin-bottom:14px;font-size:.85em;"></div>
+        <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+            이 사람을 얼마나 잘 아는지, 어떤 사람인지 솔직하게 남겨주세요.<br>
+            평판은 이 사람 프로필에 공개됩니다.
+        </div>
+        <textarea id="reputation-content" rows="5" maxlength="500" placeholder="예: 대학 동아리에서 만난 친구로, 항상 성실하고 배려가 깊은 사람이에요. 책임감 있고 유머러스한 면도 있어요. 최소 20자 이상 작성해주세요." style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:.88em;background:#fafafa;resize:vertical;" oninput="document.getElementById('reputation-counter').textContent=this.value.length+'/500'"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.72em;">
+            <span id="reputation-hint" style="color:var(--muted);">최소 20자 이상</span>
+            <span id="reputation-counter" style="color:var(--muted);">0/500</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:18px;">
+            <button class="btn btn-outline" onclick="closeReputationModal()" style="flex:1;">취소</button>
+            <button class="btn btn-primary" onclick="saveReputation()" style="flex:2;"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+        <div id="reputation-delete-wrap" style="text-align:center;margin-top:10px;display:none;">
+            <button onclick="deleteReputation()" style="background:none;border:none;cursor:pointer;font-size:.78em;color:#ef4444;">내 평판 삭제하기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 필터 모달 -->
+<div class="filter-modal-overlay" id="filter-modal-overlay" onclick="if(event.target===this)closeFiltersModal()">
+    <div class="filter-modal">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:1.05em;font-weight:800;"><i class="fa-solid fa-sliders"></i> 추천 필터</div>
+            <button class="btn btn-nav" onclick="closeFiltersModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">나이 범위</div>
+            <div class="filter-range-row">
+                <input type="number" id="f-age-min" min="18" max="80" placeholder="최소">
+                <span style="color:var(--muted);">~</span>
+                <input type="number" id="f-age-max" min="18" max="80" placeholder="최대">
+                <span style="color:var(--muted);font-size:.82em;">세</span>
+            </div>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">지역</div>
+            <div id="f-regions" style="margin:-3px;"></div>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">MBTI</div>
+            <div id="f-mbtis" style="margin:-3px;"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:20px;">
+            <button class="btn btn-outline" onclick="resetFilters()" style="flex:1;">초기화</button>
+            <button class="btn btn-primary" onclick="applyFilters()" style="flex:2;">적용</button>
+        </div>
+    </div>
+</div>
+
+<!-- 매칭 축하 모달 -->
+<div id="match-celebrate-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1200;padding:20px;" onclick="if(event.target===this)closeMatchCelebrate()">
+    <div id="match-celebrate-content" style="background:#fff;border-radius:20px;padding:32px 24px;width:100%;max-width:380px;text-align:center;animation:modalSlideUp .3s cubic-bezier(.34,1.56,.64,1);"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/common.js" onerror="document.body.innerHTML='<div style=\'text-align:center;padding:80px 20px;font-family:sans-serif;\'><h2>네트워크 오류</h2><p style=\'color:#666;\'>페이지를 새로고침 해주세요.</p><button onclick=location.reload() style=\'margin-top:16px;padding:12px 28px;border:none;border-radius:10px;background:#111;color:#fff;font-size:1em;cursor:pointer;\'>새로고침</button></div>'"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

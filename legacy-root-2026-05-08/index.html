@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111111">
+    <!-- OG / 카카오톡 미리보기 -->
+    <meta property="og:title" content="반쪽">
+    <meta property="og:description" content="초대받은 사람들의 소개팅">
+    <meta property="og:image" content="https://kyhwow-rgb.github.io/banjjok/og-image.svg">
+    <meta property="og:url" content="https://kyhwow-rgb.github.io/banjjok/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="반쪽">
+    <meta name="twitter:description" content="초대받은 사람들의 소개팅">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>반쪽</title>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+
+<!-- ════ INSTALL SPLASH ════ -->
+<div id="install-splash" class="hidden">
+    <img src="icons/icon-192.png" class="splash-icon" alt="반쪽" loading="lazy">
+    <div class="splash-title">반쪽</div>
+    <div class="splash-sub">초대받은 사람들의 소개팅</div>
+
+    <!-- Android/PC: 바로 설치 버튼 -->
+    <button class="splash-btn splash-btn-install" id="splash-install-btn" style="display:none;" onclick="splashInstall()">
+        <i class="fa-solid fa-download"></i>&nbsp; 앱 설치하기
+    </button>
+
+    <!-- iOS: Safari에서 설치하는 방법 가이드 -->
+    <div id="splash-ios-guide" class="splash-guide-box" style="display:none;">
+        <div class="guide-title">앱 설치 방법</div>
+        <div id="splash-ios-step-inapp" style="display:none;">
+            <div class="guide-step">
+                <div class="guide-num">1</div>
+                <div>화면 하단의 <b><span class="guide-icon"><i class="fa-solid fa-arrow-up-from-bracket" style="font-size:.85em;"></i></span></b> 버튼을 누르고<br><b>"Safari로 열기"</b>를 선택</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">2</div>
+                <div>Safari 하단의 <b>공유 <span class="guide-icon"><i class="fa-solid fa-arrow-up-from-bracket" style="font-size:.85em;"></i></span></b> 버튼 누르기</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">3</div>
+                <div>목록을 스크롤해서 <b>"홈 화면에 추가"</b>가 안 보이면<br><b>"더보기 <span class="guide-icon">···</span>"</b> 를 눌러서 찾기</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">4</div>
+                <div><b>"홈 화면에 추가"</b> 선택 → 우측 상단 <b>"추가"</b> 누르기</div>
+            </div>
+        </div>
+        <div id="splash-ios-step-safari" style="display:none;">
+            <div class="guide-step">
+                <div class="guide-num">1</div>
+                <div>하단의 <b>공유 <span class="guide-icon"><i class="fa-solid fa-arrow-up-from-bracket" style="font-size:.85em;"></i></span></b> 버튼 누르기</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">2</div>
+                <div>목록을 스크롤해서 <b>"홈 화면에 추가"</b>가 안 보이면<br><b>"더보기 <span class="guide-icon">···</span>"</b> 를 눌러서 찾기</div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-num">3</div>
+                <div><b>"홈 화면에 추가"</b> 선택 → 우측 상단 <b>"추가"</b> 누르기</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Android 가이드 (beforeinstallprompt 미지원 시) -->
+    <div id="splash-android-guide" class="splash-guide-box" style="display:none;">
+        <div class="guide-title">앱 설치 방법</div>
+        <div class="guide-step">
+            <div class="guide-num">1</div>
+            <div>브라우저 우측 상단 <b><span class="guide-icon">⋮</span></b> 메뉴 누르기</div>
+        </div>
+        <div class="guide-step">
+            <div class="guide-num">2</div>
+            <div><b>"홈 화면에 추가"</b> 또는 <b>"앱 설치"</b> 선택</div>
+        </div>
+    </div>
+
+    <div class="splash-guide-box" style="margin-top:16px; text-align:center; padding:16px 18px;">
+        <button class="splash-btn splash-btn-web" onclick="splashDismiss()" style="margin-top:0;">웹에서 바로 이용하기</button>
+        <div style="font-size:.75em; color:#a3a3a3; margin-top:6px;">설치 없이 바로 사용할 수 있어요</div>
+    </div>
+</div>
+
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-msg" id="loading-msg">잠시만요...</div>
+</div>
+
+<!-- ════ LOGIN ════ -->
+<div id="screen-login" class="screen active">
+
+    <!-- [1] 입장 뷰 (지인 추천제) -->
+    <div id="auth-invite" class="login-card">
+        <div class="login-logo"><img src="icons/icon-192.png" style="width:72px;height:72px;border-radius:16px;" loading="lazy"></div>
+        <div class="login-title">반쪽</div>
+        <div class="login-sub" style="line-height:1.6;">지인에게 초대받은 분만<br>가입할 수 있어요</div>
+        <div id="invite-error" class="error-msg" style="display:none;"></div>
+        <button class="btn btn-primary" style="width:100%;max-width:280px;margin-top:20px;" onclick="showAuthView('role-select')"><i class="fa-solid fa-user-plus"></i>&nbsp; 새로 가입하기</button>
+        <div style="margin-top:20px;border-top:1px solid #f3f4f6;padding-top:20px;">
+            <button class="btn btn-ghost" onclick="showAuthView('login')">이미 계정이 있나요? 로그인하기</button>
+        </div>
+        <div style="margin-top:10px;">
+            <button class="btn btn-ghost" onclick="openAdminModal()" style="font-size:.8em;color:#a3a3a3;"><i class="fa-solid fa-shield-halved"></i> 관리자로 로그인하기</button>
+        </div>
+        <!-- 입장 코드 필드는 제거 (지인 추천제가 관문) -->
+        <input type="hidden" id="invite-code-input" value="">
+    </div>
+
+    <!-- [1.5] 역할 선택 뷰 -->
+    <div id="auth-role-select" class="login-card" style="display:none;">
+        <div class="login-logo"><i class="fa-solid fa-user-plus"></i></div>
+        <div class="login-sub" style="margin-bottom:24px;">나에게 맞는 가입 유형을 선택해주세요</div>
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:320px;width:100%;">
+            <div onclick="selectSignupRole('participant')" style="border:2px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:flex-start;gap:14px;" onmouseover="this.style.borderColor='#111';this.style.background='#FFF0F0'" onmouseout="this.style.borderColor='var(--border)';this.style.background=''">
+                <div style="font-size:1.5em;flex-shrink:0;margin-top:2px;">💕</div>
+                <div>
+                    <div style="font-weight:800;font-size:1em;margin-bottom:4px;">내 반쪽 찾기</div>
+                    <div style="font-size:.78em;color:var(--muted);line-height:1.5;">소개팅에 직접 참여해서 나만의 반쪽을 찾아요</div>
+                </div>
+            </div>
+            <div onclick="selectSignupRole('matchmaker')" style="border:2px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:flex-start;gap:14px;background:transparent;" onmouseover="this.style.borderColor='#111';this.style.background='#f0fdf4'" onmouseout="this.style.borderColor='var(--border)';this.style.background='transparent'">
+                <div style="font-size:1.5em;flex-shrink:0;margin-top:2px;">🤝</div>
+                <div>
+                    <div style="font-weight:800;font-size:1em;margin-bottom:4px;">친구의 반쪽 찾기</div>
+                    <div style="font-size:.78em;color:var(--muted);line-height:1.5;">지인을 소개해서 소개팅을 연결해줘요</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:20px;">
+            <button class="btn btn-ghost" onclick="showAuthView('invite')">← 뒤로</button>
+        </div>
+    </div>
+
+    <!-- [2] 회원가입 뷰 -->
+    <div id="auth-signup" class="login-card" style="display:none;">
+        <div class="login-logo"><i class="fa-solid fa-user-plus"></i></div>
+        <div class="login-title">회원가입</div>
+        <div class="login-sub">이메일과 비밀번호를 설정해주세요</div>
+        <div class="input-group" style="border:2px solid #fef3c7;background:#fffbeb;padding:12px 14px;border-radius:12px;margin-bottom:16px;">
+            <label style="color:#92400e;font-weight:800;font-size:.82em;">추천인 코드 <span style="color:#dc2626;font-weight:900;">*필수</span></label>
+            <input type="text" id="signup-referral-code" placeholder="추천인 코드 입력" style="text-transform:uppercase;border:1px solid #fcd34d;background:#fff;" onkeydown="if(event.key==='Enter')document.getElementById('signup-email').focus()">
+            <div style="font-size:.7em;color:#92400e;margin-top:5px;line-height:1.5;">
+                <i class="fa-solid fa-circle-info"></i> 지인에게 받은 코드가 있어야 가입 가능해요.
+            </div>
+        </div>
+        <div class="input-group">
+            <input type="email" id="signup-email" placeholder="이메일" onkeydown="if(event.key==='Enter')document.getElementById('signup-pw').focus()">
+        </div>
+        <div class="input-group">
+            <div class="pw-wrap"><input type="password" id="signup-pw" placeholder="비밀번호 (6자 이상)"><button type="button" class="pw-toggle" onclick="togglePw('signup-pw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div class="input-group">
+            <div class="pw-wrap"><input type="password" id="signup-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter')doSignup()"><button type="button" class="pw-toggle" onclick="togglePw('signup-pw2',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div id="signup-error" class="error-msg"></div>
+        <div style="font-size:.72em;color:#a3a3a3;line-height:1.5;margin-bottom:14px;text-align:left;">
+            가입 시 <span style="text-decoration:underline;cursor:pointer;" onclick="document.getElementById('privacy-modal').style.display='flex'">개인정보 처리방침</span>에 동의합니다.
+            수집 항목: 이메일, 이름, 사진, 카카오ID 등 신청서 정보.
+            관리자 외 제3자에게 제공되지 않으며, 탈퇴 시 즉시 삭제됩니다.
+        </div>
+        <button class="btn btn-primary" onclick="doSignup()">가입하기</button>
+        <div style="margin-top:16px;">
+            <button class="btn btn-ghost" onclick="showAuthView('invite')">← 뒤로</button>
+        </div>
+    </div>
+
+    <!-- [3] 로그인 뷰 -->
+    <div id="auth-login" class="login-card" style="display:none;">
+        <div class="login-logo"><i class="fa-solid fa-right-to-bracket"></i></div>
+        <div class="login-title">로그인</div>
+        <div class="login-sub">반쪽에 오신 걸 환영해요</div>
+        <div class="input-group">
+            <input type="email" id="login-email" placeholder="이메일">
+        </div>
+        <div class="input-group">
+            <div class="pw-wrap"><input type="password" id="login-pw" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"><button type="button" class="pw-toggle" onclick="togglePw('login-pw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div id="login-error" class="error-msg">이메일 또는 비밀번호가 틀렸습니다.</div>
+        <button class="btn btn-primary" onclick="doLogin()">로그인</button>
+        <div style="margin-top:12px;">
+            <button class="btn btn-ghost" onclick="resetPassword()" style="font-size:.8em;">비밀번호를 잊었어요</button>
+        </div>
+        <div style="margin-top:8px;">
+            <button class="btn btn-ghost" onclick="showAuthView('invite')">← 뒤로</button>
+        </div>
+    </div>
+
+    <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;font-size:.7em;letter-spacing:.04em;color:#d1d5db;">Designed &amp; Developed by Kang</div>
+</div>
+
+<!-- ════ HOME (방문객: 숫자만) ════ -->
+<div id="screen-home" class="screen">
+    <div class="navbar">
+        <div class="navbar-brand" onclick="logout()" style="cursor:pointer;">반쪽</div>
+        <div class="navbar-right">
+            <button class="btn btn-sm btn-outline" style="border:2px solid var(--primary);color:var(--primary);" onclick="goRegister()">신청하기</button>
+            <button class="btn btn-nav" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+    <div class="home-container">
+        <div class="home-title">현재 참가자 현황</div>
+        <div class="home-sub">소개팅 매칭을 기다리는 분들이에요</div>
+        <div class="count-grid">
+            <div class="count-card male">
+                <div class="count-icon male"><i class="fa-solid fa-mars"></i></div>
+                <div class="count-num male" id="home-male-count">-</div>
+                <div class="count-label">남성 참가자</div>
+            </div>
+            <div class="count-card female">
+                <div class="count-icon female"><i class="fa-solid fa-venus"></i></div>
+                <div class="count-num female" id="home-female-count">-</div>
+                <div class="count-label">여성 참가자</div>
+            </div>
+        </div>
+        <div class="rec-section" id="rec-section" style="display:none;">
+            <div class="rec-label"><i class="fa-solid fa-sparkles" style="color:var(--primary);"></i> 오늘의 추천 반쪽</div>
+            <div id="rec-card-wrap"></div>
+        </div>
+        <button class="btn btn-primary" style="max-width:280px;" onclick="goRegister()">
+            소개팅 신청하기
+        </button>
+        <button class="btn btn-outline" id="home-dashboard-btn" style="max-width:280px;margin-top:10px;display:none;" onclick="window.location.href='dashboard.html'">
+            내 대시보드 보기
+        </button>
+    </div>
+    <div class="site-footer">Designed &amp; Developed by Kang<br>문의: 카카오톡 kyhcyl · kyhwow@gmail.com</div>
+</div>
+
+<!-- ════ REGISTER ════ -->
+<div id="screen-register" class="screen">
+    <div class="navbar">
+        <div class="navbar-brand" onclick="logout()" style="cursor:pointer;">반쪽</div>
+        <div class="navbar-right">
+            <button class="btn btn-nav" onclick="goBack()">← 돌아가기</button>
+        </div>
+    </div>
+    <div class="page-container">
+        <div class="form-card">
+            <!-- 보석 순도 게이지 (신청 중엔 숨김 — MY 탭에서만 보임) -->
+            <div class="score-wrap" id="score-wrap" style="display:none;">
+                <div class="score-top">
+                    <div class="score-gem" id="score-gem"><i class="fa-solid fa-gem"></i></div>
+                    <div class="score-info">
+                        <div class="score-pct-text"><span id="score-pct">0</span>% 순도</div>
+                        <div class="score-msg" id="score-msg">정보를 입력하면 순도가 올라가요!</div>
+                    </div>
+                </div>
+                <div class="score-bar-bg"><div class="score-bar-fill" id="score-bar-fill" style="width:0%"></div></div>
+            </div>
+            <div class="form-title">소개팅 신청서</div>
+            <div class="form-sub">신청 후 관리자 승인을 거쳐 등록됩니다. 카카오 ID와 연락처는 관리자에게만 공개됩니다.</div>
+
+            <!-- 추천인 코드 (회원가입 시 입력됨 · 읽기전용) -->
+            <div class="input-group" style="border:1px solid #e5e7eb;background:#f9fafb;padding:12px 16px;border-radius:12px;margin-bottom:20px;">
+                <label style="color:#6b7280;font-weight:700;font-size:.82em;"><i class="fa-solid fa-check-circle" style="color:#10b981;"></i> 추천인 코드</label>
+                <input type="text" id="reg-referral-code" readonly style="text-transform:uppercase;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;">
+                <div style="font-size:.7em;color:#9ca3af;margin-top:4px;">회원가입 시 입력한 코드입니다. 추천인 평판 + 관리자 승인 후 활동 가능합니다.</div>
+            </div>
+
+            <!-- 성별 (단순 버튼) -->
+            <div class="input-group">
+                <label>성별 <span style="color:#FF6B6B;">*</span></label>
+                <div class="gender-select" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <button type="button" class="gender-option" id="gender-male" onclick="selectGender('male')" style="padding:12px;border:2px solid var(--border);background:#fff;border-radius:12px;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;">남성</button>
+                    <button type="button" class="gender-option" id="gender-female" onclick="selectGender('female')" style="padding:12px;border:2px solid var(--border);background:#fff;border-radius:12px;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;">여성</button>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="input-group">
+                    <label>이름 <span style="color:#FF6B6B;">*</span></label>
+                    <input type="text" id="reg-name">
+                </div>
+                <div class="input-group">
+                    <label>생년월일 <span style="color:#FF6B6B;">*</span></label>
+                    <input type="text" id="reg-birth" placeholder="2000.01.15" maxlength="10" inputmode="numeric">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="input-group">
+                    <label>직업 <span style="color:#FF6B6B;">*</span></label>
+                    <select id="reg-job">
+                        <option value="">선택해주세요</option>
+                        <option value="전문직">전문직 (의사/변호사/회계사/약사 등)</option>
+                        <option value="연구·기술직">연구·기술직 (연구원/시니어 개발자/전문 엔지니어 등)</option>
+                        <option value="공공·금융·교육직">공공·금융·교육직 (공무원/공기업/금융권/교사 등)</option>
+                        <option value="대기업·중견기업직">대기업·중견기업직 (사무/기획/마케팅/영업 등)</option>
+                        <option value="사업·전문자유직">사업·전문자유직 (대표/사업자/프리랜서 등)</option>
+                        <option value="일반사무·기술직">일반사무·기술직 (중소기업/일반 기술직 등)</option>
+                        <option value="대학생/대학원생">학생 (대학생/대학원생)</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>키 (cm) <span style="color:#FF6B6B;">*</span></label>
+                    <input type="number" id="reg-height" min="140" max="220">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>직장명 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>
+                    <input type="text" id="reg-company" placeholder="예: 삼성전자">
+                </div>
+                <div class="input-group">
+                    <label>직무 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>
+                    <input type="text" id="reg-job-title" placeholder="예: 백엔드 개발">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="input-group">
+                    <label>학력</label>
+                    <select id="reg-education">
+                        <option value="">선택해주세요</option>
+                        <option value="학사">학사</option>
+                        <option value="석사">석사</option>
+                        <option value="박사">박사</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>거주지 <span style="color:#FF6B6B;">*</span></label>
+                    <input type="text" id="reg-location">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="input-group">
+                    <label>MBTI <span style="color:#FF6B6B;">*</span></label>
+                    <select id="reg-mbti">
+                        <option value="">선택해주세요</option>
+                        <option value="ENFP">ENFP</option>
+                        <option value="ENFJ">ENFJ</option>
+                        <option value="ENTP">ENTP</option>
+                        <option value="ENTJ">ENTJ</option>
+                        <option value="INFP">INFP</option>
+                        <option value="INFJ">INFJ</option>
+                        <option value="INTP">INTP</option>
+                        <option value="INTJ">INTJ</option>
+                        <option value="ESFP">ESFP</option>
+                        <option value="ESFJ">ESFJ</option>
+                        <option value="ESTP">ESTP</option>
+                        <option value="ESTJ">ESTJ</option>
+                        <option value="ISFP">ISFP</option>
+                        <option value="ISFJ">ISFJ</option>
+                        <option value="ISTP">ISTP</option>
+                        <option value="ISTJ">ISTJ</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>카카오 ID <span style="color:#FF6B6B;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
+                    <input type="text" id="reg-kakao">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>흡연 <span style="color:#FF6B6B;">*</span></label>
+                    <select id="reg-smoking">
+                        <option value="">선택해주세요</option>
+                        <option value="비흡연">비흡연</option>
+                        <option value="흡연">흡연</option>
+                        <option value="전자담배">전자담배</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>음주 <span style="color:#FF6B6B;">*</span></label>
+                    <select id="reg-drinking">
+                        <option value="">선택해주세요</option>
+                        <option value="안 마심">안 마심</option>
+                        <option value="가끔">가끔</option>
+                        <option value="자주">자주</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>종교 <span style="color:#FF6B6B;">*</span></label>
+                    <select id="reg-religion">
+                        <option value="">선택해주세요</option>
+                        <option value="무교">무교</option>
+                        <option value="기독교">기독교</option>
+                        <option value="천주교">천주교</option>
+                        <option value="불교">불교</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>연락처 (휴대폰) <span style="color:#FF6B6B;">*</span> <span style="color:#9ca3af;font-weight:400;">(관리자만 공개)</span></label>
+                    <input type="tel" id="reg-contact" placeholder="010-0000-0000">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>취미 <span style="color:#9ca3af;font-weight:400;">(자유롭게 작성)</span></label>
+                <input type="text" id="reg-hobby" placeholder="예: 등산, 영화감상, 요리, 러닝">
+            </div>
+
+            <!-- 접속경로 → 추천인 코드로 대체되므로 hidden input으로 자리만 유지 (하위호환) -->
+            <input type="hidden" id="reg-referral" value="">
+
+            <div class="input-group">
+                <label>자기소개 <span id="intro-counter" style="color:#9ca3af;font-weight:400;font-size:.9em;float:right;">0/200</span></label>
+                <textarea id="reg-intro" placeholder="간단히 자신을 소개해주세요..." rows="4" maxlength="200" oninput="document.getElementById('intro-counter').textContent=this.value.length+'/200'"></textarea>
+            </div>
+
+            <!-- Ice Breaker 제거됨 -->
+            <input type="hidden" id="reg-icebreaker-q" value="">
+            <input type="hidden" id="reg-icebreaker-a" value="">
+
+            <div class="input-group">
+                <label>이상형 <span style="color:#FF6B6B;">*</span></label>
+                <div id="ideal-chips"></div>
+                <textarea id="reg-ideal-memo" class="ideal-memo" placeholder="원하는 이상형을 자유롭게 적어주세요..."></textarea>
+            </div>
+
+            <!-- 사진 업로드 (최대 3장) -->
+            <div class="input-group" id="photo-upload-section">
+                <label>사진 <span style="color:#FF6B6B;">*</span> (최대 3장)</label>
+                <div style="font-size:.78em;color:var(--muted);margin-bottom:10px;padding:10px 12px;background:#FFF0F0;border-radius:10px;line-height:1.5;">
+                    <i class="fa-solid fa-camera-retro" style="color:var(--primary);"></i> <b>사진 팁:</b> 밝은 조명의 정면 사진이 가장 좋아요!<br>
+                    <i class="fa-solid fa-check" style="color:#10b981;"></i> 얼굴이 잘 보이는 사진 &nbsp; <i class="fa-solid fa-check" style="color:#10b981;"></i> 자연스러운 미소<br>
+                    <i class="fa-solid fa-xmark" style="color:#ef4444;"></i> 선글라스/마스크 &nbsp; <i class="fa-solid fa-xmark" style="color:#ef4444;"></i> 단체사진 &nbsp; <i class="fa-solid fa-xmark" style="color:#ef4444;"></i> 과한 필터
+                </div>
+                <div class="photo-upload-grid">
+                    <div class="photo-slot" id="photo-slot-0">
+                        <input type="file" id="photo-file-0" accept="image/*" onchange="previewPhoto(0,this)">
+                        <div class="photo-placeholder" id="photo-ph-0">
+                            <div class="photo-placeholder-icon"><i class="fa-solid fa-camera"></i></div>
+                            <span>사진 추가</span>
+                        </div>
+                        <img id="photo-preview-0" alt="" style="display:none;">
+                        <button class="photo-remove" id="photo-rm-0" onclick="removePhoto(event,0)" style="display:none;">✕</button>
+                    </div>
+                    <div class="photo-slot" id="photo-slot-1">
+                        <input type="file" id="photo-file-1" accept="image/*" onchange="previewPhoto(1,this)">
+                        <div class="photo-placeholder" id="photo-ph-1">
+                            <div class="photo-placeholder-icon"><i class="fa-solid fa-camera"></i></div>
+                            <span>사진 추가</span>
+                        </div>
+                        <img id="photo-preview-1" alt="" style="display:none;">
+                        <button class="photo-remove" id="photo-rm-1" onclick="removePhoto(event,1)" style="display:none;">✕</button>
+                    </div>
+                    <div class="photo-slot" id="photo-slot-2">
+                        <input type="file" id="photo-file-2" accept="image/*" onchange="previewPhoto(2,this)">
+                        <div class="photo-placeholder" id="photo-ph-2">
+                            <div class="photo-placeholder-icon"><i class="fa-solid fa-camera"></i></div>
+                            <span>사진 추가</span>
+                        </div>
+                        <img id="photo-preview-2" alt="" style="display:none;">
+                        <button class="photo-remove" id="photo-rm-2" onclick="removePhoto(event,2)" style="display:none;">✕</button>
+                    </div>
+                </div>
+                <div class="photo-hint">최소 1장 필수 · 사진은 자동으로 압축됩니다</div>
+            </div>
+
+            <button class="btn btn-primary" id="submit-btn" onclick="submitApplication()" style="margin-top:8px;">
+                신청서 제출하기
+            </button>
+        </div>
+    </div>
+    <div class="site-footer">Designed &amp; Developed by Kang<br>문의: 카카오톡 kyhcyl · kyhwow@gmail.com</div>
+</div>
+
+<!-- ════ ADMIN ════ -->
+<div id="screen-admin" class="screen">
+    <div class="navbar">
+        <div class="navbar-brand" onclick="logout()" style="cursor:pointer;">반쪽 <span style="font-size:.6em;color:var(--muted);font-weight:500;">관리자</span></div>
+        <div class="navbar-right" style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-nav" onclick="renderAdmin()" title="새로고침 (R)"><i class="fa-solid fa-arrows-rotate"></i></button>
+            <button class="btn btn-nav" onclick="alert('관리자 단축키:\\n/ : 검색 포커스\\n1~5 : 탭 전환 (홈·신청자·매칭·문의·설정)\\nR : 새로고침\\nEsc : 모달 닫기\\n\\n상세 모달에서:\\nA : 승인\\nX : 거절');" title="단축키"><i class="fa-solid fa-keyboard"></i></button>
+            <button class="btn btn-nav" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 관리자 탭 네비 -->
+    <div class="admin-tabs">
+        <button class="admin-tab active" data-admin-tab="home" onclick="switchAdminTab('home')"><i class="fa-solid fa-house"></i> 홈</button>
+        <button class="admin-tab" data-admin-tab="applicants" onclick="switchAdminTab('applicants')"><i class="fa-solid fa-users"></i> 신청자 <span class="admin-tab-badge" id="tab-badge-applicants" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="matching" onclick="switchAdminTab('matching')"><i class="fa-solid fa-heart"></i> 매칭 <span class="admin-tab-badge" id="tab-badge-matching" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="inquiries" onclick="switchAdminTab('inquiries')"><i class="fa-solid fa-comments"></i> 문의 <span class="admin-tab-badge" id="tab-badge-inquiries" style="display:none;">0</span></button>
+        <button class="admin-tab" data-admin-tab="network" onclick="switchAdminTab('network')"><i class="fa-solid fa-diagram-project"></i> 네트워크</button>
+        <button class="admin-tab" data-admin-tab="settings" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> 설정</button>
+    </div>
+
+    <div class="page-container" style="max-width:920px;">
+
+        <!-- ══ 홈 탭 ══ -->
+        <div class="admin-tab-panel active" id="adminPanel-home">
+            <!-- 오늘 처리할 것 위젯 -->
+            <div class="todo-widget" id="todo-widget" style="display:none;">
+                <div class="todo-title"><i class="fa-solid fa-bolt"></i> 오늘 처리할 것 <span id="todo-total-count" style="font-size:.75em;color:#b45309;font-weight:700;"></span></div>
+                <div class="todo-list" id="todo-list"></div>
+            </div>
+
+            <!-- 건강 지표 -->
+            <div class="health-grid">
+                <div class="health-card">
+                    <div class="health-label">오늘 활동 유저</div>
+                    <div class="health-value" id="health-dau">-</div>
+                    <div class="health-delta" id="health-dau-delta"></div>
+                </div>
+                <div class="health-card">
+                    <div class="health-label">7일 신규 가입</div>
+                    <div class="health-value" id="health-signups">-</div>
+                    <div class="health-chart" id="health-signup-chart"></div>
+                </div>
+                <div class="health-card">
+                    <div class="health-label">오늘 메시지</div>
+                    <div class="health-value" id="health-messages">-</div>
+                    <div class="health-delta" id="health-messages-delta"></div>
+                </div>
+                <div class="health-card">
+                    <div class="health-label">성비 (승인 기준)</div>
+                    <div class="health-value" id="health-ratio">-</div>
+                    <div class="ratio-bar"><div class="ratio-male" id="ratio-male-bar" style="width:50%;"></div><div class="ratio-female" id="ratio-female-bar" style="width:50%;"></div></div>
+                    <div class="health-delta" id="health-ratio-warn"></div>
+                </div>
+            </div>
+
+            <!-- 통계 카드 (클릭하면 해당 탭으로) -->
+            <div class="stats-grid">
+                <div class="stat-card" id="card-total"   onclick="jumpToApplicants('all')"     ><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
+                <div class="stat-card" id="card-pending" onclick="jumpToApplicants('pending')"  ><div class="stat-num" id="stat-pending" style="color:var(--cta);">0</div><div class="stat-label">대기</div></div>
+                <div class="stat-card" id="card-male"    onclick="jumpToApplicants('male')"     ><div class="stat-num" id="stat-male">0</div><div class="stat-label">남성</div></div>
+                <div class="stat-card" id="card-female"  onclick="jumpToApplicants('female')"   ><div class="stat-num" id="stat-female">0</div><div class="stat-label">여성</div></div>
+                <div class="stat-card" id="card-mutual"  onclick="switchAdminTab('matching')"   ><div class="stat-num" id="stat-mutual">0</div><div class="stat-label">상호관심</div></div>
+                <div class="stat-card" id="card-matched" onclick="switchAdminTab('matching')"   ><div class="stat-num" id="stat-matched">0</div><div class="stat-label">매칭</div></div>
+            </div>
+
+            <!-- AI 매칭 제안 -->
+            <div class="admin-section" id="ai-match-section" style="display:none;">
+                <div class="admin-section-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> AI 매칭 제안 <span id="ai-match-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span></div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">상호 찜한 쌍 중 궁합 점수가 가장 높은 매칭 후보입니다.</div>
+                <div id="ai-match-list"></div>
+            </div>
+
+            <!-- 실시간 활동 + 피드백 집계 -->
+            <div class="admin-section">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div>
+                        <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i> 실시간 활동</div>
+                        <div class="activity-feed" id="activity-feed"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;">로딩 중...</div></div>
+                    </div>
+                    <div>
+                        <div class="admin-section-title" style="margin-bottom:10px;"><i class="fa-solid fa-comments" style="color:var(--primary);"></i> 유저 목소리 (7일)</div>
+                        <div class="feedback-widget" id="feedback-widget"><div style="color:var(--muted);font-size:.82em;padding:12px;text-align:center;grid-column:1/-1;">로딩 중...</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ 신청자 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-applicants">
+            <div class="admin-subnav">
+                <button class="admin-subnav-btn active" data-sub="all" onclick="filterAdmin('all')">전체 <span class="cnt" id="sub-cnt-all">0</span></button>
+                <button class="admin-subnav-btn" data-sub="pending_reputation" onclick="filterAdmin('pending_reputation')">평판 대기 <span class="cnt" id="sub-cnt-pending-rep">0</span></button>
+                <button class="admin-subnav-btn" data-sub="pending" onclick="filterAdmin('pending')">승인 대기 <span class="cnt" id="sub-cnt-pending">0</span></button>
+                <button class="admin-subnav-btn" data-sub="male" onclick="filterAdmin('male')">남성 <span class="cnt" id="sub-cnt-male">0</span></button>
+                <button class="admin-subnav-btn" data-sub="female" onclick="filterAdmin('female')">여성 <span class="cnt" id="sub-cnt-female">0</span></button>
+                <button class="admin-subnav-btn" data-sub="matchmaker" onclick="filterAdmin('matchmaker')">소개자 <span class="cnt" id="sub-cnt-matchmaker">0</span></button>
+            </div>
+            <div class="admin-section" id="applicant-list-section">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                    <div class="admin-section-title" id="filter-title" style="margin-bottom:0;">전체 신청</div>
+                    <div id="batch-actions" style="display:none;">
+                        <button class="btn btn-sm btn-approve" onclick="batchApproveAll()">전체 승인</button>
+                    </div>
+                </div>
+                <input type="text" id="admin-search" placeholder="이름·지역·직업·MBTI로 검색..." oninput="filterAdminSearch()" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:.88em;font-family:inherit;margin:10px 0 6px;">
+                <div class="admin-quickfilter" id="admin-quickfilter">
+                    <button class="quickfilter-btn active" data-qf="none" onclick="applyQuickFilter('none')">전체</button>
+                    <button class="quickfilter-btn" data-qf="no-look" onclick="applyQuickFilter('no-look')">외모 미평가</button>
+                    <button class="quickfilter-btn" data-qf="no-photo" onclick="applyQuickFilter('no-photo')">사진 없음</button>
+                    <button class="quickfilter-btn" data-qf="long-wait" onclick="applyQuickFilter('long-wait')">대기 3일+</button>
+                    <button class="quickfilter-btn" data-qf="online" onclick="applyQuickFilter('online')">최근 24h 접속</button>
+                    <button class="quickfilter-btn" data-qf="inactive" onclick="applyQuickFilter('inactive')">7일+ 미접속</button>
+                </div>
+                <div id="filtered-list"></div>
+            </div>
+        </div>
+
+        <!-- ══ 매칭 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-matching">
+            <!-- 매칭 요청 -->
+            <div class="admin-section" id="match-requests-section" style="display:none;">
+                <div class="admin-section-title"><i class="fa-solid fa-heart-circle-bolt" style="color:var(--primary);"></i> 매칭 신청 <span id="match-req-count" style="font-size:.8em;color:var(--primary);font-weight:700;"></span></div>
+                <div id="match-requests-list"></div>
+            </div>
+
+            <!-- 상호 관심 현황 -->
+            <div class="admin-section" id="mutual-overview-section" style="display:none;">
+                <div class="admin-section-title">💘 상호 관심 현황 <span id="mutual-overview-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">서로 찜한 쌍입니다. 매칭을 승인하면 양쪽에 알림이 전송됩니다.</div>
+                <div id="mutual-overview-list"></div>
+            </div>
+
+            <!-- 매칭된 커플 -->
+            <div class="admin-section" id="matched-couples-section">
+                <div class="admin-section-title">🎉 매칭된 커플 <span id="matched-couples-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span></div>
+                <div id="matched-couples-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- ══ 문의 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-inquiries">
+            <div class="admin-section" id="admin-inquiries-section">
+                <div class="admin-section-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    문의사항 <span id="inquiry-count" style="font-size:.8em;color:var(--muted);font-weight:600;"></span>
+                    <div style="margin-left:auto;display:flex;gap:6px;">
+                        <button class="btn btn-sm" onclick="filterInquiries('all')" id="inq-filter-all" style="font-size:.72em;padding:4px 10px;background:#111;color:#fff;">전체</button>
+                        <button class="btn btn-sm btn-outline" onclick="filterInquiries('unread')" id="inq-filter-unread" style="font-size:.72em;padding:4px 10px;">미답변</button>
+                        <button class="btn btn-sm btn-outline" onclick="filterInquiries('replied')" id="inq-filter-replied" style="font-size:.72em;padding:4px 10px;">답변완료</button>
+                    </div>
+                </div>
+                <div id="admin-inquiries-list" style="font-size:.88em;color:var(--muted);padding:16px;text-align:center;">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- ══ 설정 탭 ══ -->
+        <!-- ══ 네트워크 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-network">
+            <div class="admin-section">
+                <div class="admin-section-title"><i class="fa-solid fa-diagram-project" style="color:var(--primary);"></i> 추천 인맥 네트워크</div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">유저 간 추천 관계를 시각화합니다. 노드를 클릭하면 상세 정보를 볼 수 있어요.</div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span> 승인</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> 대기</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#FF6B6B;display:inline-block;"></span> 매칭됨</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span> 거절</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:.75em;"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;display:inline-block;"></span> 평판대기</div>
+                </div>
+                <div id="network-canvas-wrap" style="position:relative;width:100%;height:500px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fafafa;">
+                    <canvas id="network-canvas" style="width:100%;height:100%;"></canvas>
+                </div>
+                <div id="network-tooltip" style="display:none;position:absolute;z-index:200;background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 4px 16px rgba(0,0,0,.1);font-size:.85em;max-width:260px;"></div>
+                <div id="network-stats" style="margin-top:12px;font-size:.82em;color:var(--muted);"></div>
+            </div>
+        </div>
+
+        <!-- ══ 설정 탭 ══ -->
+        <div class="admin-tab-panel" id="adminPanel-settings">
+            <!-- 공지사항 발송 -->
+            <div class="admin-section">
+                <div class="admin-section-title"><i class="fa-solid fa-bullhorn" style="color:var(--primary);"></i> 공지사항 발송</div>
+                <div style="font-size:.82em;color:var(--muted);margin-bottom:12px;">전체 또는 특정 세그먼트 유저에게 공지를 보냅니다. 알림 센터에 저장되고, 푸시 알림도 함께 발송됩니다.</div>
+                <div class="input-group" style="margin-bottom:10px;">
+                    <label>제목</label>
+                    <input type="text" id="broadcast-title" placeholder="예: 업데이트 안내" maxlength="60">
+                </div>
+                <div class="input-group" style="margin-bottom:10px;">
+                    <label>내용</label>
+                    <textarea id="broadcast-body" rows="3" placeholder="공지 내용을 입력하세요 (최대 300자)" maxlength="300" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9em;"></textarea>
+                </div>
+                <div class="input-group" style="margin-bottom:10px;">
+                    <label>대상</label>
+                    <select id="broadcast-target" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9em;">
+                        <option value="all">전체 유저</option>
+                        <option value="approved">승인된 유저 (activated)</option>
+                        <option value="pending">승인 대기중</option>
+                        <option value="matched">매칭된 유저</option>
+                        <option value="male">남성 (승인됨)</option>
+                        <option value="female">여성 (승인됨)</option>
+                    </select>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:.85em;margin-bottom:12px;">
+                    <input type="checkbox" id="broadcast-push" checked> 푸시 알림도 함께 발송
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-outline" onclick="previewBroadcast()" style="flex:1;">대상 확인</button>
+                    <button class="btn btn-primary" onclick="sendBroadcast()" style="flex:2;"><i class="fa-solid fa-paper-plane"></i> 발송</button>
+                </div>
+                <div id="broadcast-status" style="margin-top:10px;font-size:.82em;"></div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- 관리자 로그인 모달 -->
+<div class="modal-overlay" id="admin-login-overlay">
+    <div class="modal" style="max-width:380px;">
+        <div class="modal-title"><i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> 관리자 로그인</div>
+        <div class="input-group"><label>이메일</label><input type="email" id="admin-email-input" placeholder="관리자 이메일"></div>
+        <div class="input-group"><label>비밀번호</label><input type="password" id="admin-pw-input" placeholder="비밀번호" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+        <div id="admin-login-error" class="error-msg">이메일 또는 비밀번호가 틀렸습니다.</div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="adminLogin()">로그인</button>
+            <button class="btn btn-outline" onclick="closeAdminModal()">취소</button>
+        </div>
+    </div>
+</div>
+
+<!-- 관리자용 지원자 상세 모달 -->
+<div class="modal-overlay" id="admin-detail-overlay">
+    <div class="modal" style="max-width:540px;">
+        <div id="admin-detail-content"></div>
+        <div class="modal-actions" id="admin-detail-actions"></div>
+    </div>
+</div>
+
+<!-- 매칭 모달 -->
+<div class="matching-overlay" id="matching-overlay" onclick="if(event.target===this)closeMatchingView()">
+    <div class="matching-modal">
+        <div id="matching-content"></div>
+        <button class="btn btn-outline" onclick="closeMatchingView()" style="margin-top:16px;">닫기</button>
+    </div>
+</div>
+
+<!-- 신고 관리 모달 -->
+<div id="reports-viewer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeReportsModal()">
+    <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;animation:modalPop .3s cubic-bezier(.34,1.56,.64,1);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e5e5;">
+            <div style="font-weight:800;font-size:.95em;"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i> 신고 관리</div>
+            <button class="btn btn-nav" onclick="closeReportsModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="reports-viewer-body" style="flex:1;overflow-y:auto;padding:16px;"></div>
+    </div>
+</div>
+
+<!-- 대화 보기 모달 (관리자) -->
+<div id="chat-viewer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeChatViewer()">
+    <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;animation:modalPop .3s cubic-bezier(.34,1.56,.64,1);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e5e5;">
+            <div id="chat-viewer-title" style="font-weight:800;font-size:.95em;"></div>
+            <button class="btn btn-nav" onclick="closeChatViewer()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="chat-viewer-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px;min-height:200px;"></div>
+        <div id="chat-viewer-stats" style="font-size:.75em;color:#a3a3a3;text-align:center;padding:12px;border-top:1px solid #e5e5e5;"></div>
+    </div>
+</div>
+
+<!-- 라이트박스 -->
+<!-- 개인정보 처리방침 -->
+<div id="privacy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:white;border-radius:14px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;padding:32px;">
+        <h3 style="font-size:1.1em;font-weight:700;margin-bottom:16px;">개인정보 처리방침</h3>
+        <div style="font-size:.82em;color:#374151;line-height:1.8;">
+            <p><b>1. 수집 항목</b><br>이메일, 이름, 생년월일, 직업, 키, 거주지, MBTI, 카카오ID, 연락처(휴대폰), 사진, 자기소개, 이상형 정보</p>
+            <p style="margin-top:12px;"><b>2. 수집 목적</b><br>소개팅 매칭 서비스 제공, 프로필 표시, 매칭 시 카카오ID 전달, 서비스 이용 분석</p>
+            <p style="margin-top:12px;"><b>3. 보관 기간</b><br>회원 탈퇴 시 즉시 삭제 (프로필, 사진, 채팅, 찜, 알림 포함). 별도 보관하지 않음</p>
+            <p style="margin-top:12px;"><b>4. 제3자 제공</b><br>매칭 성사 시 상대방에게 카카오ID만 전달. 그 외 제3자에게 제공하지 않음</p>
+            <p style="margin-top:12px;"><b>5. 기술적 저장</b><br>로그인 상태 유지를 위해 브라우저 로컬 저장소(localStorage)를 사용합니다. 사진은 클라우드 저장소에 암호화하여 보관합니다. 서비스 개선을 위해 익명화된 이용 통계를 수집합니다.</p>
+            <p style="margin-top:12px;"><b>6. 알림</b><br>푸시 알림은 별도 동의 후 수신합니다. MY 메뉴에서 언제든 알림 설정을 변경할 수 있습니다.</p>
+            <p style="margin-top:12px;"><b>7. 열람·삭제 권리</b><br>언제든 MY 메뉴에서 계정 삭제 가능. 삭제 시 모든 개인정보 즉시 파기</p>
+            <p style="margin-top:12px;"><b>8. 문의</b><br>카카오톡 ID: kyhcyl | 이메일: kyhwow@gmail.com</p>
+        </div>
+        <button class="btn btn-outline" onclick="this.closest('#privacy-modal').style.display='none'" style="margin-top:20px;width:100%;">닫기</button>
+    </div>
+</div>
+
+<div id="lightbox-overlay" onclick="closeLightbox()">
+    <img id="lightbox-img" onclick="event.stopPropagation()" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/common.js" onerror="document.body.innerHTML='<div style=\'text-align:center;padding:80px 20px;font-family:sans-serif;\'><h2>네트워크 오류</h2><p style=\'color:#666;\'>페이지를 새로고침 해주세요.</p><button onclick=location.reload() style=\'margin-top:16px;padding:12px 28px;border:none;border-radius:10px;background:#111;color:#fff;font-size:1em;cursor:pointer;\'>새로고침</button></div>'"></script>
+<script src="js/index.js"></script>
+</body>
+</html>

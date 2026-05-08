@@ -1,575 +1,711 @@
-'use strict';
+/* ==========================================================================
+   반쪽 v2 — Matchmaker (내 사람들, 소개하기, 요청함, 이력)
+   ========================================================================== */
 
-// ══════════════════════════════════════
-//  반쪽 — 주선자 대시보드 로직
-// ══════════════════════════════════════
+let _selectedPersonA = null;
+let _selectedPersonB = null;
 
-let myProfile = null;
-let myParticipants = [];
-let myIntroductions = [];
-let allApproved = [];
-let proposing = false; // double-submit guard
+// --- 내 사람들 ---
+async function loadMyPeopleTab() {
+  const profile = AppState.getProfile();
+  if (!profile || !profile.is_matchmaker) return;
 
-// ── 탭 전환 ──
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
-    const content = document.getElementById('tab-' + tab);
-    const btn = document.getElementById('tab-btn-' + tab);
-    if (content) content.classList.add('active');
-    if (btn) btn.classList.add('active');
+  const { data: people } = await sb.from('applicants')
+    .select('id, name, gender, birth_date, photo_url, photos, status, job, location')
+    .eq('invited_by', profile.id)
+    .order('created_at', { ascending: false });
 
-    if (tab === 'participants') loadParticipants();
-    if (tab === 'introduce') loadIntroduceTab();
-    if (tab === 'history') loadHistory();
-    if (tab === 'my') renderMyTab();
-}
+  const emptyEl = document.getElementById('people-empty');
+  const listEl = document.getElementById('people-list');
 
-// ── 초기화 ──
-async function init() {
-    setLoading(true);
-    try {
-        const { data: { user } } = await db.auth.getUser();
-        if (!user) { window.location.href = 'index.html'; return; }
+  if (!people || people.length === 0) {
+    emptyEl?.classList.remove('hidden');
+    listEl.innerHTML = '';
+    return;
+  }
 
-        document.getElementById('user-email').textContent = user.email || '';
+  emptyEl?.classList.add('hidden');
 
-        // 프로필 로드
-        const { data: profile } = await db.from('applicants')
-            .select('*')
-            .eq('user_id', user.id)
-            .limit(1)
-            .single();
+  listEl.innerHTML = people.map(p => {
+    const age = calcAge(p.birth_date);
+    const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+    const statusClass = p.status === 'approved' ? 'approved' : p.status === 'pending_reputation' ? 'pending_reputation' : 'pending';
+    const statusLabel = p.status === 'approved' ? '승인됨' : p.status === 'pending_reputation' ? '평판 대기' : p.status === 'pending' ? '검토 중' : p.status;
 
-        if (!profile) { window.location.href = 'index.html'; return; }
-
-        // 주선 권한 확인
-        const hasAccess = await canManageIntros(profile);
-        if (!hasAccess) {
-            window.location.href = 'dashboard.html';
-            return;
-        }
-
-        myProfile = profile;
-        document.getElementById('my-referral-code').textContent = profile.referral_code || '-';
-
-        // 참가자 역할이면 참가자 대시보드 링크 표시
-        if (profile.role === 'participant') {
-            document.getElementById('link-participant-dashboard').style.display = '';
-        }
-
-        await loadParticipants();
-        // MY탭 데이터를 위해 소개 이력 미리 로드 (렌더링 없이)
-        const { data: introData } = await db.from('introductions')
-            .select('*')
-            .eq('matchmaker_id', myProfile.id)
-            .order('created_at', { ascending: false });
-        myIntroductions = introData || [];
-        loadNotifications();
-    } catch (e) {
-        console.error('init error:', e);
-        toast('초기화 중 오류가 발생했어요.');
-    } finally {
-        setLoading(false);
-    }
-}
-
-// ── 로딩 ──
-function setLoading(on) {
-    document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
-}
-
-// ── 추천 참가자 목록 로드 ──
-let loadingParticipants = false;
-async function loadParticipants() {
-    if (loadingParticipants) return;
-    loadingParticipants = true;
-    try {
-    const { data, error } = await db.from('applicants')
-        .select('id,name,gender,birth,photos,status,role,job,location,mbti,height,referred_by,referral_code')
-        .eq('referred_by', myProfile.referral_code)
-        .order('created_at', { ascending: false });
-
-    if (error) { console.error('loadParticipants:', error); return; }
-    myParticipants = data || [];
-
-    const container = document.getElementById('participants-list');
-    const countEl = document.getElementById('participant-count');
-    countEl.textContent = myParticipants.length + '명';
-
-    if (myParticipants.length === 0) {
-        container.innerHTML = '<div class="empty-state">추천한 참가자가 없습니다.<br>추천 코드를 공유해보세요!</div>';
-        return;
-    }
-
-    container.innerHTML = myParticipants.map(p => {
-        const age = calcAge(p.birth);
-        const photo = p.photos && p.photos.length > 0 ? p.photos[0] : null;
-        const statusBadge = {
-            'approved': '<span class="badge badge-green">승인됨</span>',
-            'pending': '<span class="badge badge-yellow">심사중</span>',
-            'pending_reputation': '<span class="badge badge-gray">평판대기</span>',
-            'matched': '<span class="badge badge-pink">매칭됨</span>',
-            'rejected': '<span class="badge badge-red">거절됨</span>',
-        }[p.status] || '';
-        const genderIcon = p.gender === 'male' ? '<i class="fa-solid fa-mars" style="color:#3b82f6;"></i>'
-            : p.gender === 'female' ? '<i class="fa-solid fa-venus" style="color:#FF6B6B;"></i>' : '';
-
-        return `<div class="participant-row">
-            <div class="participant-photo">${photo ? `<img src="${esc(photo)}" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.2em;"></i>'}</div>
-            <div class="participant-info">
-                <div class="participant-name">${esc(p.name)} ${genderIcon} ${age ? `<span style="color:var(--muted);font-size:.82em;">${age}세</span>` : ''}</div>
-                <div class="participant-detail">${esc(p.job || '')} ${p.location ? '· ' + esc(p.location) : ''}</div>
-            </div>
-            <div class="participant-status">${statusBadge}</div>
-        </div>`;
-    }).join('');
-    } finally { loadingParticipants = false; }
-}
-
-// ── 소개하기 탭 ──
-let todayIntroducedIds = new Set(); // 오늘 이미 소개한 참가자 ID
-let loadingIntroduce = false; // 중복 로드 방지
-
-async function loadIntroduceTab() {
-    if (loadingIntroduce) return;
-    loadingIntroduce = true;
-    try { await _loadIntroduceTabInner(); } finally { loadingIntroduce = false; }
-}
-
-async function _loadIntroduceTabInner() {
-    const myApproved = myParticipants.filter(p => p.status === 'approved' && p.role !== 'matchmaker');
-
-    // 기존 안내 메시지 항상 제거 (중복 삽입 방지)
-    const oldMsg = document.getElementById('no-approved-msg');
-    if (oldMsg) oldMsg.remove();
-
-    // 승인된 참가자가 없으면 안내 메시지 표시
-    if (myApproved.length === 0) {
-        document.getElementById('recommendations').innerHTML = '';
-        document.getElementById('intro-note-area').style.display = 'none';
-        document.getElementById('daily-limit').textContent = '';
-        document.getElementById('pick-person-a').innerHTML = '<option value="">선택...</option>';
-        document.getElementById('intro-form').insertAdjacentHTML('afterbegin',
-            '<div class="empty-state" id="no-approved-msg">아직 소개할 수 있는 참가자가 없습니다.<br>추천한 참가자가 승인되면 소개를 시작할 수 있어요.</div>');
-        return;
-    }
-
-    // 로딩 표시
-    document.getElementById('recommendations').innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner"></div></div>';
-
-    // 전체 approved 참가자 로드 (기본정보 + 사진)
-    const { data: allData } = await db.from('applicants')
-        .select('id,name,gender,birth,photos,job,location,mbti,height,referred_by,user_id,ideal,ideal_weights,look_score,job_category,religion')
-        .eq('status', 'approved')
-        .neq('role', 'matchmaker')
-        .neq('id', myProfile.id);
-    allApproved = allData || [];
-
-    // 오늘 이미 소개한 참가자 확인
-    const todayStart = new Date(new Date().setHours(0,0,0,0)).toISOString();
-    const { data: todayIntros } = await db.from('introductions')
-        .select('person_a_id,person_b_id')
-        .eq('matchmaker_id', myProfile.id)
-        .gte('created_at', todayStart);
-    // 인당 오늘 소개 횟수 카운트
-    todayIntroducedIds = new Set();
-    todayIntroducedIds._counts = {};
-    (todayIntros || []).forEach(i => {
-        todayIntroducedIds.add(i.person_a_id);
-        todayIntroducedIds.add(i.person_b_id);
-        todayIntroducedIds._counts[i.person_a_id] = (todayIntroducedIds._counts[i.person_a_id] || 0) + 1;
-        todayIntroducedIds._counts[i.person_b_id] = (todayIntroducedIds._counts[i.person_b_id] || 0) + 1;
-    });
-
-    // 드롭다운: 내 풀 approved 참가자만 (인당 제한 초과 시 disabled)
-    const dailyLimitVal = myProfile.intro_daily_limit || 1;
-    const selectA = document.getElementById('pick-person-a');
-    selectA.innerHTML = '<option value="">선택...</option>' + myApproved.map(p => {
-        const age = calcAge(p.birth);
-        const g = p.gender === 'male' ? '남' : p.gender === 'female' ? '여' : '';
-        const cnt = todayIntroducedIds._counts[p.id] || 0;
-        const done = cnt >= dailyLimitVal;
-        return `<option value="${p.id}" ${done ? 'disabled' : ''}>${esc(p.name)} (${g}${age ? ', ' + age + '세' : ''})${done ? ' - 오늘 ' + cnt + '/' + dailyLimitVal + '완료' : ''}</option>`;
-    }).join('');
-
-    // 일일 현황 (tier별 인당 제한 반영)
-    const dailyLimit = myProfile.intro_daily_limit || 1;
-    const usedCount = (todayIntros || []).length;
-    const maxCount = myApproved.length * dailyLimit;
-    const tierLabel = { beginner: '초보 주선자', skilled: '실력파 주선자', golden: '골든 주선자' }[myProfile.matchmaker_tier] || '';
-    document.getElementById('daily-limit').textContent = `오늘 ${usedCount}/${maxCount}건 소개 (인당 ${dailyLimit}회/일)${tierLabel ? ' · ' + tierLabel : ''}`;
-
-    // 추천 영역 초기화
-    document.getElementById('recommendations').innerHTML = '';
-    document.getElementById('intro-note-area').style.display = 'none';
-}
-
-// ── 추천 상대 3명 표시 ──
-function showRecommendations() {
-    const aId = document.getElementById('pick-person-a').value;
-    const recsEl = document.getElementById('recommendations');
-    const noteArea = document.getElementById('intro-note-area');
-
-    if (!aId) {
-        recsEl.innerHTML = '';
-        noteArea.style.display = 'none';
-        return;
-    }
-
-    const personA = myParticipants.find(p => p.id === aId);
-    if (!personA) return;
-
-    // 인당 일일 제한 체크 (tier별 동적)
-    const dailyLimit = myProfile.intro_daily_limit || 1;
-    const todayCountForA = (todayIntroducedIds._counts || {})[aId] || 0;
-    if (todayCountForA >= dailyLimit) {
-        recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">오늘 이 참가자의 소개 한도를 채웠습니다. (' + todayCountForA + '/' + dailyLimit + ')</div>';
-        noteArea.style.display = 'none';
-        return;
-    }
-
-    const oppositeGender = personA.gender === 'male' ? 'female' : 'male';
-
-    // 이성 필터 + 점수 계산 + 정렬 → 상위 3명
-    const candidates = allApproved
-        .filter(c => c.gender === oppositeGender && c.id !== aId)
-        .map(c => {
-            const s1 = calcMatchScore(personA, c);
-            const s2 = calcMatchScore(c, personA);
-            return { ...c, _score: Math.round((s1 + s2) / 2) };
-        })
-        .sort((a, b) => b._score - a._score)
-        .slice(0, myProfile.intro_rec_count || 3);
-
-    if (candidates.length === 0) {
-        recsEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85em;">추천할 이성 참가자가 없습니다.</div>';
-        noteArea.style.display = 'none';
-        return;
-    }
-
-    // 카드 렌더링
-    recsEl.innerHTML = '<div class="rec-header"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> ' + esc(personA.name) + '님에게 어울리는 상대</div>'
-        + candidates.map((c, i) => {
-            const age = calcAge(c.birth);
-            const photo = c.photos && c.photos.length > 0 ? c.photos[0] : null;
-            const rank = ['🥇', '🥈', '🥉'][i] || '';
-            return `<div class="rec-card">
-                <div class="rec-card-photo">
-                    ${photo ? `<img src="${esc(photo)}" alt="">` : '<i class="fa-solid fa-user" style="color:#d1d5db;font-size:1.2em;"></i>'}
-                </div>
-                <div class="rec-card-info">
-                    <div class="rec-card-name">${rank} ${esc(c.name)}</div>
-                    <div class="rec-card-detail">${age ? age + '세' : ''} ${c.job ? '· ' + esc(c.job) : ''} ${c.location ? '· ' + esc(c.location) : ''}</div>
-                    <div class="rec-card-sub">${c.mbti || ''} ${c.height ? '· ' + c.height + 'cm' : ''}</div>
-                </div>
-                <div class="rec-card-action">
-                    <div class="rec-card-score">${c._score}%</div>
-                    <button class="btn btn-primary rec-card-btn" onclick="event.stopPropagation();proposeIntroduction('${aId}','${c.id}')">
-                        <i class="fa-solid fa-paper-plane"></i> 소개하기
-                    </button>
-                </div>
-            </div>`;
-        }).join('');
-
-    noteArea.style.display = '';
-}
-
-// ── 소개 제안 ──
-async function proposeIntroduction(aId, bId) {
-    if (proposing) return; // double-submit guard
-    proposing = true;
-
-    const note = document.getElementById('intro-note').value.trim() || null;
-
-    if (!aId || !bId) {
-        toast('소개할 참가자를 선택해주세요.');
-        proposing = false;
-        return;
-    }
-
-    // 모든 소개하기 버튼 비활성화
-    document.querySelectorAll('.rec-card button').forEach(b => { b.disabled = true; b.textContent = '제안 중...'; });
-
-    try {
-        const { data: introId, error } = await db.rpc('propose_introduction', {
-            p_person_a_id: aId,
-            p_person_b_id: bId,
-            p_note: note
-        });
-
-        if (error) throw error;
-
-        // 양쪽에 알림 발송
-        const a = allApproved.find(p => p.id === aId);
-        const b = allApproved.find(p => p.id === bId);
-        const dashUrl = 'https://kyhwow-rgb.github.io/banjjok/dashboard.html#tab-interest';
-
-        const notifRows = [];
-        if (a?.user_id) notifRows.push({
-            user_id: a.user_id,
-            type: 'introduction_proposed',
-            title: '소개가 도착했어요!',
-            body: `${esc(myProfile.name)}님이 ${esc(b.name)}님을 소개해드려요. 확인해보세요!`,
-            related_id: introId
-        });
-        if (b?.user_id) notifRows.push({
-            user_id: b.user_id,
-            type: 'introduction_proposed',
-            title: '소개가 도착했어요!',
-            body: `${esc(myProfile.name)}님이 ${esc(a.name)}님을 소개해드려요. 확인해보세요!`,
-            related_id: introId
-        });
-        if (notifRows.length > 0) {
-            await db.from('notifications').insert(notifRows);
-        }
-
-        try {
-            if (a?.user_id) await sendPushNotifSimple(a.user_id, '소개가 도착했어요!', `${myProfile.name}님이 소개를 제안했어요.`, dashUrl);
-            if (b?.user_id) await sendPushNotifSimple(b.user_id, '소개가 도착했어요!', `${myProfile.name}님이 소개를 제안했어요.`, dashUrl);
-        } catch (e) { console.log('push error:', e.message); }
-
-        toast('소개를 제안했습니다!', 'success');
-        document.getElementById('pick-person-a').value = '';
-        document.getElementById('intro-note').value = '';
-        document.getElementById('recommendations').innerHTML = '';
-        document.getElementById('intro-note-area').style.display = 'none';
-        loadIntroduceTab();
-    } catch (e) {
-        console.error('proposeIntroduction:', e);
-        const msg = e.message || '소개 제안 실패';
-        if (msg.includes('already introduced')) toast('오늘 이미 이 참가자를 소개했습니다.', 'warning');
-        else if (msg.includes('active introduction')) toast('이미 활성 소개가 있는 쌍입니다.', 'warning');
-        else if (msg.includes('not in your referral') || msg.includes('at least one participant')) toast('최소 1명은 내 네트워크 참가자여야 합니다.', 'warning');
-        else if (msg.includes('already matched')) toast('이미 매칭된 참가자입니다.', 'warning');
-        else toast(msg, 'error');
-    } finally {
-        proposing = false;
-        document.querySelectorAll('.rec-card button').forEach(b => { b.disabled = false; b.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 소개하기'; });
-    }
-}
-
-// ── 소개 현황 로드 ──
-async function loadHistory() {
-    const { data, error } = await db.from('introductions')
-        .select('*')
-        .eq('matchmaker_id', myProfile.id)
-        .order('created_at', { ascending: false });
-
-    if (error) { console.error('loadHistory:', error); return; }
-    myIntroductions = data || [];
-
-    const container = document.getElementById('history-list');
-    const countEl = document.getElementById('history-count');
-    countEl.textContent = myIntroductions.length + '건';
-
-    if (myIntroductions.length === 0) {
-        container.innerHTML = '<div class="empty-state">아직 소개한 내역이 없습니다.</div>';
-        return;
-    }
-
-    // 통계 요약
-    const matched = myIntroductions.filter(i => i.status === 'matched').length;
-    const declined = myIntroductions.filter(i => i.status === 'declined').length;
-    const pending = myIntroductions.filter(i => i.status === 'proposed').length;
-    const expired = myIntroductions.filter(i => i.status === 'expired').length;
-    const rate = myIntroductions.length > 0 ? Math.round((matched / myIntroductions.length) * 100) : 0;
-
-    const statsHtml = `<div class="stat-cards">
-        <div class="stat-card stat-card--success">
-            <div class="stat-card-value">${matched}</div>
-            <div class="stat-card-label">성사</div>
+    return `
+      <div class="people-card" onclick="openProfileModal('${p.id}')">
+        ${photoSrc ? `<img class="people-avatar" src="${esc(photoSrc)}" alt="">` : `<div class="people-avatar" style="display:flex;align-items:center;justify-content:center;color:var(--muted);"><i class="fa-solid fa-user"></i></div>`}
+        <div class="people-info">
+          <div class="people-name">${esc(p.name)}</div>
+          <div class="people-detail">${age ? age + '세' : ''} · ${esc(p.job || '')} · ${esc(p.location || '')}</div>
         </div>
-        <div class="stat-card stat-card--pending">
-            <div class="stat-card-value">${pending}</div>
-            <div class="stat-card-label">대기중</div>
-        </div>
-        <div class="stat-card stat-card--failed">
-            <div class="stat-card-value">${declined + expired}</div>
-            <div class="stat-card-label">불발</div>
-        </div>
-        <div class="stat-card stat-card--rate">
-            <div class="stat-card-value">${rate}%</div>
-            <div class="stat-card-label">성공률</div>
-        </div>
+        <span class="people-status ${statusClass}">${statusLabel}</span>
+        ${p.status === 'pending_reputation' ? `<button class="btn-ghost" style="font-size:12px;" onclick="event.stopPropagation();openReputationModal('${p.id}','${esc(p.name)}')">평판 작성</button>` : ''}
+        <button class="btn-ghost" style="font-size:12px;color:var(--accent);" onclick="event.stopPropagation();openMmChat('${p.id}','matchmaker')"><i class="fa-solid fa-comment"></i></button>
+      </div>`;
+  }).join('');
+
+  // Add invite code button at bottom
+  listEl.innerHTML += `
+    <div style="padding:16px;text-align:center;">
+      <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="shareInviteCode()">
+        <i class="fa-solid fa-share"></i> 초대 코드 공유
+      </button>
     </div>`;
-
-    // 참가자 이름 조회
-    const personIds = [...new Set(myIntroductions.flatMap(i => [i.person_a_id, i.person_b_id]))];
-    const { data: persons } = await db.from('applicants')
-        .select('id,name,gender,photos')
-        .in('id', personIds);
-    const personMap = {};
-    (persons || []).forEach(p => personMap[p.id] = p);
-
-    container.innerHTML = statsHtml + myIntroductions.map(intro => {
-        const a = personMap[intro.person_a_id] || {};
-        const b = personMap[intro.person_b_id] || {};
-        const statusInfo = {
-            'proposed': { label: '응답 대기중', color: '#f59e0b', icon: 'fa-hourglass-half' },
-            'matched': { label: '매칭 성사!', color: '#10b981', icon: 'fa-heart' },
-            'declined': { label: '불발', color: '#ef4444', icon: 'fa-xmark' },
-            'expired': { label: '만료됨', color: '#9ca3af', icon: 'fa-clock' },
-        }[intro.status] || { label: intro.status, color: '#6b7280', icon: 'fa-question' };
-
-        const aStatus = intro.a_response === 'yes' ? '<i class="fa-solid fa-check" style="color:#10b981;"></i>'
-            : intro.a_response === 'no' ? '<i class="fa-solid fa-xmark" style="color:#ef4444;"></i>'
-            : '<i class="fa-solid fa-hourglass-half" style="color:#f59e0b;"></i>';
-        const bStatus = intro.b_response === 'yes' ? '<i class="fa-solid fa-check" style="color:#10b981;"></i>'
-            : intro.b_response === 'no' ? '<i class="fa-solid fa-xmark" style="color:#ef4444;"></i>'
-            : '<i class="fa-solid fa-hourglass-half" style="color:#f59e0b;"></i>';
-
-        const dateStr = new Date(intro.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-
-        const isMatched = intro.status === 'matched';
-        return `<div class="history-row${isMatched ? ' history-row--matched' : ''}">
-            <div class="history-pair">
-                <span class="history-name">${esc(a.name || '?')}</span>
-                ${aStatus}
-                <i class="fa-solid ${isMatched ? 'fa-heart' : 'fa-arrows-left-right'}" style="color:${isMatched ? '#FF6B6B' : '#d1d5db'};font-size:.7em;margin:0 4px;"></i>
-                ${bStatus}
-                <span class="history-name">${esc(b.name || '?')}</span>
-            </div>
-            <div class="history-meta">
-                <span class="history-status" style="color:${statusInfo.color};"><i class="fa-solid ${statusInfo.icon}"></i> ${statusInfo.label}</span>
-                <span style="color:var(--muted);font-size:.75em;">${dateStr}</span>
-            </div>
-            ${intro.matchmaker_note ? `<div class="history-note">${esc(intro.matchmaker_note)}</div>` : ''}
-        </div>`;
-    }).join('');
 }
 
-// ── MY 탭 ──
-function renderMyTab() {
-    const el = document.getElementById('my-profile-info');
-    if (!myProfile) return;
+async function shareInviteCode() {
+  const profile = AppState.getProfile();
+  if (!profile) return;
 
-    const tier = myProfile.matchmaker_tier;
-    const successCount = myProfile.intro_success_count || 0;
-    const tierBadge = tier === 'golden'
-        ? '<span class="badge badge-gold"><i class="fa-solid fa-crown"></i> 골든 주선자</span>'
-        : tier === 'skilled'
-        ? '<span class="badge badge-purple"><i class="fa-solid fa-star"></i> 실력파 주선자</span>'
-        : tier === 'beginner'
-        ? '<span class="badge badge-green"><i class="fa-solid fa-seedling"></i> 초보 주선자</span>'
-        : '';
+  const { data, error } = await sb.from('invite_codes')
+    .insert({ created_by: profile.id })
+    .select('code')
+    .single();
 
-    // 성공률 계산
-    const totalIntros = myIntroductions ? myIntroductions.length : 0;
-    const successRate = totalIntros > 0 ? Math.round((successCount / totalIntros) * 100) : 0;
+  if (error) { toast('초대 코드 생성 실패'); return; }
 
-    // 다음 tier까지 남은 횟수
-    const nextTier = tier === 'golden' ? null : tier === 'skilled' ? { name: '골든', need: 5 } : tier === 'beginner' ? { name: '실력파', need: 3 } : { name: '초보', need: 1 };
-    const remaining = nextTier ? nextTier.need - successCount : 0;
+  const link = 'https://kyhwow-rgb.github.io/banjjok/';
+  const text = `[반쪽] ${profile.name}님이 당신을 소개팅에 초대했어요!\n\n반쪽은 지인이 연결해주는 신뢰 기반 소개팅이에요.\n아래 링크에서 초대 코드를 입력하면 가입할 수 있어요.\n\n초대 코드: ${data.code}\n가입 링크: ${link}`;
 
-    el.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="font-weight:800;font-size:1.1em;">${esc(myProfile.name)}</div>
-            <div style="font-size:.85em;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                ${myProfile.role === 'matchmaker' ? '<span class="badge badge-green"><i class="fa-solid fa-handshake-angle"></i> 소개자</span>' : '<span class="badge badge-purple"><i class="fa-solid fa-user"></i> 참가자 + 주선자</span>'}
-                ${tierBadge}
-            </div>
-            ${successCount > 0 ? `<div style="font-size:.85em;color:var(--muted);">소개 성사: <strong>${successCount}쌍</strong>${totalIntros > 0 ? ` (성공률 ${successRate}%)` : ''}</div>` : ''}
-            ${nextTier && remaining > 0 ? `<div style="font-size:.78em;color:#FF6B6B;">${nextTier.name} 주선자까지 ${remaining}회 성사 남음</div>` : ''}
-            <div style="font-size:.85em;color:var(--muted);">추천 코드: <strong>${esc(myProfile.referral_code)}</strong></div>
-            <div style="font-size:.85em;color:var(--muted);">추천한 참가자: <strong>${myParticipants.length}명</strong></div>
-            <div style="font-size:.78em;color:var(--muted);">일일 소개: 인당 ${myProfile.intro_daily_limit || 1}회 · 추천 후보 ${myProfile.intro_rec_count || 3}명</div>
-        </div>
-    `;
-}
-
-// ── 추천 코드 복사 ──
-function copyReferralCode() {
-    const code = myProfile?.referral_code;
-    if (!code) return;
-    navigator.clipboard.writeText(code).then(() => {
-        toast('추천 코드가 복사되었습니다!', 'success');
-    }).catch(() => {
-        // 클립보드 API 실패 시 폴백
-        const input = document.createElement('input');
-        input.value = code;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        toast('추천 코드가 복사되었습니다!', 'success');
-    });
-}
-
-// ── 알림 ──
-async function loadNotifications() {
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) return;
-    const { data } = await db.from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(30);
-    const notifs = data || [];
-    const unread = notifs.filter(n => !n.is_read).length;
-    const badge = document.getElementById('notif-badge');
-    badge.style.display = unread > 0 ? '' : 'none';
-    badge.textContent = unread;
-
-    const list = document.getElementById('notif-list');
-    if (notifs.length === 0) {
-        list.innerHTML = '<div style="padding:30px;text-align:center;color:var(--muted);font-size:.85em;">알림이 없습니다.</div>';
-        return;
-    }
-    list.innerHTML = notifs.map(n => {
-        const time = new Date(n.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        return `<div class="notif-item${n.is_read ? '' : ' unread'}" onclick="markRead('${n.id}')">
-            <div style="font-weight:${n.is_read ? 500 : 700};font-size:.88em;">${esc(n.title || '')}</div>
-            <div style="font-size:.8em;color:var(--muted);margin-top:2px;">${esc(n.body || '')}</div>
-            <div style="font-size:.7em;color:#bbb;margin-top:4px;">${time}</div>
-        </div>`;
-    }).join('');
-}
-
-async function markRead(id) {
-    await db.from('notifications').update({ is_read: true }).eq('id', id);
-    loadNotifications();
-}
-
-async function markAllRead() {
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) return;
-    await db.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
-    loadNotifications();
-}
-
-function toggleNotifPanel() {
-    const panel = document.getElementById('notif-panel');
-    const backdrop = document.getElementById('notif-backdrop');
-    const open = panel.classList.toggle('open');
-    backdrop.style.display = open ? '' : 'none';
-}
-
-function closeNotifPanel() {
-    document.getElementById('notif-panel').classList.remove('open');
-    document.getElementById('notif-backdrop').style.display = 'none';
-}
-
-// ── 푸시 알림 (간단 버전) ──
-async function sendPushNotifSimple(userId, title, body, url) {
-    const { data: subs } = await db.from('push_subscriptions')
-        .select('subscription')
-        .eq('user_id', userId);
-    if (!subs || subs.length === 0) return;
+  if (navigator.share) {
     try {
-        await db.functions.invoke('send-push', {
-            body: { subscriptions: subs.map(s => s.subscription), title, body, url }
-        });
-    } catch (e) { console.log('push send error:', e.message); }
+      await navigator.share({
+        title: '반쪽 — 지인이 연결해주는 소개팅',
+        text,
+        url: link,
+      });
+    } catch {}
+  } else {
+    await navigator.clipboard.writeText(text);
+    toast(`복사 완료! 카톡 등으로 붙여넣어 초대하세요\n(링크는 가입 페이지로 연결돼요)`);
+  }
 }
 
-// ── 로그아웃 ──
-async function doLogout() {
-    await db.auth.signOut();
-    localStorage.removeItem('kj_role');
-    localStorage.removeItem('kj_screen');
-    window.location.href = 'index.html';
+// --- 소개하기 ---
+async function loadIntroduceTab() {
+  const profile = AppState.getProfile();
+  if (!profile || !profile.is_matchmaker) return;
+
+  _selectedPersonA = null;
+  _selectedPersonB = null;
+  document.getElementById('introduce-step-2')?.classList.add('hidden');
+  document.getElementById('introduce-step-3')?.classList.add('hidden');
+
+  const { data: myPeople } = await sb.from('applicants')
+    .select('id, name, gender, birth_date, photo_url, photos, job, location, mbti')
+    .eq('invited_by', profile.id)
+    .eq('status', 'approved')
+    .eq('is_participant', true);
+
+  const selector = document.getElementById('person-selector');
+  if (!myPeople || myPeople.length === 0) {
+    selector.innerHTML = '<p style="color:var(--muted);font-size:14px;">승인된 참가자가 없어요. 먼저 초대 코드를 공유해주세요.</p>';
+    return;
+  }
+
+  selector.innerHTML = myPeople.map(p => {
+    const age = calcAge(p.birth_date);
+    const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+    return `<div class="person-row-card" onclick="selectPersonForIntro('${p.id}', this)" data-person-id="${p.id}">
+      ${photoSrc ? `<img class="prc-photo" src="${esc(photoSrc)}" alt="">` : `<div class="prc-photo prc-photo-empty"><i class="fa-solid fa-user"></i></div>`}
+      <div class="prc-info">
+        <div class="prc-name">${esc(p.name)} <span class="prc-meta">${p.gender === 'male' ? '♂' : p.gender === 'female' ? '♀' : ''} ${age ? age + '세' : ''}</span></div>
+        <div class="prc-detail">${esc(p.job || '직업 미입력')} · ${esc(p.location || '')} ${p.height ? '· ' + p.height + 'cm' : ''} ${p.mbti ? '· ' + esc(p.mbti) : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-// ── 시작 ──
-document.addEventListener('DOMContentLoaded', init);
+async function selectPersonForIntro(personId, el) {
+  _selectedPersonA = personId;
+  document.querySelectorAll('#person-selector .person-row-card').forEach(c => c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+
+  // Load the selected person to determine opposite gender
+  const { data: personA } = await sb.from('applicants').select('gender').eq('id', personId).maybeSingle();
+  const oppositeGender = personA?.gender === 'male' ? 'female' : 'male';
+
+  document.getElementById('pool-gender').value = oppositeGender;
+  document.getElementById('introduce-step-2').classList.remove('hidden');
+  document.getElementById('introduce-step-3').classList.add('hidden');
+  _selectedPersonB = null;
+
+  searchPool();
+}
+
+async function searchPool() {
+  const gender = document.getElementById('pool-gender').value || null;
+  const location = document.getElementById('pool-location').value || null;
+  const job = document.getElementById('pool-job')?.value || null;
+  const minAge = parseInt(document.getElementById('pool-min-age')?.value) || null;
+  const maxAge = parseInt(document.getElementById('pool-max-age')?.value) || null;
+  const minHeight = parseInt(document.getElementById('pool-min-height')?.value) || null;
+  const maxHeight = parseInt(document.getElementById('pool-max-height')?.value) || null;
+
+  const { data: pool, error } = await sb.rpc('search_introduction_pool', {
+    p_gender: gender,
+    p_location: location,
+    p_job: job,
+    p_min_age: minAge,
+    p_max_age: maxAge,
+    p_min_height: minHeight,
+    p_max_height: maxHeight,
+  });
+
+  const results = document.getElementById('pool-results');
+  if (error) console.error('[searchPool] error:', error);
+  if (error || !pool || pool.length === 0) {
+    results.innerHTML = '<p style="color:var(--muted);font-size:14px;padding:12px 0;">조건에 맞는 사람이 없어요.</p>';
+    return;
+  }
+
+  // Get person A data for compatibility score
+  const { data: personA } = await sb.from('applicants').select('*').eq('id', _selectedPersonA).maybeSingle();
+
+  results.innerHTML = pool.map((p, idx) => {
+    const age = calcAge(p.birth_date);
+    const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+    const score = personA ? calcMatchScore(personA, p) : null;
+    const selected = _selectedPersonB === p.id ? 'selected' : '';
+
+    return `
+      <div class="person-row-card ${selected}" onclick="selectPoolPerson('${p.id}', this)" data-person-id="${p.id}">
+        <div class="prc-num">${idx + 1}</div>
+        ${photoSrc ? `<img class="prc-photo" src="${esc(photoSrc)}" alt="">` : `<div class="prc-photo prc-photo-empty"><i class="fa-solid fa-user"></i></div>`}
+        <div class="prc-info">
+          <div class="prc-name">${esc(p.name)} <span class="prc-meta">${p.gender === 'male' ? '♂' : '♀'} ${age ? age + '세' : ''}</span> ${score != null ? `<span class="prc-score">${score}점</span>` : ''}</div>
+          <div class="prc-detail">
+            ${p.height ? p.height + 'cm · ' : ''}${esc(p.job || '직업 미입력')} · ${esc(p.location || '지역 미입력')} ${p.mbti ? '· ' + esc(p.mbti) : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function selectPoolPerson(personId, el) {
+  _selectedPersonB = personId;
+  document.querySelectorAll('#pool-results .person-row-card').forEach(c => c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+
+  // Show compatibility report
+  const { data: personA } = await sb.from('applicants').select('*').eq('id', _selectedPersonA).maybeSingle();
+  const { data: personB } = await sb.from('applicants').select('*').eq('id', _selectedPersonB).maybeSingle();
+
+  if (personA && personB) {
+    const compatA = compatibilityReport(personA, personB);
+    const compatB = compatibilityReport(personB, personA);
+
+    document.getElementById('intro-compat-report').innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">${esc(personA.name)}님 입장에서 본 ${esc(personB.name)}님</div>
+        <div class="compat-list">${compatA.map(c => `
+          <div class="compat-item">
+            <span class="compat-icon ${c.status === 'match' ? 'compat-match' : c.status === 'mismatch' ? 'compat-mismatch' : 'compat-neutral'}">
+              <i class="fa-solid ${c.status === 'match' ? 'fa-check' : c.status === 'mismatch' ? 'fa-xmark' : 'fa-minus'}"></i>
+            </span>
+            <span>${esc(c.key)}: ${esc(c.text)}</span>
+          </div>`).join('')}</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">${esc(personB.name)}님 입장에서 본 ${esc(personA.name)}님</div>
+        <div class="compat-list">${compatB.map(c => `
+          <div class="compat-item">
+            <span class="compat-icon ${c.status === 'match' ? 'compat-match' : c.status === 'mismatch' ? 'compat-mismatch' : 'compat-neutral'}">
+              <i class="fa-solid ${c.status === 'match' ? 'fa-check' : c.status === 'mismatch' ? 'fa-xmark' : 'fa-minus'}"></i>
+            </span>
+            <span>${esc(c.key)}: ${esc(c.text)}</span>
+          </div>`).join('')}</div>
+      </div>`;
+  }
+
+  document.getElementById('introduce-step-3').classList.remove('hidden');
+}
+
+async function confirmSendIntroduction() {
+  if (!_selectedPersonA || !_selectedPersonB) { toast('두 사람을 모두 선택해주세요.'); return; }
+  if (!confirm('소개를 보내시겠어요?')) return;
+
+  const profile = AppState.getProfile();
+  const note = document.getElementById('intro-note').value.trim();
+
+  // Cross-network: if person B was invited by a different matchmaker, set referred_by so
+  // that matchmaker also has read access and can be notified.
+  const { data: personBRow } = await sb.from('applicants')
+    .select('invited_by, gender, is_participant, status')
+    .eq('id', _selectedPersonB).maybeSingle();
+  const { data: personARow } = await sb.from('applicants')
+    .select('gender, is_participant, status')
+    .eq('id', _selectedPersonA).maybeSingle();
+
+  // Client-side guards (server CHECKs catch these too — these surface friendlier errors).
+  if (!personARow || !personBRow) { toast('상대 정보를 불러올 수 없어요.'); return; }
+  if (personARow.gender && personBRow.gender && personARow.gender === personBRow.gender) {
+    toast('같은 성별은 매칭할 수 없어요.'); return;
+  }
+  if (!personARow.is_participant || !personBRow.is_participant
+      || personARow.status !== 'approved' || personBRow.status !== 'approved') {
+    toast('승인된 참가자만 소개할 수 있어요.'); return;
+  }
+
+  const referredBy = (personBRow.invited_by && personBRow.invited_by !== profile.id)
+    ? personBRow.invited_by : null;
+
+  const { error } = await sb.from('introductions').insert({
+    primary_matchmaker_id: profile.id,
+    referred_by_matchmaker_id: referredBy,
+    person_a_id: _selectedPersonA,
+    person_b_id: _selectedPersonB,
+    note: note || null,
+    person_a_response: 'pending',
+    person_b_response: 'pending',
+    status: 'pending'
+  });
+
+  if (error) { toast('소개 전송 실패: ' + error.message); return; }
+
+  // Notify both people
+  await sb.rpc('create_notification', { p_user_id: _selectedPersonA, p_type: 'introduction_received', p_title: '소개가 도착했어요!', p_body: '주선자가 새로운 소개를 보냈어요.' });
+  await sb.rpc('create_notification', { p_user_id: _selectedPersonB, p_type: 'introduction_received', p_title: '소개가 도착했어요!', p_body: '주선자가 새로운 소개를 보냈어요.' });
+  // Notify referred matchmaker if different
+  if (referredBy) {
+    await sb.rpc('create_notification', { p_user_id: referredBy, p_type: 'introduction_received', p_title: '내 사람이 소개되었어요', p_body: `${profile.name}님이 새 소개를 보냈어요.` });
+  }
+
+  toast('소개를 보냈어요!');
+  logEvent('introduction_sent', { person_a: _selectedPersonA, person_b: _selectedPersonB });
+
+  // Reset
+  _selectedPersonA = null;
+  _selectedPersonB = null;
+  loadIntroduceTab();
+}
+
+// --- 요청함 ---
+async function loadRequestsTab() {
+  const profile = AppState.getProfile();
+  if (!profile || !profile.is_matchmaker) return;
+
+  const { data: requests, error: requestsError } = await sb.from('introduction_requests')
+    .select(`*,
+      requester:requester_matchmaker_id(name, photo_url, photos),
+      target:target_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+    `)
+    .or(`and(request_type.eq.broadcast,status.eq.open),responder_matchmaker_id.eq.${profile.id}`)
+    .neq('requester_matchmaker_id', profile.id)
+    .order('created_at', { ascending: false });
+
+  const { data: myRequests, error: myRequestsError } = await sb.from('introduction_requests')
+    .select(`*,
+      target:target_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+    `)
+    .eq('requester_matchmaker_id', profile.id)
+    .order('created_at', { ascending: false });
+
+  let responseRows = [];
+  if (myRequests && myRequests.length > 0) {
+    const requestIds = myRequests.map(req => req.id);
+    const { data: responses, error: responsesError } = await sb.from('introduction_request_responses')
+      .select(`*,
+        responder:responder_matchmaker_id(name, photo_url, photos),
+        proposed:proposed_applicant_id(name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+      `)
+      .in('request_id', requestIds)
+      .order('created_at', { ascending: false });
+    if (responsesError) console.error('[loadRequestsTab] responses failed:', responsesError);
+    responseRows = responses || [];
+  }
+
+  if (requestsError) console.error('[loadRequestsTab] incoming requests failed:', requestsError);
+  if (myRequestsError) console.error('[loadRequestsTab] my requests failed:', myRequestsError);
+
+  const emptyEl = document.getElementById('requests-empty');
+  const listEl = document.getElementById('request-list');
+
+  const hasIncoming = requests && requests.length > 0;
+  const hasMyRequests = myRequests && myRequests.length > 0;
+  const hasResponses = responseRows.length > 0;
+
+  if (!hasIncoming && !hasMyRequests) {
+    emptyEl?.classList.remove('hidden');
+    listEl.innerHTML = '';
+    return;
+  }
+
+  emptyEl?.classList.add('hidden');
+
+  const renderRequestCard = req => {
+    const criteria = req.criteria || {};
+    const target = req.target || {};
+    const age = calcAge(target.birth_date);
+    const targetPhoto = (target.photos && target.photos[0]) || target.photo_url || '';
+    const requesterPhoto = (req.requester?.photos && req.requester.photos[0]) || req.requester?.photo_url || '';
+
+    return `
+      <div class="request-card-v2">
+        <div class="rcv-header">
+          <div class="rcv-requester">
+            ${requesterPhoto ? `<img class="rcv-requester-photo" src="${esc(requesterPhoto)}" alt="">` : '<div class="rcv-requester-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+            <span class="rcv-requester-name">${esc(req.requester?.name || '주선자')}님의 요청</span>
+          </div>
+          <span class="request-type-badge ${req.request_type}">${req.request_type === 'broadcast' ? '전체' : '지목'}</span>
+        </div>
+
+        <div class="rcv-target">
+          ${targetPhoto ? `<img class="rcv-target-photo" src="${esc(targetPhoto)}" alt="">` : '<div class="rcv-target-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+          <div class="rcv-target-info">
+            <div class="rcv-target-name">${esc(target.name || '?')} ${target.gender === 'male' ? '♂' : target.gender === 'female' ? '♀' : ''} <span class="rcv-target-age">${age ? age + '세' : ''}</span></div>
+            <div class="rcv-target-detail">${target.height ? target.height + 'cm · ' : ''}${esc(target.job || '')}${target.location ? ' · ' + esc(target.location) : ''}${target.mbti ? ' · ' + esc(target.mbti) : ''}</div>
+            <div class="rcv-target-headline">에게 어울릴 분을 찾고 있어요</div>
+          </div>
+        </div>
+
+        <div class="rcv-criteria-block">
+          <div class="rcv-criteria-label">이런 분이면 좋아요</div>
+          <div class="request-criteria">
+            ${criteria.gender ? `<span><i class="fa-solid fa-venus-mars"></i> ${criteria.gender === 'male' ? '남성' : '여성'}</span>` : ''}
+            ${(criteria.age_min || criteria.age_max) ? `<span><i class="fa-solid fa-cake-candles"></i> ${criteria.age_min || '?'}~${criteria.age_max || '?'}세</span>` : ''}
+            ${criteria.location ? `<span><i class="fa-solid fa-location-dot"></i> ${esc(criteria.location)}</span>` : ''}
+            ${criteria.job ? `<span><i class="fa-solid fa-briefcase"></i> ${esc(criteria.job)}</span>` : ''}
+            ${(!criteria.gender && !criteria.age_min && !criteria.age_max && !criteria.location && !criteria.job) ? '<span style="color:var(--muted);">조건 없음 (자유)</span>' : ''}
+          </div>
+        </div>
+
+        <div class="rcv-actions">
+          <button class="btn-primary rcv-btn" onclick="openRespondPickerModal('${req.id}', '${esc(target.name || '')}')"><i class="fa-solid fa-hand-holding-heart"></i> 내 사람 추천하기</button>
+          <span class="rcv-time">${formatTimeAgo(req.created_at)}</span>
+        </div>
+      </div>`;
+  };
+
+  const requestMap = {};
+  (myRequests || []).forEach(req => { requestMap[req.id] = req; });
+
+  const renderResponseCard = res => {
+    const req = requestMap[res.request_id] || {};
+    const target = req.target || {};
+    const proposed = res.proposed || {};
+    const responderPhoto = (res.responder?.photos && res.responder.photos[0]) || res.responder?.photo_url || '';
+    const proposedPhoto = (proposed.photos && proposed.photos[0]) || proposed.photo_url || '';
+    const targetAge = calcAge(target.birth_date);
+    const proposedAge = calcAge(proposed.birth_date);
+    const statusLabel = res.status === 'requester_accepted' ? '수락됨' : res.status === 'requester_declined' ? '거절됨' : '검토 대기';
+    const statusClass = res.status === 'requester_accepted' ? 'matched' : res.status === 'requester_declined' ? 'declined' : 'pending';
+
+    return `
+      <div class="request-card-v2 request-response-card">
+        <div class="rcv-header">
+          <div class="rcv-requester">
+            ${responderPhoto ? `<img class="rcv-requester-photo" src="${esc(responderPhoto)}" alt="">` : '<div class="rcv-requester-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+            <span class="rcv-requester-name">${esc(res.responder?.name || '주선자')}님의 추천</span>
+          </div>
+          <span class="intro-status-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="response-pair">
+          <div class="response-person">
+            <div class="response-label">내 요청 대상</div>
+            <div class="response-name">${esc(target.name || '?')} ${targetAge ? `<span>${targetAge}세</span>` : ''}</div>
+            <div class="response-detail">${target.height ? target.height + 'cm · ' : ''}${esc(target.job || '')}${target.location ? ' · ' + esc(target.location) : ''}</div>
+          </div>
+          <div class="response-link"><i class="fa-solid fa-heart"></i></div>
+          <div class="response-person">
+            <div class="response-label">추천 후보</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${proposedPhoto ? `<img class="response-photo" src="${esc(proposedPhoto)}" alt="">` : '<div class="response-photo rcv-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+              <div>
+                <div class="response-name">${esc(proposed.name || '?')} ${proposedAge ? `<span>${proposedAge}세</span>` : ''}</div>
+                <div class="response-detail">${proposed.height ? proposed.height + 'cm · ' : ''}${esc(proposed.job || '')}${proposed.location ? ' · ' + esc(proposed.location) : ''}${proposed.mbti ? ' · ' + esc(proposed.mbti) : ''}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${res.status === 'pending' ? `
+          <div class="rcv-actions response-actions">
+            <button class="btn-ghost rcv-btn" onclick="resolveRequestResponse('${res.id}', false)">거절</button>
+            <button class="btn-primary rcv-btn" onclick="resolveRequestResponse('${res.id}', true)">소개 만들기</button>
+          </div>
+        ` : ''}
+        <div class="rcv-time" style="margin-top:8px;">${formatTimeAgo(res.created_at)}</div>
+      </div>`;
+  };
+
+  const myRequestHtml = hasResponses
+    ? responseRows.map(renderResponseCard).join('')
+    : (hasMyRequests ? '<div class="request-empty-inline">아직 도착한 추천이 없어요.</div>' : '');
+
+  listEl.innerHTML = `
+    <div class="request-section">
+      <div class="request-section-title">내 요청에 온 추천</div>
+      ${myRequestHtml}
+    </div>
+    <div class="request-section">
+      <div class="request-section-title">받은 요청</div>
+      ${hasIncoming ? requests.map(renderRequestCard).join('') : '<div class="request-empty-inline">응답할 요청이 없어요.</div>'}
+    </div>`;
+}
+
+let _currentRespondReqId = null;
+
+async function openRespondPickerModal(requestId, targetName) {
+  _currentRespondReqId = requestId;
+  const profile = AppState.getProfile();
+  const { data: myPeople } = await sb.from('applicants')
+    .select('id, name, gender, birth_date, job, location, mbti, height, photo_url, photos')
+    .eq('invited_by', profile.id)
+    .eq('status', 'approved')
+    .eq('is_participant', true);
+
+  document.getElementById('respond-target-name').textContent = targetName || '상대';
+  const list = document.getElementById('respond-people-list');
+
+  if (!myPeople || myPeople.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:14px;padding:12px 0;text-align:center;">추천할 수 있는 사람이 없어요. 먼저 초대 코드를 공유해주세요.</p>';
+  } else {
+    list.innerHTML = myPeople.map(p => {
+      const age = calcAge(p.birth_date);
+      const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+      return `<div class="person-row-card" onclick="confirmRespondPick('${p.id}','${esc(p.name)}', this)">
+        ${photoSrc ? `<img class="prc-photo" src="${esc(photoSrc)}" alt="">` : '<div class="prc-photo prc-photo-empty"><i class="fa-solid fa-user"></i></div>'}
+        <div class="prc-info">
+          <div class="prc-name">${esc(p.name)} <span class="prc-meta">${p.gender === 'male' ? '♂' : '♀'} ${age ? age + '세' : ''}</span></div>
+          <div class="prc-detail">${p.height ? p.height + 'cm · ' : ''}${esc(p.job || '')} ${p.location ? '· ' + esc(p.location) : ''} ${p.mbti ? '· ' + esc(p.mbti) : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('respond-picker-overlay').classList.add('open');
+}
+
+function closeRespondPickerModal() {
+  document.getElementById('respond-picker-overlay').classList.remove('open');
+  _currentRespondReqId = null;
+}
+
+async function confirmRespondPick(personId, personName, el) {
+  if (!_currentRespondReqId) return;
+  if (!confirm(`${personName}님을 추천하시겠어요?`)) return;
+  const profile = AppState.getProfile();
+
+  // Look up the requester so we can notify them after insert.
+  const { data: req } = await sb.from('introduction_requests')
+    .select('requester_matchmaker_id')
+    .eq('id', _currentRespondReqId).maybeSingle();
+
+  const { error } = await sb.from('introduction_request_responses').insert({
+    request_id: _currentRespondReqId,
+    responder_matchmaker_id: profile.id,
+    proposed_applicant_id: personId
+  });
+  if (error) { toast('응답 실패: ' + error.message); return; }
+
+  if (req?.requester_matchmaker_id) {
+    await sb.rpc('create_notification', {
+      p_user_id: req.requester_matchmaker_id,
+      p_type: 'request_received',
+      p_title: '내 요청에 추천이 도착했어요',
+      p_body: `${profile.name}님이 ${personName}님을 추천했어요.`,
+      p_data: { request_id: _currentRespondReqId, proposed_applicant_id: personId }
+    });
+  }
+
+  toast(`${personName}님을 추천했어요!`);
+  logEvent('request_response', { request_id: _currentRespondReqId, proposed: personId });
+  closeRespondPickerModal();
+}
+
+async function resolveRequestResponse(responseId, accept) {
+  const action = accept ? '소개를 만들까요?' : '이 추천을 거절할까요?';
+  if (!confirm(action)) return;
+
+  const { data, error } = await sb.rpc('resolve_request_response', {
+    p_response_id: responseId,
+    p_accept: accept,
+  });
+
+  if (error) {
+    toast((accept ? '소개 생성 실패: ' : '거절 실패: ') + error.message);
+    return;
+  }
+
+  if (data?.accepted) {
+    toast('소개를 만들었어요. 두 참가자에게 알림을 보냈습니다.');
+    logEvent('request_response_accepted', { response_id: responseId, introduction_id: data.introduction_id });
+  } else {
+    toast('추천을 거절했어요.');
+    logEvent('request_response_declined', { response_id: responseId });
+  }
+
+  loadRequestsTab();
+  loadHistoryTab();
+}
+
+// --- Broadcast 요청 생성 ---
+function openCreateRequestModal() {
+  const profile = AppState.getProfile();
+  // Populate target person dropdown
+  sb.from('applicants')
+    .select('id, name, birth_date, job')
+    .eq('invited_by', profile.id)
+    .eq('status', 'approved')
+    .eq('is_participant', true)
+    .then(({ data: people }) => {
+      const select = document.getElementById('req-target-person');
+      select.innerHTML = '<option value="">내 사람 선택</option>' +
+        (people || []).map(p => `<option value="${p.id}">${esc(p.name)} (${calcAge(p.birth_date) || '?'}세)</option>`).join('');
+    });
+
+  document.getElementById('request-modal-overlay').classList.add('open');
+}
+
+function closeRequestModal() {
+  document.getElementById('request-modal-overlay').classList.remove('open');
+}
+
+async function submitBroadcastRequest() {
+  const targetPerson = document.getElementById('req-target-person').value;
+  const gender = document.getElementById('req-gender').value;
+  if (!targetPerson) { toast('내 사람을 선택해주세요.'); return; }
+
+  const criteria = {};
+  if (gender) criteria.gender = gender;
+  const ageMin = parseInt(document.getElementById('req-age-min').value);
+  const ageMax = parseInt(document.getElementById('req-age-max').value);
+  if (ageMin) criteria.age_min = ageMin;
+  if (ageMax) criteria.age_max = ageMax;
+  const loc = document.getElementById('req-location').value;
+  if (loc) criteria.location = loc;
+  const job = document.getElementById('req-job').value;
+  if (job) criteria.job = job;
+
+  const profile = AppState.getProfile();
+  const { error } = await sb.from('introduction_requests').insert({
+    requester_matchmaker_id: profile.id,
+    target_applicant_id: targetPerson,
+    request_type: 'broadcast',
+    criteria: criteria,
+    status: 'open'
+  });
+
+  if (error) { toast('요청 생성 실패: ' + error.message); return; }
+  toast('소개 요청을 보냈어요!');
+  closeRequestModal();
+  logEvent('broadcast_request', { target: targetPerson });
+}
+
+// --- 이력 ---
+async function loadHistoryTab() {
+  const profile = AppState.getProfile();
+  if (!profile || !profile.is_matchmaker) return;
+
+  const { data: history } = await sb.from('introductions')
+    .select(`*,
+      person_a:person_a_id(id, name, gender, birth_date, job, location, mbti, height, photo_url, photos),
+      person_b:person_b_id(id, name, gender, birth_date, job, location, mbti, height, photo_url, photos)
+    `)
+    .or(`primary_matchmaker_id.eq.${profile.id},referred_by_matchmaker_id.eq.${profile.id}`)
+    .order('created_at', { ascending: false });
+
+  const emptyEl = document.getElementById('history-empty');
+  const listEl = document.getElementById('history-list');
+
+  if (!history || history.length === 0) {
+    emptyEl?.classList.remove('hidden');
+    listEl.innerHTML = '';
+    return;
+  }
+
+  emptyEl?.classList.add('hidden');
+
+  const renderMini = (p) => {
+    if (!p) return '<div class="hist-person hist-person-unknown"><i class="fa-solid fa-user"></i><div>알 수 없음</div></div>';
+    const age = calcAge(p.birth_date);
+    const photoSrc = (p.photos && p.photos[0]) || p.photo_url || '';
+    return `
+      <div class="hist-person" onclick="event.stopPropagation();openProfileModal('${p.id}')">
+        ${photoSrc ? `<img class="hist-photo" src="${esc(photoSrc)}" alt="">` : `<div class="hist-photo hist-photo-empty"><i class="fa-solid fa-user"></i></div>`}
+        <div class="hist-name">${esc(p.name)} ${p.gender === 'male' ? '♂' : '♀'}</div>
+        <div class="hist-detail">${age ? age + '세' : ''}${p.height ? ' · ' + p.height + 'cm' : ''}</div>
+        <div class="hist-detail">${esc(p.job || '')}${p.location ? ' · ' + esc(p.location) : ''}${p.mbti ? ' · ' + esc(p.mbti) : ''}</div>
+      </div>`;
+  };
+
+  listEl.innerHTML = history.map(h => {
+    const statusClass = h.status === 'matched' ? 'matched' : h.status === 'declined' ? 'declined' : h.status === 'expired' ? 'expired' : 'pending';
+    const statusLabel = h.status === 'matched' ? '매칭 성사' : h.status === 'declined' ? '거절됨' : h.status === 'expired' ? '만료됨' : '진행 중';
+
+    return `
+      <div class="history-card-v2">
+        <div class="history-meta">
+          <span class="intro-status-badge ${statusClass}">${statusLabel}</span>
+          <span class="history-date">${formatTimeAgo(h.created_at)}</span>
+        </div>
+        <div class="history-couple">
+          ${renderMini(h.person_a)}
+          <div class="history-link"><i class="fa-solid fa-heart"></i></div>
+          ${renderMini(h.person_b)}
+        </div>
+        ${h.note ? `<div class="history-note">"${esc(h.note)}"</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// --- Matchmaker MY Tab ---
+async function loadMatchmakerMyTab() {
+  const profile = AppState.getProfile();
+  if (!profile) return;
+
+  // Stats: 추천한 사람 수, 진행 중 소개, 성사 매칭 — 각 쿼리 에러 별도 추적
+  const [invitedRes, introRes, matchedRes] = await Promise.all([
+    sb.from('applicants').select('id', { count: 'exact', head: true }).eq('invited_by', profile.id),
+    sb.from('introductions').select('id', { count: 'exact', head: true }).eq('primary_matchmaker_id', profile.id).eq('status', 'pending'),
+    sb.from('introductions').select('id', { count: 'exact', head: true }).eq('primary_matchmaker_id', profile.id).eq('status', 'matched'),
+  ]);
+
+  if (invitedRes.error) console.error('[loadMatchmakerMyTab] invited count failed:', invitedRes.error);
+  if (introRes.error) console.error('[loadMatchmakerMyTab] intro count failed:', introRes.error);
+  if (matchedRes.error) console.error('[loadMatchmakerMyTab] matched count failed:', matchedRes.error);
+
+  const fmt = (res, suffix) => res.error ? '—' : `${res.count || 0}${suffix}`;
+  const headerSub = invitedRes.error ? '주선자' : `주선자 · 추천한 분 ${invitedRes.count || 0}명`;
+
+  const container = document.getElementById('mm-my-profile');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="my-profile-header">
+      <div class="my-profile-avatar" style="display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);"><i class="fa-solid fa-hand-holding-heart"></i></div>
+      <div class="my-profile-name">${esc(profile.name)}</div>
+      <div class="my-profile-sub">${headerSub}</div>
+    </div>
+
+    <div class="my-section">
+      <div class="my-section-title">활동 통계</div>
+      <div class="pm-grid">
+        <div class="pm-grid-item"><div class="pm-grid-label">추천한 분</div><div class="pm-grid-value">${fmt(invitedRes, '명')}</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">진행 중 소개</div><div class="pm-grid-value">${fmt(introRes, '건')}</div></div>
+        <div class="pm-grid-item"><div class="pm-grid-label">성사된 매칭</div><div class="pm-grid-value">${fmt(matchedRes, '쌍')}</div></div>
+      </div>
+    </div>
+
+    ${profile.is_participant ? `
+      <div class="my-section">
+        <div class="my-section-title">힌트</div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.5;">참가자 모드 (소개 받기)도 활성화되어 있어요. 상단 '참가자' 토글로 전환할 수 있어요.</p>
+      </div>
+    ` : `
+      <div class="my-section">
+        <div class="my-section-title">설정</div>
+        <div class="my-menu-item" onclick="enableParticipantRole()">
+          <span><i class="fa-solid fa-heart"></i> 참가자 역할 추가</span>
+          <i class="fa-solid fa-chevron-right chevron"></i>
+        </div>
+      </div>
+    `}
+
+    <button class="btn-secondary" id="btn-mm-logout" style="margin-top:8px;">
+      <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
+    </button>
+  `;
+
+  document.getElementById('btn-mm-logout')?.addEventListener('click', confirmLogout);
+}
