@@ -24,6 +24,12 @@ create policy "Users can update own profile"
 
 -- BEFORE UPDATE trigger 로 immutable 권한 컬럼 보호
 -- (WITH CHECK 자기참조는 무한재귀 발생 → trigger 사용)
+--
+-- ⚠️ Round 6 라이브 검증에서 발견: SECURITY DEFINER RPC 도 auth.uid() 가 호출자
+-- 그대로 유지되므로 트리거에 막힘 → 정상 자동 승인 흐름 차단됨.
+-- 해결: 신뢰된 RPC 가 set_config('app.allow_immutable_change','true', true)
+-- 로 세션 GUC 를 켠 상태로 UPDATE → 트리거가 GUC 검사 후 우회.
+-- (set_config 의 3번째 인자 true = transaction-local: 트랜잭션 종료시 리셋)
 create or replace function public.applicants_protect_immutable()
 returns trigger
 language plpgsql
@@ -34,6 +40,9 @@ begin
   end if;
   if auth.uid() is null then
     return new; -- SECURITY DEFINER context (postgres role) 우회
+  end if;
+  if current_setting('app.allow_immutable_change', true) = 'true' then
+    return new; -- 신뢰된 RPC 가 명시적으로 켠 bypass (R6 fix)
   end if;
   if old.is_participant is distinct from new.is_participant
      or old.is_matchmaker is distinct from new.is_matchmaker
@@ -54,6 +63,7 @@ create trigger tg_applicants_protect_immutable
   for each row execute function public.applicants_protect_immutable();
 
 -- 역할 추가는 SECURITY DEFINER RPC 로
+-- (R6: trigger bypass GUC 사용 — applicants_protect_immutable 우회)
 create or replace function public.enable_my_role(p_role text)
 returns boolean
 language plpgsql
@@ -66,18 +76,99 @@ begin
   select id into caller_id from public.applicants where user_id = auth.uid()::text;
   if caller_id is null then return false; end if;
 
+  perform set_config('app.allow_immutable_change', 'true', true);
   if p_role = 'matchmaker' then
     update public.applicants set is_matchmaker = true where id = caller_id;
-    return true;
   elsif p_role = 'participant' then
     update public.applicants set is_participant = true where id = caller_id;
-    return true;
+  else
+    perform set_config('app.allow_immutable_change', 'false', true);
+    return false;
   end if;
-  return false;
+  perform set_config('app.allow_immutable_change', 'false', true);
+  return true;
 end;
 $$;
 
 grant execute on function public.enable_my_role(text) to authenticated;
+
+-- 평판 작성 후 자동 승인 RPC (R6: trigger bypass GUC)
+create or replace function public.approve_after_reputation(p_target_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  caller_id uuid;
+  affected int;
+begin
+  select id into caller_id from public.applicants where user_id = auth.uid()::text;
+  if caller_id is null then return false; end if;
+
+  -- 평판 작성자 본인이 호출했는지 검증
+  if not exists (select 1 from public.reputations where writer_id = caller_id and target_id = p_target_id) then
+    return false;
+  end if;
+
+  perform set_config('app.allow_immutable_change', 'true', true);
+  update public.applicants
+  set status = 'approved'
+  where id = p_target_id and status = 'pending_reputation' and invited_by = caller_id;
+  get diagnostics affected = row_count;
+  perform set_config('app.allow_immutable_change', 'false', true);
+  return affected > 0;
+end;
+$$;
+
+grant execute on function public.approve_after_reputation(uuid) to authenticated;
+
+-- signup_with_invite (R6: 추가 보강 — INSERT 는 트리거 영향 없으나 원자성 유지)
+create or replace function public.signup_with_invite(
+  p_invite_code text, p_name text, p_email text,
+  p_is_participant boolean, p_is_matchmaker boolean,
+  p_is_supercode boolean default false
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid text;
+  v_inviter_id uuid;
+  v_invite_id uuid;
+  v_new_id uuid;
+begin
+  v_uid := auth.uid()::text;
+  if v_uid is null then raise exception 'Not authenticated'; end if;
+
+  if exists (select 1 from public.applicants where user_id = v_uid) then
+    raise exception 'Applicant already exists for this user';
+  end if;
+
+  if not p_is_supercode then
+    select id, created_by into v_invite_id, v_inviter_id
+    from public.invite_codes where code = p_invite_code and is_used = false
+    for update;
+    if v_invite_id is null then raise exception 'Invalid or already used invite code'; end if;
+  end if;
+
+  insert into public.applicants (user_id, name, email, invited_by, status, is_participant, is_matchmaker)
+  values (v_uid, p_name, p_email, v_inviter_id,
+    case when p_is_supercode then 'approved' else 'pending_reputation' end,
+    p_is_participant, p_is_matchmaker)
+  returning id into v_new_id;
+
+  if v_invite_id is not null then
+    update public.invite_codes set is_used = true, used_by = v_new_id, used_at = now()
+    where id = v_invite_id;
+  end if;
+  return v_new_id;
+end;
+$$;
+
+grant execute on function public.signup_with_invite(text, text, text, boolean, boolean, boolean) to authenticated;
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- [CRIT-2] introductions UPDATE WITH CHECK 누락 — 매칭 강제 성사 가능
@@ -206,6 +297,75 @@ create policy "Users can update own notifications"
 -- ──────────────────────────────────────────────────────────────────────────
 
 drop function if exists public.search_introduction_pool(text, integer, integer, text, text);
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- [R6-A1] chat_messages UPDATE 정책 누락 — 읽음 처리 (read_at) silently fail
+-- 수신자가 본인이 받은 메시지의 read_at 만 갱신할 수 있도록.
+-- ──────────────────────────────────────────────────────────────────────────
+
+drop policy if exists "Recipient can mark chat as read" on public.chat_messages;
+create policy "Recipient can mark chat as read"
+  on public.chat_messages for update
+  using (
+    sender_id != public.get_my_applicant_id()
+    and match_id in (
+      select id from public.matches
+      where applicant_a_id = public.get_my_applicant_id()
+         or applicant_b_id = public.get_my_applicant_id()
+    )
+  )
+  with check (
+    sender_id != public.get_my_applicant_id()
+    and match_id in (
+      select id from public.matches
+      where applicant_a_id = public.get_my_applicant_id()
+         or applicant_b_id = public.get_my_applicant_id()
+    )
+  );
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- [R6-A2] create_notification: mm_messages 관계도 허용
+-- 주선자 ↔ 참가자 1:1 채팅 알림이 invited_by 관계가 아닐 때 차단되던 문제.
+-- ──────────────────────────────────────────────────────────────────────────
+
+create or replace function public.create_notification(
+  p_user_id uuid,
+  p_type text,
+  p_title text,
+  p_body text default '',
+  p_data jsonb default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  caller_id uuid;
+begin
+  select id into caller_id from public.applicants where user_id = auth.uid()::text;
+  if caller_id is null then raise exception 'Not authenticated'; end if;
+
+  if exists (select 1 from public.admin_users where user_id = auth.uid()::text) then
+    insert into public.notifications (user_id, type, title, body, data)
+    values (p_user_id, p_type, p_title, p_body, p_data);
+    return;
+  end if;
+
+  if p_user_id = caller_id
+     or exists (select 1 from public.matches where (applicant_a_id = caller_id and applicant_b_id = p_user_id) or (applicant_b_id = caller_id and applicant_a_id = p_user_id))
+     or exists (select 1 from public.introductions where (person_a_id = caller_id or person_b_id = caller_id or primary_matchmaker_id = caller_id or referred_by_matchmaker_id = caller_id) and (person_a_id = p_user_id or person_b_id = p_user_id or primary_matchmaker_id = p_user_id or referred_by_matchmaker_id = p_user_id))
+     or exists (select 1 from public.applicants where (id = caller_id and invited_by = p_user_id) or (id = p_user_id and invited_by = caller_id))
+     or exists (select 1 from public.mm_messages where (matchmaker_id = caller_id and participant_id = p_user_id) or (participant_id = caller_id and matchmaker_id = p_user_id))
+  then
+    insert into public.notifications (user_id, type, title, body, data)
+    values (p_user_id, p_type, p_title, p_body, p_data);
+    return;
+  end if;
+
+  raise exception 'No relationship to send notification';
+end;
+$$;
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- 검증 쿼리

@@ -119,7 +119,7 @@ async function loadIntroduceTab() {
 
 async function selectPersonForIntro(personId, el) {
   _selectedPersonA = personId;
-  document.querySelectorAll('#person-selector .person-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('#person-selector .person-row-card').forEach(c => c.classList.remove('selected'));
   if (el) el.classList.add('selected');
 
   // Load the selected person to determine opposite gender
@@ -185,7 +185,7 @@ async function searchPool() {
 
 async function selectPoolPerson(personId, el) {
   _selectedPersonB = personId;
-  document.querySelectorAll('.pool-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('#pool-results .person-row-card').forEach(c => c.classList.remove('selected'));
   if (el) el.classList.add('selected');
 
   // Show compatibility report
@@ -229,8 +229,31 @@ async function confirmSendIntroduction() {
   const profile = AppState.getProfile();
   const note = document.getElementById('intro-note').value.trim();
 
+  // Cross-network: if person B was invited by a different matchmaker, set referred_by so
+  // that matchmaker also has read access and can be notified.
+  const { data: personBRow } = await sb.from('applicants')
+    .select('invited_by, gender, is_participant, status')
+    .eq('id', _selectedPersonB).maybeSingle();
+  const { data: personARow } = await sb.from('applicants')
+    .select('gender, is_participant, status')
+    .eq('id', _selectedPersonA).maybeSingle();
+
+  // Client-side guards (server CHECKs catch these too — these surface friendlier errors).
+  if (!personARow || !personBRow) { toast('상대 정보를 불러올 수 없어요.'); return; }
+  if (personARow.gender && personBRow.gender && personARow.gender === personBRow.gender) {
+    toast('같은 성별은 매칭할 수 없어요.'); return;
+  }
+  if (!personARow.is_participant || !personBRow.is_participant
+      || personARow.status !== 'approved' || personBRow.status !== 'approved') {
+    toast('승인된 참가자만 소개할 수 있어요.'); return;
+  }
+
+  const referredBy = (personBRow.invited_by && personBRow.invited_by !== profile.id)
+    ? personBRow.invited_by : null;
+
   const { error } = await sb.from('introductions').insert({
     primary_matchmaker_id: profile.id,
+    referred_by_matchmaker_id: referredBy,
     person_a_id: _selectedPersonA,
     person_b_id: _selectedPersonB,
     note: note || null,
@@ -244,6 +267,10 @@ async function confirmSendIntroduction() {
   // Notify both people
   await sb.rpc('create_notification', { p_user_id: _selectedPersonA, p_type: 'introduction_received', p_title: '소개가 도착했어요!', p_body: '주선자가 새로운 소개를 보냈어요.' });
   await sb.rpc('create_notification', { p_user_id: _selectedPersonB, p_type: 'introduction_received', p_title: '소개가 도착했어요!', p_body: '주선자가 새로운 소개를 보냈어요.' });
+  // Notify referred matchmaker if different
+  if (referredBy) {
+    await sb.rpc('create_notification', { p_user_id: referredBy, p_type: 'introduction_received', p_title: '내 사람이 소개되었어요', p_body: `${profile.name}님이 새 소개를 보냈어요.` });
+  }
 
   toast('소개를 보냈어요!');
   logEvent('introduction_sent', { person_a: _selectedPersonA, person_b: _selectedPersonB });
@@ -365,12 +392,29 @@ async function confirmRespondPick(personId, personName, el) {
   if (!_currentRespondReqId) return;
   if (!confirm(`${personName}님을 추천하시겠어요?`)) return;
   const profile = AppState.getProfile();
+
+  // Look up the requester so we can notify them after insert.
+  const { data: req } = await sb.from('introduction_requests')
+    .select('requester_matchmaker_id')
+    .eq('id', _currentRespondReqId).maybeSingle();
+
   const { error } = await sb.from('introduction_request_responses').insert({
     request_id: _currentRespondReqId,
     responder_matchmaker_id: profile.id,
     proposed_applicant_id: personId
   });
   if (error) { toast('응답 실패: ' + error.message); return; }
+
+  if (req?.requester_matchmaker_id) {
+    await sb.rpc('create_notification', {
+      p_user_id: req.requester_matchmaker_id,
+      p_type: 'request_received',
+      p_title: '내 요청에 추천이 도착했어요',
+      p_body: `${profile.name}님이 ${personName}님을 추천했어요.`,
+      p_data: { request_id: _currentRespondReqId, proposed_applicant_id: personId }
+    });
+  }
+
   toast(`${personName}님을 추천했어요!`);
   logEvent('request_response', { request_id: _currentRespondReqId, proposed: personId });
   closeRespondPickerModal();

@@ -100,7 +100,12 @@
 })();
 
 // --- Route after auth ---
-function routeAfterAuth() {
+async function routeAfterAuth() {
+  // signup_with_invite RPC creates the applicant row AFTER setUser runs,
+  // so refresh once here to ensure onboarding sees the role flags it needs.
+  if (!AppState.getProfile()) {
+    await AppState.refreshProfile();
+  }
   const profile = AppState.getProfile();
 
   if (!profile) {
@@ -143,6 +148,15 @@ function routeAfterAuth() {
   // Approved — show main app
   AppState.showScreen('screen-main');
   initMainApp();
+
+  // First approved login → welcome modal once per user.
+  try {
+    const seenKey = `banjjok_welcome_seen_${profile.id}`;
+    if (!localStorage.getItem(seenKey)) {
+      if (typeof showApprovedModal === 'function') showApprovedModal();
+      localStorage.setItem(seenKey, '1');
+    }
+  } catch (_) { /* localStorage blocked — no-op */ }
 }
 
 // --- Reputation Gate ---
@@ -183,6 +197,7 @@ async function loadReputationGate() {
         AppState.showScreen('screen-main');
         initMainApp();
         showApprovedModal();
+        try { localStorage.setItem(`banjjok_welcome_seen_${profile.id}`, '1'); } catch (_) {}
       } else if (payload.new.status === 'pending') {
         document.querySelector('.gate-container h2').textContent = '관리자 검토 중';
         document.querySelector('.gate-desc').textContent = '추천인의 평판이 작성되었습니다. 관리자 승인을 기다리고 있습니다.';
@@ -337,6 +352,11 @@ async function handleSignup() {
       return;
     }
     inviterId = verifyData[0].created_by;
+  }
+
+  // Capture role choice locally so onboarding doesn't race with the applicants insert.
+  if (typeof setSignupRoles === 'function') {
+    setSignupRoles({ is_participant: isParticipant, is_matchmaker: isMatchmaker });
   }
 
   // Sign up — auth user 생성

@@ -7,6 +7,15 @@ let _selectedGender = null;
 let _onboardStep = 1;
 const ONBOARD_TOTAL_STEPS = 4;
 
+// Captured at signup so onboarding doesn't depend on the applicants row being readable yet.
+let _signupRoles = null; // { is_participant, is_matchmaker }
+function setSignupRoles(roles) { _signupRoles = roles; }
+function getOnboardRoles() {
+  const profile = AppState.getProfile();
+  if (profile) return { is_participant: !!profile.is_participant, is_matchmaker: !!profile.is_matchmaker };
+  return _signupRoles || { is_participant: true, is_matchmaker: false };
+}
+
 // --- Onboarding ---
 function initOnboarding() {
   _onboardStep = 1;
@@ -51,8 +60,8 @@ function onboardNext(fromStep) {
     showOnboardStep(2);
   } else if (fromStep === 2) {
     // Photos optional, proceed
-    const profile = AppState.getProfile();
-    if (profile && profile.is_participant) {
+    const roles = getOnboardRoles();
+    if (roles.is_participant) {
       // Render ideal chips
       document.getElementById('onboard-ideal-chips').innerHTML = buildIdealChipsHtml('onboard-ideal-chips', null, _selectedGender);
       showOnboardStep(3);
@@ -66,8 +75,8 @@ function onboardNext(fromStep) {
 }
 
 function onboardBack(toStep) {
-  const profile = AppState.getProfile();
-  if (toStep === 4 && profile && !profile.is_participant) {
+  const roles = getOnboardRoles();
+  if (toStep === 4 && !roles.is_participant) {
     showOnboardStep(2); // Skip ideal step back for matchmaker-only
   } else {
     showOnboardStep(toStep - 1);
@@ -97,8 +106,8 @@ async function submitOnboarding() {
 
   // Collect ideal type data
   let idealType = null;
-  const profile = AppState.getProfile();
-  if (profile && profile.is_participant) {
+  const roles = getOnboardRoles();
+  if (roles.is_participant) {
     idealType = collectIdealData('onboard-ideal-chips', 'onboard-ideal-memo');
   }
 

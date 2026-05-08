@@ -138,15 +138,17 @@ function renderChatMessages(messages) {
   container.scrollTop = container.scrollHeight;
 }
 
-function appendChatBubble(msg) {
+function appendChatBubble(msg, opts) {
   const profile = AppState.getProfile();
   const isMine = msg.sender_id === profile.id;
   const container = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`;
+  if (opts && opts.tempId) div.dataset.tempId = opts.tempId;
   div.innerHTML = `${esc(msg.content)}<div class="chat-time">${formatChatTime(msg.created_at)}</div>`;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
+  return div;
 }
 
 async function sendChatMessage() {
@@ -159,12 +161,14 @@ async function sendChatMessage() {
   _chatSendThrottle = true;
   setTimeout(() => _chatSendThrottle = false, 1000);
 
+  const restoreInput = input.value;
   input.value = '';
   input.style.height = 'auto';
 
-  // Optimistic UI
+  // Optimistic UI — tag the bubble so we can roll it back on error.
   const profile = AppState.getProfile();
-  appendChatBubble({ sender_id: profile.id, content, created_at: new Date().toISOString() });
+  const tempId = 't-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  appendChatBubble({ sender_id: profile.id, content, created_at: new Date().toISOString() }, { tempId });
 
   const { error } = await sb.rpc('send_chat_message', {
     p_match_id: _currentMatchId,
@@ -174,6 +178,8 @@ async function sendChatMessage() {
   if (error) {
     toast('메시지 전송 실패');
     console.error('Chat send error:', error);
+    document.querySelector(`[data-temp-id="${tempId}"]`)?.remove();
+    input.value = restoreInput;
   }
 }
 
