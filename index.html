@@ -8,6 +8,8 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -375,6 +377,79 @@
     <div class="modal-content">
       <button class="modal-close" onclick="closeProfileModal()">&times;</button>
       <div id="profile-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ Intro Detail Overlay ══════════════════════════════════════ -->
+  <div id="intro-detail-overlay" class="id-overlay">
+    <!-- Photo fullscreen viewer -->
+    <div class="id-photo-fs" id="idPhotoFs">
+      <img class="id-photo-fs__img" id="idPhotoFsImg" src="" alt="프로필 사진">
+      <button class="id-photo-fs__close" id="idPhotoFsClose" aria-label="닫기">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2L16 16M16 2L2 16" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- Nav -->
+    <header class="id-nav">
+      <button class="id-nav__back" id="idNavBack" aria-label="뒤로가기">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8.5 1.5L2 8l6.5 6.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="id-nav__title">소개를 받았어요</span>
+      <span class="id-nav__step" id="idNavStep"></span>
+    </header>
+
+    <!-- Scrollable body -->
+    <div class="id-scroll">
+
+      <!-- Hero -->
+      <section class="id-hero">
+        <div class="id-hero__avatar-wrap" id="idAvatarWrap" role="button" tabindex="0" aria-label="프로필 사진 크게 보기">
+          <img class="id-hero__avatar" id="idAvatar" src="" alt="프로필 사진">
+          <span class="id-hero__zoom-hint" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </div>
+        <h2 class="id-hero__name" id="idHeroName"></h2>
+      </section>
+
+      <div class="id-section-gap"></div>
+
+      <!-- Trust card -->
+      <section class="id-trust" id="idTrustSection">
+        <span class="id-label">소개해준 사람</span>
+        <div class="id-trust__card">
+          <div class="id-trust__rec">
+            <div class="id-trust__rec-avatar-wrap">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="4" fill="var(--id-rose)" opacity=".5"/><ellipse cx="10" cy="17" rx="7" ry="4" fill="var(--id-rose)" opacity=".5"/></svg>
+            </div>
+            <div>
+              <div class="id-trust__rec-name" id="idRecName"></div>
+              <div class="id-trust__rec-rel" id="idRecRel"></div>
+            </div>
+          </div>
+          <div class="id-trust__quote-wrap" id="idNoteWrap">
+            <span class="id-trust__quote-mark" aria-hidden="true">"</span>
+            <p class="id-trust__quote" id="idNote"></p>
+          </div>
+        </div>
+      </section>
+
+      <div class="id-section-gap"></div>
+
+      <!-- Basic info -->
+      <section class="id-info">
+        <span class="id-label">기본 정보</span>
+        <div class="id-info__rows" id="idInfoRows"></div>
+      </section>
+
+    </div>
+    <!-- /id-scroll -->
+
+    <!-- Fixed action bar -->
+    <div class="id-actions">
+      <button class="id-btn id-btn--outline" id="idBtnNo">다음에</button>
+      <button class="id-btn id-btn--primary" id="idBtnYes">만나볼게요</button>
     </div>
   </div>
 

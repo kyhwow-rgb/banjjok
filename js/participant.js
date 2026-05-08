@@ -32,72 +32,60 @@ async function loadIntroductionsTab() {
   const partnerMap = {};
   (partners || []).forEach(p => partnerMap[p.id] = p);
 
-  listEl.innerHTML = intros.map(intro => {
+  // Store intros+partners on listEl for openIntroDetail access
+  listEl._intros = intros;
+  listEl._partnerMap = partnerMap;
+
+  listEl.innerHTML = intros.map((intro, idx) => {
     const partnerId = intro.person_a_id === profile.id ? intro.person_b_id : intro.person_a_id;
     const partner = partnerMap[partnerId] || {};
     const myResponse = intro.person_a_id === profile.id ? intro.person_a_response : intro.person_b_response;
     const age = calcAge(partner.birth_date);
     const photoSrc = (partner.photos && partner.photos[0]) || partner.photo_url || '';
     const matchmakerName = intro.primary_matchmaker?.name || '주선자';
-    const compat = compatibilityReport(profile, partner);
 
-    let statusHtml = '';
-    let actionsHtml = '';
-
+    let statusBadge = '';
     if (intro.status === 'matched') {
-      statusHtml = '<span class="intro-status-badge matched">매칭 성사</span>';
+      statusBadge = '<span class="intro-status-badge matched">매칭 성사</span>';
     } else if (intro.status === 'declined') {
-      statusHtml = '<span class="intro-status-badge declined">거절됨</span>';
+      statusBadge = '<span class="intro-status-badge declined">거절됨</span>';
     } else if (intro.status === 'expired') {
-      statusHtml = '<span class="intro-status-badge expired">만료됨</span>';
+      statusBadge = '<span class="intro-status-badge expired">만료됨</span>';
     } else if (myResponse === 'yes') {
-      statusHtml = '<span class="intro-status-badge pending">응답 대기 중</span>';
+      statusBadge = '<span class="intro-status-badge pending">응답 대기 중</span>';
     } else if (myResponse === 'no') {
-      statusHtml = '<span class="intro-status-badge declined">거절함</span>';
-    } else {
-      actionsHtml = `
-        <div class="intro-actions">
-          <button class="btn-no" onclick="respondToIntroduction('${intro.id}', 'no')">다음에</button>
-          <button class="btn-yes" onclick="respondToIntroduction('${intro.id}', 'yes')">좋아요</button>
-        </div>`;
+      statusBadge = '<span class="intro-status-badge declined">거절함</span>';
     }
 
+    const isPending = !myResponse && intro.status === 'pending';
+
     return `
-      <div class="intro-card">
+      <div class="intro-card" onclick="openIntroDetail(${idx})" style="cursor:pointer;">
         <div class="intro-card-header">
           <span class="intro-matchmaker"><i class="fa-solid fa-hand-holding-heart"></i> ${esc(matchmakerName)}님의 소개</span>
-          ${statusHtml}
+          ${statusBadge}
         </div>
-        <div class="intro-person" onclick="openProfileModal('${partnerId}')" style="cursor:pointer;">
+        <div class="intro-person">
           ${photoSrc ? `<img class="intro-person-photo" src="${esc(photoSrc)}" alt="">` : `<div class="intro-person-photo" style="display:flex;align-items:center;justify-content:center;color:var(--muted);"><i class="fa-solid fa-user"></i></div>`}
           <div class="intro-person-info">
             <div class="intro-person-name">${esc(partner.name || '알 수 없음')}</div>
             <div class="intro-person-detail">${age ? age + '세' : ''} · ${esc(partner.job || '')} · ${esc(partner.location || '')}</div>
           </div>
+          ${isPending ? '<svg style="flex-shrink:0;color:#94A3B8" width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
         </div>
-        ${intro.note ? `<div class="intro-note">"${esc(intro.note)}"</div>` : ''}
-        ${compat.length > 0 ? `<div class="compat-list">${compat.map(c => `
-          <div class="compat-item">
-            <span class="compat-icon ${c.status === 'match' ? 'compat-match' : c.status === 'mismatch' ? 'compat-mismatch' : 'compat-neutral'}">
-              <i class="fa-solid ${c.status === 'match' ? 'fa-check' : c.status === 'mismatch' ? 'fa-xmark' : 'fa-minus'}"></i>
-            </span>
-            <span>${esc(c.key)}: ${esc(c.text)}</span>
-          </div>`).join('')}</div>` : ''}
-        ${actionsHtml}
       </div>`;
   }).join('');
 }
 
 async function respondToIntroduction(introId, response) {
-  const label = response === 'yes' ? '수락' : '거절';
-  if (!confirm(`이 소개를 ${label}하시겠어요?`)) return;
-
   const { data, error } = await sb.rpc('respond_to_introduction', {
     p_introduction_id: introId,
     p_response: response
   });
 
   if (error) { toast('응답 실패: ' + error.message); return; }
+
+  closeIntroDetail();
 
   if (data?.matched) {
     toast('매칭이 성사되었어요! 대화 탭에서 확인해보세요.');
@@ -110,6 +98,122 @@ async function respondToIntroduction(introId, response) {
   logEvent('introduction_response', { introduction_id: introId, response });
   loadIntroductionsTab();
 }
+
+// --- Intro Detail Overlay ---
+function openIntroDetail(idx) {
+  const listEl = document.getElementById('intro-list');
+  const intros = listEl._intros || [];
+  const partnerMap = listEl._partnerMap || {};
+  const profile = AppState.getProfile();
+
+  const intro = intros[idx];
+  if (!intro) return;
+
+  const partnerId = intro.person_a_id === profile.id ? intro.person_b_id : intro.person_a_id;
+  const partner = partnerMap[partnerId] || {};
+  const myResponse = intro.person_a_id === profile.id ? intro.person_a_response : intro.person_b_response;
+  const isPending = !myResponse && intro.status === 'pending';
+
+  const age = calcAge(partner.birth_date);
+  const photoSrc = (partner.photos && partner.photos[0]) || partner.photo_url || '';
+  const matchmakerName = intro.primary_matchmaker?.name || '주선자';
+
+  // Step counter (pending intros only)
+  const pendingIntros = intros.filter(i => {
+    const mr = i.person_a_id === profile.id ? i.person_a_response : i.person_b_response;
+    return !mr && i.status === 'pending';
+  });
+  const pendingIdx = pendingIntros.indexOf(intro);
+  const stepEl = document.getElementById('idNavStep');
+  stepEl.textContent = pendingIntros.length > 1 && pendingIdx >= 0
+    ? `${pendingIdx + 1} / ${pendingIntros.length}` : '';
+
+  // Avatar
+  const avatarEl = document.getElementById('idAvatar');
+  if (photoSrc) {
+    avatarEl.src = photoSrc;
+    avatarEl.style.display = '';
+  } else {
+    avatarEl.src = '';
+    avatarEl.style.display = 'none';
+  }
+
+  // Name
+  document.getElementById('idHeroName').textContent = partner.name || '알 수 없음';
+
+  // Trust card
+  document.getElementById('idRecName').textContent = matchmakerName;
+  document.getElementById('idRecRel').textContent = '소개해준 사람';
+  const noteWrap = document.getElementById('idNoteWrap');
+  const noteEl = document.getElementById('idNote');
+  if (intro.note) {
+    noteEl.textContent = intro.note;
+    noteWrap.style.display = '';
+  } else {
+    noteWrap.style.display = 'none';
+  }
+
+  // Basic info rows
+  const infoRows = [
+    { key: '나이',   val: age ? age + '세' : null },
+    { key: '키',     val: partner.height ? partner.height + 'cm' : null },
+    { key: '직업',   val: partner.job || null },
+    { key: '사는 곳', val: partner.location || null },
+    { key: '학력',   val: partner.education || null },
+    { key: '종교',   val: partner.religion || null },
+  ];
+  document.getElementById('idInfoRows').innerHTML = infoRows
+    .filter(r => r.val)
+    .map(r => `
+      <div class="id-info__row">
+        <span class="id-info__row-key">${esc(r.key)}</span>
+        <span class="id-info__row-val">${esc(r.val)}</span>
+      </div>`).join('');
+
+  // Action buttons
+  const btnYes = document.getElementById('idBtnYes');
+  const btnNo  = document.getElementById('idBtnNo');
+  if (isPending) {
+    btnYes.style.display = '';
+    btnNo.style.display  = '';
+    btnYes.onclick = () => respondToIntroduction(intro.id, 'yes');
+    btnNo.onclick  = () => respondToIntroduction(intro.id, 'no');
+  } else {
+    btnYes.style.display = 'none';
+    btnNo.style.display  = 'none';
+  }
+
+  // Photo fullscreen
+  const fs = document.getElementById('idPhotoFs');
+  const fsImg = document.getElementById('idPhotoFsImg');
+  const avatarWrap = document.getElementById('idAvatarWrap');
+  avatarWrap.onclick = () => {
+    if (!photoSrc) return;
+    fsImg.src = photoSrc;
+    fs.classList.add('is-open');
+  };
+  avatarWrap.style.cursor = photoSrc ? 'pointer' : 'default';
+  document.getElementById('idPhotoFsClose').onclick = () => fs.classList.remove('is-open');
+  fs.onclick = (e) => { if (e.target === fs) fs.classList.remove('is-open'); };
+
+  // Open
+  document.getElementById('intro-detail-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeIntroDetail() {
+  document.getElementById('intro-detail-overlay').classList.remove('is-open');
+  document.getElementById('idPhotoFs').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+// Wire back button (once, on DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('idNavBack')?.addEventListener('click', closeIntroDetail);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeIntroDetail();
+  });
+});
 
 // --- Profile Modal ---
 async function openProfileModal(applicantId) {
